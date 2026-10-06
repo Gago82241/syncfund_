@@ -1,0 +1,41 @@
+.tx-form {
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md);
+  padding: 1.5rem;
+  background: var(--paper);
+}
+
+.tx-form h3 {
+  font-size: 1.125rem;
+  margin-bottom: 1rem;
+}
+
+.tx-form__toggle {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+}
+
+.tx-form__toggle button {
+  flex: 1;
+  padding: 0.5rem;
+  border: 1px solid var(--hairline);
+  background: var(--ledger-50);
+  color: var(--ink-muted);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.tx-form__toggle button.is-active {
+  background: var(--ink-900);
+  color: var(--paper);
+  border-color: var(--ink-900);
+}
+
+.tx-form__error {
+  color: var(--loss-500);
+  font-size: 0.8125rem;
+  margin-bottom: 1rem;
+}

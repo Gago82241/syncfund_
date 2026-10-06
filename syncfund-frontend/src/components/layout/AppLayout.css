@@ -1,0 +1,54 @@
+.app-layout__header {
+  display: flex;
+  align-items: center;
+  gap: 2.5rem;
+  padding: 1.25rem 2rem;
+  border-bottom: 1px solid var(--hairline);
+  background: var(--paper);
+}
+
+.app-layout__wordmark {
+  font-family: var(--font-display);
+  font-size: 1.125rem;
+  font-weight: 500;
+  color: var(--ink-900);
+  text-decoration: none;
+}
+
+.app-layout__nav {
+  display: flex;
+  gap: 1.5rem;
+  flex: 1;
+}
+
+.app-layout__nav a {
+  font-size: 0.9375rem;
+  color: var(--ink-muted);
+  text-decoration: none;
+}
+
+.app-layout__nav a:hover {
+  color: var(--ink-900);
+}
+
+.app-layout__user {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  font-size: 0.875rem;
+  color: var(--ink-muted);
+}
+
+.app-layout__user button {
+  background: none;
+  border: none;
+  color: var(--ink-600);
+  cursor: pointer;
+  font-size: 0.875rem;
+}
+
+.app-layout__content {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 2.5rem 1.5rem;
+}

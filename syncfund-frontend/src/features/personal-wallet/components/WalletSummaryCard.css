@@ -1,0 +1,27 @@
+.wallet-summary {
+  border-bottom: 1px solid var(--hairline);
+  padding-bottom: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.wallet-summary__label {
+  font-size: 0.8125rem;
+  color: var(--ink-muted);
+}
+
+.wallet-summary__balance {
+  font-family: var(--font-display);
+  font-size: 2.75rem;
+  margin-top: 0.25rem;
+}
+
+.wallet-summary__row {
+  display: flex;
+  gap: 2.5rem;
+  margin-top: 1.5rem;
+}
+
+.wallet-summary__row p {
+  font-size: 1.125rem;
+  margin-top: 0.2rem;
+}
