@@ -7,8 +7,12 @@ import { clearAuthStorage, getStoredToken } from '../utils/authStorage';
  * componente) para tener un solo lugar donde configurar base URL,
  * headers y manejo de errores.
  */
+// En desarrollo local usa localhost:8080; en producción, Vercel inyecta VITE_API_URL
+// apuntando al backend real desplegado en Railway (ver .env.example).
+const baseURL = import.meta.env.VITE_API_URL ?? 'http://localhost:8080/api';
+
 export const apiClient = axios.create({
-  baseURL: 'http://localhost:8080/api',
+  baseURL,
   headers: {
     'Content-Type': 'application/json',
   },
