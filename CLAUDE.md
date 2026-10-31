@@ -38,7 +38,7 @@ Desarrollo en Windows (PowerShell). Ejecutar desde la raíz del repo.
 
 | Acción | Comando |
 |---|---|
-| Correr backend | `cd demo; .\mvnw.cmd spring-boot:run` |
+| Correr backend | `cd demo; .\mvnw.cmd spring-boot:run "-Dspring-boot.run.profiles=local"` |
 | Pruebas backend | `cd demo; .\mvnw.cmd test` |
 | Instalar dependencias frontend | `cd syncfund-frontend; npm install` |
 | Correr frontend | `cd syncfund-frontend; npm run dev` |
@@ -70,6 +70,9 @@ Antes de dar por terminado un cambio en el backend: `.\mvnw.cmd test` sin fallos
 - La configuración CORS usa `.cors(Customizer.withDefaults())`; no eliminarla.
 - Nunca escribir contraseñas, secretos JWT ni URLs de conexión en el código: usar variables
   de entorno.
+- Configuración local en `demo/src/main/resources/application-local.properties` (ignorado por Git).
+  Para crearlo, copiar `application-local.properties.example` y completar los valores propios.
+  Nunca agregar valores por defecto con secretos en `application.properties`.
 
 ## Validaciones y errores
 - Toda entrada de la API llega como DTO anotado con Bean Validation
