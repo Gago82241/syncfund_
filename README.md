@@ -11,7 +11,6 @@ SyncFund es una aplicación web para llevar tus finanzas personales y, al mismo 
 ## Tabla de contenidos
 
 - [Descripción](#descripción)
-- [Ejemplos del proyecto](#ejemplos-del-proyecto)
 - [Características principales](#características-principales)
 - [Instalación y ejecución](#instalación-y-ejecución)
 - [Construido con](#construido-con)
@@ -32,14 +31,6 @@ El proyecto se construyó siguiendo un diseño orientado a objetos completo (dia
 Los principales retos durante el desarrollo fueron tres: mantener el patrón Observer fiel al diseño original mientras se traducía a una API REST sin estado; decidir cómo representar el "doble descuento" de un gasto compartido (del fondo del proyecto y de la billetera de cada involucrado) sin romper el cálculo de deudas; y cerrar la capa de autorización para que la autenticación JWT no se quedara a medias (saber *quién eres* sin verificar *qué te pertenece*).
 
 De cara al futuro, queda pendiente implementar las máquinas de estado completas descritas en el diseño original (ciclo de vida de un proyecto compartido: Activo → En Liquidación → Cerrado) y mover la sincronización en tiempo real de "poll" (recargar datos) a un mecanismo push real con WebSockets.
-
-## Ejemplos del proyecto
-
-| Inicio de sesión | Billetera personal | Resumen general |
-|---|---|---|
-| ![Login de SyncFund](docs/screenshots/login.png) | ![Billetera personal](docs/screenshots/billetera.png) | ![Dashboard](docs/screenshots/dashboard.png) |
-
-Puedes probar la aplicación en vivo, sin instalar nada, en **[syncfund.vercel.app](https://syncfund.vercel.app)**.
 
 ## Características principales
 
@@ -119,16 +110,6 @@ La aplicación queda disponible en `http://localhost:5173`, conectada por defect
 - [Railway](https://railway.com/) — backend y base de datos MySQL en producción
 - [Vercel](https://vercel.com/) — frontend en producción
 - GitHub — control de versiones
-
-```java
-// Ejemplo: el patrón Observer en el dominio — SharedProject notifica
-// a cada integrante cuando el estado financiero del grupo cambia.
-public void registerSelectiveExpense(double amount, Long payerId,
-                                      List<Long> involvedIdsList, String description) {
-    this.currentBalance -= amount;
-    notifyObservers(amount, description);
-}
-```
 
 ## Recursos útiles
 
