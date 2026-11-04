@@ -116,3 +116,5 @@ Antes de dar por terminado un cambio en el backend: `.\mvnw.cmd test` sin fallos
   `fix: corrige cálculo de deuda con un solo integrante`
   `style: aplica nueva paleta al dashboard`
 - Todo cambio entra por Pull Request revisado por el otro integrante.
+- La documentación de diseño (UML, patrones Observer y Arquitectura en Capas, MER) está en el
+  README y en `docs/diagramas/`. Consultarla antes de modificar el dominio o la estructura de capas.
