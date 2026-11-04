@@ -1,0 +1,21 @@
+# =====================================================================
+# CONFIGURACIÓN LOCAL — SOLO PARA DESARROLLO EN TU COMPUTADOR
+# Este archivo está en .gitignore: NUNCA se sube a GitHub.
+# Se activa con:  .\mvnw.cmd spring-boot:run "-Dspring-boot.run.profiles=local"
+# =====================================================================
+
+# --- Base de datos local (MySQL Workbench) ---
+spring.datasource.url=jdbc:mysql://localhost:3306/syncfund_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&createDatabaseIfNotExist=true
+spring.datasource.username=
+spring.datasource.password=
+
+# --- JWT local ---
+# Usa un secreto propio de desarrollo, DISTINTO al de producción.
+# Genéralo en PowerShell con:
+# $b = New-Object byte[] 64; [Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($b); [Convert]::ToBase64String($b)
+jwt.secret=
+
+# --- Depuración (solo en local) ---
+spring.jpa.show-sql=true
+spring.jpa.properties.hibernate.format_sql=true
+logging.level.com.syncfund=DEBUG
