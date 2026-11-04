@@ -12,6 +12,10 @@ Proyecto académico desarrollado para la asignatura de Construcción de Software
 
 - [Descripción](#descripción)
 - [Características principales](#características-principales)
+- [Arquitectura del sistema](#arquitectura-del-sistema)
+- [Patrón de diseño: Observer](#patrón-de-diseño-observer)
+- [Diagramas de diseño (UML)](#diagramas-de-diseño-uml)
+- [Modelo de datos](#modelo-de-datos)
 - [Instalación y ejecución](#instalación-y-ejecución)
 - [Tecnologías](#tecnologías)
 - [Recursos útiles](#recursos-útiles)
@@ -61,6 +65,187 @@ En seguridad, además de la autenticación sin estado con JWT, el backend verifi
 - **Cálculo de deudas en tiempo real**: en todo momento puedes ver si estás "en paz", te deben, o debes, sin tener que hacer la cuenta a mano.
 - **Categorías con alerta de presupuesto**: define un límite mensual por categoría de gasto y recibe aviso visual cuando lo superas.
 - **Seguridad**: autenticación con JWT y una capa de autorización que verifica, en cada petición, que el recurso solicitado pertenezca a quien hace la petición, no solo que haya iniciado sesión.
+
+## Arquitectura del sistema
+
+### Patrón arquitectónico: Arquitectura en Capas
+
+El sistema se estructura según el patrón de **Arquitectura en Capas** (*Layered Architecture*) en su variante estricta: el software se divide en estratos lógicos horizontales y el flujo de información es unidireccional hacia abajo. Cada capa interactúa únicamente con la capa inmediatamente inferior y desconoce la existencia de las demás.
+
+<p align="center">
+  <img src="docs/diagramas/arquitectura-capas.png" alt="Diagrama de la arquitectura en capas" width="380">
+</p>
+
+| Capa | Responsabilidad |
+|---|---|
+| **Presentación** | Interactúa con el usuario: captura sus acciones (por ejemplo, registrar un gasto) y muestra los saldos. No realiza cálculos financieros. |
+| **Aplicación / Servicios** | Recibe las solicitudes de la capa de presentación, determina la operación requerida y delega su ejecución a la capa de dominio. |
+| **Dominio / Negocio** | Contiene las reglas de negocio: gestión financiera (`Core_Accounting`), cálculo y división de gastos (`Math_Engine`) y el patrón Observer. No depende de cómo se presenta ni de cómo se almacena la información. |
+| **Persistencia / Datos** | Única responsable del acceso al almacenamiento. Recibe las entidades del dominio y las guarda de forma permanente en la base de datos. |
+
+#### Justificación
+
+1. **Aislamiento del dominio financiero.** Las reglas financieras y el cálculo de deudas son el núcleo del sistema. Al ubicar `Core_Accounting` y `Math_Engine` en la capa de dominio, quedan aislados de la interfaz de usuario: ninguna petición externa puede alterar un saldo sin pasar antes por la validación de las capas superiores.
+2. **Separación de responsabilidades.** La lógica de división de una cuenta no se mezcla con la presentación de la información ni con su almacenamiento, lo que evita un sistema monolítico y acoplado.
+3. **Mantenibilidad e independencia tecnológica.** Gracias a la dependencia estricta hacia abajo, un cambio en la interfaz (por ejemplo, pasar de una aplicación web a una móvil) solo afecta la capa de presentación; las reglas de negocio permanecen intactas.
+
+#### Correspondencia con el código
+
+| Capa | Ubicación en el repositorio |
+|---|---|
+| Presentación | `syncfund-frontend/` (React) y `demo/.../presentation/controller` (endpoints REST) |
+| Aplicación | `demo/.../application/service`, `dto`, `mapper` y `exception` |
+| Dominio | `demo/.../domain/model`, `domain/observer`, `domain/service` (`FinancialManager`) y `domain/util` (`DebtCalculator`) |
+| Persistencia | `demo/.../persistence/repository` (Spring Data JPA) y la base de datos MySQL |
+
+Los paquetes `security` (JWT y autorización por recurso) y `config` (CORS y Spring Security) son transversales y se aplican antes de que la solicitud llegue a los controladores.
+
+### Componentes
+
+<p align="center">
+  <img src="docs/diagramas/componentes.png" alt="Diagrama de componentes" width="560">
+</p>
+
+| Componente | Interfaz | Función |
+|---|---|---|
+| `API_Service` | — | Punto de entrada de las solicitudes del cliente. |
+| `User` | `IUserManagement` | Registro, autenticación y datos del usuario. |
+| `Core_Accounting` | `IFinanceActions` | Gestión de billeteras, proyectos compartidos y transacciones. Implementa el patrón Observer. |
+| `Math_Engine` | `ICalculations` | Cálculos financieros: división de gastos, saldos netos y proyección de ahorro. |
+
+## Patrón de diseño: Observer
+
+Para el componente `Core_Accounting` se seleccionó el patrón de comportamiento **Observer**.
+
+### Problema
+
+En un proyecto compartido (`SharedProject`), varios usuarios (`User`) dependen del estado del saldo del grupo. Sin este patrón, cada usuario o vista tendría que consultar periódicamente el proyecto para saber si hubo nuevas transacciones, lo que genera carga innecesaria y un acoplamiento fuerte entre las entidades del dominio.
+
+### Solución
+
+`SharedProject` asume el rol de **sujeto observable** y mantiene una lista de **observadores**, que son sus participantes. Cuando su estado financiero cambia (al registrar un gasto, un aporte o una deuda pendiente), el proyecto notifica automáticamente a todos los participantes inscritos.
+
+| Rol del patrón | Clase en SyncFund |
+|---|---|
+| Sujeto (*Subject*) | `IObservable`, implementada por `SharedProject` |
+| Observador (*Observer*) | `IObserver`, implementada por `User` |
+| Disparador de la notificación | `registerSelectiveExpense`, `distributeContribution`, `notifyPendingDebt` y `FinancialManager.processTransaction` |
+
+### Justificación
+
+1. **Bajo acoplamiento.** `SharedProject` no conoce los detalles de implementación de sus observadores; solo sabe que implementan `IObserver`.
+2. **Principio abierto/cerrado (SOLID).** Se pueden agregar nuevos tipos de observadores (un servicio de auditoría o de notificaciones por correo, por ejemplo) sin modificar `SharedProject`.
+3. **Consistencia de la información.** Cada cambio en el saldo del proyecto se propaga a todos los participantes, de modo que ningún usuario trabaja con información financiera desactualizada.
+
+### Diseño
+
+<p align="center">
+  <img src="docs/diagramas/clases-observer.png" alt="Diagrama de clases con el patrón Observer" width="520">
+</p>
+
+### Implementación
+
+Las interfaces se encuentran en `demo/src/main/java/com/syncfund/domain/observer/`:
+
+```java
+public interface IObservable {
+    void addObserver(IObserver observer);
+    void removeObserver(IObserver observer);
+    void notifyObservers(double amount, String description);
+}
+
+public interface IObserver {
+    void update(String projectName, double newTransactionAmount, String description);
+}
+```
+
+`SharedProject` recorre su lista de observadores y notifica a cada uno:
+
+```java
+@Override
+public void notifyObservers(double amount, String description) {
+    for (IObserver observer : observers) {
+        observer.update(this.name, amount, description);
+    }
+}
+```
+
+Al incorporar un integrante con `addMember(user)`, este se registra automáticamente como observador del proyecto.
+
+### Flujo de registro de un gasto compartido
+
+El diagrama de actividades muestra la validación del gasto (monto mayor a cero, existencia del grupo y pertenencia del usuario) y la ejecución en paralelo del registro (`Core_Accounting`) y del cálculo de la división (`Math_Engine`), antes de notificar a los participantes mediante el patrón Observer.
+
+<p align="center">
+  <img src="docs/diagramas/actividades-registro-gasto.png" alt="Diagrama de actividades del registro de un gasto" width="520">
+</p>
+
+El diagrama de secuencia detalla los mensajes intercambiados entre `API_Service`, `SharedProject`, la base de datos, `DebtCalculator` y los usuarios observadores:
+
+<p align="center">
+  <img src="docs/diagramas/secuencia-observer.png" alt="Diagrama de secuencia del patrón Observer" width="620">
+</p>
+
+> En la implementación actual, la notificación ocurre dentro del backend. La interfaz web refleja los nuevos saldos al recargar los datos; el envío de notificaciones en tiempo real al navegador está contemplado como trabajo futuro (WebSockets).
+
+## Diagramas de diseño (UML)
+
+### Diagrama de clases
+
+<p align="center">
+  <img src="docs/diagramas/clases.png" alt="Diagrama de clases" width="620">
+</p>
+
+### Diagrama de paquetes
+
+<p align="center">
+  <img src="docs/diagramas/paquetes.png" alt="Diagrama de paquetes" width="820">
+</p>
+
+### Diagrama de despliegue
+
+<p align="center">
+  <img src="docs/diagramas/despliegue.png" alt="Diagrama de despliegue" width="720">
+</p>
+
+<details>
+<summary><strong>Diagrama de objetos</strong></summary>
+<br>
+<p align="center">
+  <img src="docs/diagramas/objetos.png" alt="Diagrama de objetos" width="480">
+</p>
+</details>
+
+<details>
+<summary><strong>Máquinas de estado</strong></summary>
+
+#### SharedProject
+<p align="center"><img src="docs/diagramas/estados-shared-project.png" alt="Máquina de estados de SharedProject" width="620"></p>
+
+#### User
+<p align="center"><img src="docs/diagramas/estados-user.png" alt="Máquina de estados de User" width="420"></p>
+
+#### Transaction
+<p align="center"><img src="docs/diagramas/estados-transaction.png" alt="Máquina de estados de Transaction" width="380"></p>
+
+#### PersonalWallet
+<p align="center"><img src="docs/diagramas/estados-personal-wallet.png" alt="Máquina de estados de PersonalWallet" width="560"></p>
+</details>
+
+## Modelo de datos
+
+<p align="center">
+  <img src="docs/base-de-datos/mer.png" alt="Modelo entidad-relación" width="680">
+</p>
+
+| Entidad | Descripción |
+|---|---|
+| `USER` | Usuario del sistema (nombre, correo y contraseña cifrada). |
+| `PERSONAL_WALLET` | Billetera personal del usuario (relación 1:1), con saldo y meta de ahorro. |
+| `SHARED_PROJECT` | Proyecto compartido entre varios usuarios. |
+| `TRANSACTION` | Movimiento registrado en un proyecto, asociado al usuario que lo pagó. |
+
+La relación entre usuarios y proyectos compartidos (N:M) se resuelve con la tabla intermedia `project_participants`.
 
 ## Instalación y ejecución
 
