@@ -11,16 +11,16 @@ import java.util.List;
 /** Datos para SharedProject.registerSelectiveExpense(amount, payerId, involvedIdsList). */
 @Data
 public class RegisterSelectiveExpenseRequest {
-    @Positive
+    @Positive(message = "El monto debe ser mayor que cero")
     private double amount;
 
-    @NotNull
+    @NotNull(message = "El pagador es obligatorio")
     private Long payerId;
 
-    @NotEmpty
+    @NotEmpty(message = "Debes seleccionar al menos un participante")
     private List<Long> involvedIdsList;
 
-    @NotBlank
+    @NotBlank(message = "La descripción es obligatoria")
     private String description;
 
     private Long categoryId; // opcional

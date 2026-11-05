@@ -8,12 +8,12 @@ import lombok.Data;
 /** Datos para SharedProject.distributeContribution(amount, contributorId). */
 @Data
 public class DistributeContributionRequest {
-    @Positive
+    @Positive(message = "El monto debe ser mayor que cero")
     private double amount;
 
-    @NotNull
+    @NotNull(message = "El aportante es obligatorio")
     private Long contributorId;
 
-    @NotBlank
+    @NotBlank(message = "La descripción es obligatoria")
     private String description;
 }

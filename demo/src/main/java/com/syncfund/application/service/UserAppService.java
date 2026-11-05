@@ -42,7 +42,7 @@ public class UserAppService {
     @Transactional
     public UserResponse register(RegisterUserRequest request) {
         if (userRepository.existsByEmail(request.getEmail())) {
-            throw new BusinessException("Ya existe un usuario registrado con ese email");
+            throw new BusinessException("Ya existe un usuario registrado con ese correo");
         }
 
         User user = new User();
