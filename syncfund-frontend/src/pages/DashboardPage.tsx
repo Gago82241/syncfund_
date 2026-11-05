@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { AppLayout } from '../components/layout/AppLayout';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/useAuth';
 import { userService } from '../features/users/services/userService';
 import { formatCOP } from '../styles/theme';
 

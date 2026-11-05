@@ -1,6 +1,6 @@
 import { useParams } from 'react-router-dom';
 import { AppLayout } from '../components/layout/AppLayout';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/useAuth';
 import { useSharedProjectDetail } from '../features/shared-project/hooks/useSharedProjectDetail';
 import { ProjectSummaryCard } from '../features/shared-project/components/ProjectSummaryCard';
 import { MembersList } from '../features/shared-project/components/MembersList';

@@ -1,5 +1,5 @@
 import { AppLayout } from '../components/layout/AppLayout';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/useAuth';
 import { usePersonalWallet } from '../features/personal-wallet/hooks/usePersonalWallet';
 import { WalletSummaryCard } from '../features/personal-wallet/components/WalletSummaryCard';
 import { TransactionForm } from '../features/personal-wallet/components/TransactionForm';
