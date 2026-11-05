@@ -14,25 +14,32 @@ export function usePersonalWallet(userId: number) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  const refresh = useCallback(async () => {
+  // load no marca "cargando": el estado inicial ya lo hace y refresh lo marca antes de recargar.
+  const load = useCallback(
+    () =>
+      personalWalletService
+        .getByUser(userId)
+        .then(({ data: walletData }) => {
+          setWallet(walletData);
+          return transactionService.getByWallet(walletData.walletId, 'PERSONAL');
+        })
+        .then(({ data: txData }) => {
+          setTransactions(txData.slice().sort((a, b) => b.dateTime.localeCompare(a.dateTime)));
+        })
+        .catch(() => setError('No se pudo cargar tu billetera personal.'))
+        .finally(() => setLoading(false)),
+    [userId],
+  );
+
+  const refresh = useCallback(() => {
     setLoading(true);
     setError('');
-    try {
-      const { data: walletData } = await personalWalletService.getByUser(userId);
-      setWallet(walletData);
-
-      const { data: txData } = await transactionService.getByWallet(walletData.walletId, 'PERSONAL');
-      setTransactions(txData.slice().sort((a, b) => b.dateTime.localeCompare(a.dateTime)));
-    } catch {
-      setError('No se pudo cargar tu billetera personal.');
-    } finally {
-      setLoading(false);
-    }
-  }, [userId]);
+    return load();
+  }, [load]);
 
   useEffect(() => {
-    refresh();
-  }, [refresh]);
+    load();
+  }, [load]);
 
   return { wallet, transactions, loading, error, refresh };
 }

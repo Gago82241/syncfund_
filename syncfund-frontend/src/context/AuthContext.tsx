@@ -1,14 +1,7 @@
-import { createContext, useContext, useState, type ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import type { AuthResponse, UserResponse } from '../types/api';
 import { clearAuthStorage, getStoredUser, setAuthStorage } from '../utils/authStorage';
-
-interface AuthContextValue {
-  user: UserResponse | null;
-  login: (auth: AuthResponse) => void;
-  logout: () => void;
-}
-
-const AuthContext = createContext<AuthContextValue | undefined>(undefined);
+import { AuthContext } from './useAuth';
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<UserResponse | null>(() => getStoredUser());
@@ -28,12 +21,4 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       {children}
     </AuthContext.Provider>
   );
-}
-
-export function useAuth() {
-  const ctx = useContext(AuthContext);
-  if (!ctx) {
-    throw new Error('useAuth debe usarse dentro de <AuthProvider>');
-  }
-  return ctx;
 }

@@ -17,34 +17,50 @@ export function useSharedProjectDetail(projectId: number, currentUserId: number)
   const [transactions, setTransactions] = useState<TransactionResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [loadedProjectId, setLoadedProjectId] = useState(projectId);
 
-  const refresh = useCallback(async () => {
+  // La ruta reutiliza esta pantalla al cambiar de proyecto: se vuelve a marcar "cargando".
+  // Object.is porque un id no numérico en la URL da NaN, y con !== esto nunca dejaría de renderizar.
+  if (!Object.is(loadedProjectId, projectId)) {
+    setLoadedProjectId(projectId);
     setLoading(true);
     setError('');
-    try {
-      const { data: projectData } = await sharedProjectService.getById(projectId);
-      setProject(projectData);
+  }
 
-      const memberResponses = await Promise.all(
-        projectData.memberIds.map((id) => userService.getById(id)),
-      );
-      setMembers(memberResponses.map((r) => r.data));
+  // load no marca "cargando": el estado inicial ya lo hace y refresh lo marca antes de recargar.
+  const load = useCallback(
+    () =>
+      sharedProjectService
+        .getById(projectId)
+        .then(({ data: projectData }) => {
+          setProject(projectData);
+          return Promise.all(projectData.memberIds.map((id) => userService.getById(id)));
+        })
+        .then((memberResponses) => {
+          setMembers(memberResponses.map((r) => r.data));
+          return sharedProjectService.getNetBalance(projectId, currentUserId);
+        })
+        .then(({ data: balanceData }) => {
+          setNetBalance(balanceData);
+          return transactionService.getByWallet(projectId, 'SHARED');
+        })
+        .then(({ data: txData }) => {
+          setTransactions(txData.slice().sort((a, b) => b.dateTime.localeCompare(a.dateTime)));
+        })
+        .catch(() => setError('No se pudo cargar el proyecto compartido.'))
+        .finally(() => setLoading(false)),
+    [projectId, currentUserId],
+  );
 
-      const { data: balanceData } = await sharedProjectService.getNetBalance(projectId, currentUserId);
-      setNetBalance(balanceData);
-
-      const { data: txData } = await transactionService.getByWallet(projectId, 'SHARED');
-      setTransactions(txData.slice().sort((a, b) => b.dateTime.localeCompare(a.dateTime)));
-    } catch {
-      setError('No se pudo cargar el proyecto compartido.');
-    } finally {
-      setLoading(false);
-    }
-  }, [projectId, currentUserId]);
+  const refresh = useCallback(() => {
+    setLoading(true);
+    setError('');
+    return load();
+  }, [load]);
 
   useEffect(() => {
-    refresh();
-  }, [refresh]);
+    load();
+  }, [load]);
 
   return { project, members, netBalance, transactions, loading, error, refresh };
 }

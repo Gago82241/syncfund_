@@ -4,7 +4,7 @@ import { AuthLayout } from '../components/layout/AuthLayout';
 import { Input } from '../components/ui/Input';
 import { Button } from '../components/ui/Button';
 import { authService } from '../features/auth/services/authService';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/useAuth';
 import { getApiErrorMessage } from '../utils/apiError';
 
 export function RegisterPage() {

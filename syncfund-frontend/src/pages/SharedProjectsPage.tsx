@@ -1,5 +1,5 @@
 import { AppLayout } from '../components/layout/AppLayout';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/useAuth';
 import { useSharedProjects } from '../features/shared-project/hooks/useSharedProjects';
 import { ProjectCard } from '../features/shared-project/components/ProjectCard';
 import { CreateProjectForm } from '../features/shared-project/components/CreateProjectForm';
