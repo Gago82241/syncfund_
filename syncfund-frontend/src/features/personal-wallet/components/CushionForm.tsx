@@ -1,9 +1,8 @@
 import { useState, type FormEvent } from 'react';
-import axios from 'axios';
 import { Input } from '../../../components/ui/Input';
 import { Button } from '../../../components/ui/Button';
 import { personalWalletService } from '../services/personalWalletService';
-import type { ApiErrorResponse } from '../../../types/api';
+import { getApiErrorMessage } from '../../../utils/apiError';
 
 interface Props {
   walletId: number;
@@ -25,11 +24,7 @@ export function CushionForm({ walletId, onSaved }: Props) {
       setAmount('');
       onSaved();
     } catch (err) {
-      if (axios.isAxiosError<ApiErrorResponse>(err) && err.response) {
-        setError(err.response.data.message);
-      } else {
-        setError('No se pudo completar la operación.');
-      }
+      setError(getApiErrorMessage(err, 'No se pudo completar la operación.'));
     } finally {
       setLoading(false);
     }

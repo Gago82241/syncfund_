@@ -79,9 +79,15 @@ Antes de dar por terminado un cambio en el backend: `.\mvnw.cmd test` sin fallos
   (`@NotBlank`, `@Email`, `@Positive`, `@Size`, …) y el controller usa `@Valid`.
 - Los errores se devuelven siempre con el mismo formato JSON desde un único
   `@RestControllerAdvice`:
-  - Validación → 400 `{ "status": 400, "errors": { "campo": "mensaje" } }`
+  - Validación → 400 `{ "status": 400, "message": "...", "errors": { "campo": "mensaje" } }`
+    (un solo mensaje por campo)
+  - Solicitud mal formada → 400 `{ "status": 400, "message": "..." }` (sin `errors`)
+  - Sin sesión válida → 401 `{ "status": 401, "message": "..." }`
   - Sin permiso → 403 `{ "status": 403, "message": "..." }`
   - No encontrado → 404 `{ "status": 404, "message": "..." }`
+  - Conflicto de estado → 409 `{ "status": 409, "message": "..." }`
+  - Regla de negocio incumplida → 422 `{ "status": 422, "message": "..." }`
+  - Error interno → 500 `{ "status": 500, "message": "..." }` (mensaje genérico, sin detalles técnicos)
 - Mensajes de error en español, claros para el usuario final.
 - El frontend valida también los formularios antes de enviar, pero el backend es la
   validación definitiva.
