@@ -7,7 +7,7 @@ import lombok.Data;
 /** Datos para SharedProject.addMember(userId) — identifica al usuario por email, no por ID. */
 @Data
 public class AddMemberRequest {
-    @NotBlank
-    @Email
+    @NotBlank(message = "El correo es obligatorio")
+    @Email(message = "El correo no tiene un formato válido")
     private String email;
 }

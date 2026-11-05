@@ -156,7 +156,7 @@ class GlobalExceptionHandlerTests {
                 .andExpect(jsonPath("$.status").value(400))
                 .andExpect(jsonPath("$.message").value("Revisa los datos ingresados."))
                 .andExpect(jsonPath("$.errors.password").isString())
-                .andExpect(jsonPath("$.errors.email").value("El email no tiene un formato válido"))
+                .andExpect(jsonPath("$.errors.email").value("El correo no tiene un formato válido"))
                 .andExpect(jsonPath("$.errors.name").doesNotExist());
     }
 
