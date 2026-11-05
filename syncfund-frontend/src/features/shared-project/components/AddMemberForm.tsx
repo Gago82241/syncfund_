@@ -1,9 +1,8 @@
 import { useState, type FormEvent } from 'react';
-import axios from 'axios';
 import { Input } from '../../../components/ui/Input';
 import { Button } from '../../../components/ui/Button';
 import { sharedProjectService } from '../services/sharedProjectService';
-import type { ApiErrorResponse } from '../../../types/api';
+import { getApiErrorMessage } from '../../../utils/apiError';
 
 interface Props {
   projectId: number;
@@ -25,11 +24,7 @@ export function AddMemberForm({ projectId, onSaved }: Props) {
       setEmail('');
       onSaved();
     } catch (err) {
-      if (axios.isAxiosError<ApiErrorResponse>(err) && err.response) {
-        setError(err.response.data.message);
-      } else {
-        setError('No se pudo agregar al integrante.');
-      }
+      setError(getApiErrorMessage(err, 'No se pudo agregar al integrante.'));
     } finally {
       setLoading(false);
     }

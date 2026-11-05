@@ -1,5 +1,7 @@
 package com.syncfund;
 
+import com.syncfund.application.exception.ForbiddenException;
+import com.syncfund.application.exception.ResourceNotFoundException;
 import com.syncfund.application.service.UserAppService;
 import com.syncfund.config.CorsConfig;
 import com.syncfund.config.SecurityConfig;
@@ -69,6 +71,16 @@ class GlobalExceptionHandlerTests {
         @GetMapping("/test/numero/{id}")
         void numericId(@PathVariable Long id) {
         }
+
+        @GetMapping("/test/prohibido")
+        void forbidden() {
+            throw new ForbiddenException("No tienes permiso.");
+        }
+
+        @GetMapping("/test/no-encontrado")
+        void notFound() {
+            throw new ResourceNotFoundException("No existe.");
+        }
     }
 
     @Autowired
@@ -132,5 +144,40 @@ class GlobalExceptionHandlerTests {
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.status").value(404))
                 .andExpect(jsonPath("$.message").value("El recurso solicitado no existe."));
+    }
+
+    @Test
+    void contrasenaVaciaResponde400ConUnMensajePorCampo() throws Exception {
+        // La contraseña vacía incumple @NotBlank y @Size a la vez: no debe terminar en 500.
+        String body = "{\"name\": \"Ana\", \"email\": \"no-es-correo\", \"password\": \"\"}";
+
+        mockMvc.perform(post("/api/auth/register").contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.message").value("Revisa los datos ingresados."))
+                .andExpect(jsonPath("$.errors.password").isString())
+                .andExpect(jsonPath("$.errors.email").value("El email no tiene un formato válido"))
+                .andExpect(jsonPath("$.errors.name").doesNotExist());
+    }
+
+    @Test
+    void sinPermisoResponde403SoloConStatusYMessage() throws Exception {
+        assertOnlyStatusAndMessage(authenticatedGet("/test/prohibido"), 403, "No tienes permiso.");
+    }
+
+    @Test
+    void noEncontradoResponde404SoloConStatusYMessage() throws Exception {
+        assertOnlyStatusAndMessage(authenticatedGet("/test/no-encontrado"), 404, "No existe.");
+    }
+
+    private void assertOnlyStatusAndMessage(MockHttpServletRequestBuilder request, int expectedStatus, String expectedMessage) throws Exception {
+        mockMvc.perform(request)
+                .andExpect(status().is(expectedStatus))
+                .andExpect(jsonPath("$.status").value(expectedStatus))
+                .andExpect(jsonPath("$.message").value(expectedMessage))
+                .andExpect(jsonPath("$.errors").doesNotExist())
+                .andExpect(jsonPath("$.timestamp").doesNotExist())
+                .andExpect(jsonPath("$.error").doesNotExist())
+                .andExpect(jsonPath("$.details").doesNotExist());
     }
 }

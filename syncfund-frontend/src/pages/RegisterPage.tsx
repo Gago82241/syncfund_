@@ -1,12 +1,11 @@
 import { useState, type FormEvent } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import axios from 'axios';
 import { AuthLayout } from '../components/layout/AuthLayout';
 import { Input } from '../components/ui/Input';
 import { Button } from '../components/ui/Button';
 import { authService } from '../features/auth/services/authService';
 import { useAuth } from '../context/AuthContext';
-import type { ApiErrorResponse } from '../types/api';
+import { getApiErrorMessage } from '../utils/apiError';
 
 export function RegisterPage() {
   const navigate = useNavigate();
@@ -26,11 +25,7 @@ export function RegisterPage() {
       login(data);
       navigate('/dashboard');
     } catch (err) {
-      if (axios.isAxiosError<ApiErrorResponse>(err) && err.response) {
-        setError(err.response.data.message);
-      } else {
-        setError('No se pudo conectar con el servidor.');
-      }
+      setError(getApiErrorMessage(err, 'No se pudo conectar con el servidor.'));
     } finally {
       setLoading(false);
     }
