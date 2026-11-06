@@ -1,9 +1,11 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { Input } from '../../../components/ui/Input';
 import { Button } from '../../../components/ui/Button';
+import { FormError } from '../../../components/ui/FormError';
 import { transactionService } from '../../transactions/services/transactionService';
 import { categoryService } from '../../categories/services/categoryService';
-import { getApiErrorMessage } from '../../../utils/apiError';
+import { useFormErrors } from '../../../hooks/useFormErrors';
+import { required, wholeAmount } from '../../../utils/validation';
 import type { CategoryResponse } from '../../../types/api';
 import './TransactionForm.css';
 
@@ -19,8 +21,9 @@ export function TransactionForm({ walletId, onSaved }: Props) {
   const [description, setDescription] = useState('');
   const [categoryId, setCategoryId] = useState('');
   const [categories, setCategories] = useState<CategoryResponse[]>([]);
-  const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const { fieldErrors, formError, formRef, validate, showApiError, clearField, clearErrors } =
+    useFormErrors(['amount', 'description']);
 
   useEffect(() => {
     categoryService.getAll().then(({ data }) => setCategories(data));
@@ -32,12 +35,16 @@ export function TransactionForm({ walletId, onSaved }: Props) {
     setAmount('');
     setDescription('');
     setCategoryId('');
-    setError('');
+    clearErrors();
   }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    setError('');
+    const valid = validate({
+      amount: wholeAmount(amount),
+      description: required(description, 'La descripción es obligatoria'),
+    });
+    if (!valid) return;
     setLoading(true);
     try {
       await transactionService.create({
@@ -53,14 +60,14 @@ export function TransactionForm({ walletId, onSaved }: Props) {
       setCategoryId('');
       onSaved();
     } catch (err) {
-      setError(getApiErrorMessage(err, 'No se pudo registrar el movimiento.'));
+      showApiError(err, 'No se pudo registrar el movimiento.');
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <form onSubmit={handleSubmit} className="tx-form">
+    <form ref={formRef} onSubmit={handleSubmit} className="tx-form" noValidate>
       <h3>Registrar movimiento</h3>
       <div className="tx-form__toggle">
         <button
@@ -81,16 +88,29 @@ export function TransactionForm({ walletId, onSaved }: Props) {
       <Input
         label="Monto (COP)"
         type="number"
+        name="amount"
         min="1"
-        className={`sf-field__input tx-form__amount--${type === 'GASTO' ? 'gasto' : 'ingreso'}`}
+        placeholder="Ej: 50000 (sin puntos)"
+        // El color por tipo tiene más especificidad: con error debe mandar el estilo de error.
+        className={fieldErrors.amount ? undefined : `tx-form__amount--${type === 'GASTO' ? 'gasto' : 'ingreso'}`}
         value={amount}
-        onChange={(e) => setAmount(e.target.value)}
+        error={fieldErrors.amount}
+        onChange={(e) => {
+          setAmount(e.target.value);
+          clearField('amount');
+        }}
         required
       />
       <Input
         label="Descripción"
+        name="description"
+        placeholder={type === 'GASTO' ? 'Ej: Almuerzo con amigos' : 'Ej: Pago de nómina'}
         value={description}
-        onChange={(e) => setDescription(e.target.value)}
+        error={fieldErrors.description}
+        onChange={(e) => {
+          setDescription(e.target.value);
+          clearField('description');
+        }}
         required
       />
       {type === 'GASTO' && categories.length > 0 && (
@@ -109,7 +129,7 @@ export function TransactionForm({ walletId, onSaved }: Props) {
           </select>
         </div>
       )}
-      {error && <p className="tx-form__error">{error}</p>}
+      <FormError message={formError} />
       <Button type="submit" loading={loading}>Guardar</Button>
     </form>
   );
