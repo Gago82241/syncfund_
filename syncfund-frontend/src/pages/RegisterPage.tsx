@@ -7,7 +7,7 @@ import { FormError } from '../components/ui/FormError';
 import { authService } from '../features/auth/services/authService';
 import { useAuth } from '../context/useAuth';
 import { useFormErrors } from '../hooks/useFormErrors';
-import { email as validateEmail, minLength, required } from '../utils/validation';
+import { minLength, newEmail, required } from '../utils/validation';
 
 export function RegisterPage() {
   const navigate = useNavigate();
@@ -23,7 +23,7 @@ export function RegisterPage() {
     e.preventDefault();
     const valid = validate({
       name: required(name, 'El nombre es obligatorio'),
-      email: validateEmail(email),
+      email: newEmail(email),
       password:
         required(password, 'La contraseña es obligatoria') ??
         minLength(password, 6, 'La contraseña debe tener al menos 6 caracteres'),

@@ -4,15 +4,23 @@
  */
 
 const WHOLE_AMOUNT_MESSAGE = 'El monto debe ser un número entero, sin decimales';
+const INVALID_EMAIL_MESSAGE = 'El correo no tiene un formato válido';
 
 export function required(value: string, message: string): string | undefined {
   return value.trim() === '' ? message : undefined;
 }
 
-/** Deliberadamente permisivo: los casos dudosos los decide @Email en el backend. */
+/** Para buscar cuentas existentes: permisivo para no bloquear las antiguas; el resto lo decide @Email. */
 export function email(value: string): string | undefined {
   if (value.trim() === '') return 'El correo es obligatorio';
-  return /^[^\s@]+@[^\s@]+$/.test(value.trim()) ? undefined : 'El correo no tiene un formato válido';
+  return /^[^\s@]+@[^\s@]+$/.test(value.trim()) ? undefined : INVALID_EMAIL_MESSAGE;
+}
+
+/** Para correos que se crean o se cambian: exige punto en el dominio y terminación de 2 letras o más (EmailFormat en el backend). */
+export function newEmail(value: string): string | undefined {
+  const error = email(value);
+  if (error) return error;
+  return /\.[A-Za-z]{2,}$/.test(value.trim()) ? undefined : INVALID_EMAIL_MESSAGE;
 }
 
 export function minLength(value: string, min: number, message: string): string | undefined {
