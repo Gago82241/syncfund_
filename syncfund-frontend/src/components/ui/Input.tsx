@@ -1,4 +1,5 @@
-import type { InputHTMLAttributes } from 'react';
+import { useId, type InputHTMLAttributes } from 'react';
+import { FieldError } from './FieldError';
 import './Input.css';
 
 interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
@@ -6,13 +7,26 @@ interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   error?: string;
 }
 
-export function Input({ label, error, id, ...rest }: InputProps) {
-  const inputId = id ?? rest.name;
+export function Input({ label, error, id, className, ...rest }: InputProps) {
+  // Una misma página puede tener dos campos con el mismo name (ej. dos "amount").
+  const generatedId = useId();
+  const inputId = id ?? generatedId;
+  const errorId = `${inputId}-error`;
+  const inputClassName = ['sf-field__input', error && 'sf-field__input--error', className]
+    .filter(Boolean)
+    .join(' ');
+
   return (
     <div className="sf-field">
       <label htmlFor={inputId} className="sf-field__label">{label}</label>
-      <input id={inputId} className="sf-field__input" {...rest} />
-      {error && <span className="sf-field__error">{error}</span>}
+      <input
+        id={inputId}
+        className={inputClassName}
+        aria-invalid={error ? true : undefined}
+        aria-describedby={error ? errorId : undefined}
+        {...rest}
+      />
+      <FieldError id={errorId} message={error} />
     </div>
   );
 }

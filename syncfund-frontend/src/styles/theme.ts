@@ -28,6 +28,7 @@ export const colors = {
 
   loss500: '#C65D43',  // terracota quemado — montos negativos/gastos
   loss100: '#F7E6E0',
+  loss700: '#A8452D',  // terracota oscuro — texto de error (contraste AA)
 
   warn500: '#C9971F',  // ámbar — alertas de presupuesto (alertExcess)
 } as const;
