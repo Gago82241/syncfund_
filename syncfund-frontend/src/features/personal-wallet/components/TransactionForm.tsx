@@ -3,6 +3,7 @@ import { Input } from '../../../components/ui/Input';
 import { Button } from '../../../components/ui/Button';
 import { transactionService } from '../../transactions/services/transactionService';
 import { categoryService } from '../../categories/services/categoryService';
+import { getApiErrorMessage } from '../../../utils/apiError';
 import type { CategoryResponse } from '../../../types/api';
 import './TransactionForm.css';
 
@@ -25,6 +26,15 @@ export function TransactionForm({ walletId, onSaved }: Props) {
     categoryService.getAll().then(({ data }) => setCategories(data));
   }, []);
 
+  function handleTypeChange(next: 'INGRESO' | 'GASTO') {
+    if (next === type) return;
+    setType(next);
+    setAmount('');
+    setDescription('');
+    setCategoryId('');
+    setError('');
+  }
+
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError('');
@@ -42,8 +52,8 @@ export function TransactionForm({ walletId, onSaved }: Props) {
       setDescription('');
       setCategoryId('');
       onSaved();
-    } catch {
-      setError('No se pudo registrar el movimiento. Revisa que el monto no exceda tu saldo disponible.');
+    } catch (err) {
+      setError(getApiErrorMessage(err, 'No se pudo registrar el movimiento.'));
     } finally {
       setLoading(false);
     }
@@ -56,14 +66,14 @@ export function TransactionForm({ walletId, onSaved }: Props) {
         <button
           type="button"
           className={type === 'GASTO' ? 'is-active' : ''}
-          onClick={() => setType('GASTO')}
+          onClick={() => handleTypeChange('GASTO')}
         >
           Gasto
         </button>
         <button
           type="button"
           className={type === 'INGRESO' ? 'is-active' : ''}
-          onClick={() => setType('INGRESO')}
+          onClick={() => handleTypeChange('INGRESO')}
         >
           Ingreso
         </button>
@@ -72,6 +82,7 @@ export function TransactionForm({ walletId, onSaved }: Props) {
         label="Monto (COP)"
         type="number"
         min="1"
+        className={`sf-field__input tx-form__amount--${type === 'GASTO' ? 'gasto' : 'ingreso'}`}
         value={amount}
         onChange={(e) => setAmount(e.target.value)}
         required
