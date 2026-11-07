@@ -12,7 +12,7 @@ public class RegisterUserRequest {
     private String name;
 
     @NotBlank(message = "El correo es obligatorio")
-    @Email(message = "El correo no tiene un formato válido")
+    @Email(regexp = EmailFormat.REGEXP, message = "El correo no tiene un formato válido")
     private String email;
 
     @NotBlank(message = "La contraseña es obligatoria")

@@ -1,0 +1,5 @@
+.sf-form-error {
+  font-size: 0.8125rem;
+  color: var(--loss-700);
+  margin-bottom: 1rem;
+}

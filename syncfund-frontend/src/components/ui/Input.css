@@ -26,7 +26,18 @@
   outline: none;
 }
 
+.sf-field__input::placeholder {
+  color: var(--ink-faint);
+  opacity: 1;
+}
+
+.sf-field__input--error,
+.sf-field__input--error:focus {
+  border-color: var(--loss-500);
+  box-shadow: 0 0 0 1px var(--loss-500);
+}
+
 .sf-field__error {
   font-size: 0.8125rem;
-  color: var(--loss-500);
+  color: var(--loss-700);
 }

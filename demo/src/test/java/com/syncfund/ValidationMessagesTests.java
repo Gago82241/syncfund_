@@ -1,5 +1,8 @@
 package com.syncfund;
 
+import com.syncfund.application.dto.request.LoginRequest;
+import com.syncfund.application.dto.request.RegisterUserRequest;
+import com.syncfund.application.dto.response.UserResponse;
 import com.syncfund.application.service.CategoryAppService;
 import com.syncfund.application.service.PersonalWalletAppService;
 import com.syncfund.application.service.SharedProjectAppService;
@@ -33,6 +36,8 @@ import org.springframework.test.web.servlet.ResultActions;
 import java.util.stream.Stream;
 
 import static org.junit.jupiter.params.provider.Arguments.arguments;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.request;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -121,6 +126,7 @@ class ValidationMessagesTests {
                 arguments("PUT", "/api/wallets/personal/1/goal", "{\"monthlySavingsGoal\": -1}", "monthlySavingsGoal", "La meta de ahorro no puede ser negativa"),
                 // RegisterUserRequest
                 arguments("POST", "/api/auth/register", "{}", "email", CORREO_OBLIGATORIO),
+                arguments("POST", "/api/auth/register", "{\"email\": \"\"}", "email", CORREO_OBLIGATORIO),
                 arguments("POST", "/api/auth/register", BAD_EMAIL, "email", CORREO_INVALIDO),
                 // UpdateUserRequest
                 arguments("PUT", "/api/users/1", BAD_EMAIL, "email", CORREO_INVALIDO),
@@ -156,6 +162,61 @@ class ValidationMessagesTests {
     @MethodSource("validUserUpdates")
     void actualizacionParcialDelUsuarioEsValida(String body) throws Exception {
         send("PUT", "/api/users/1", body).andExpect(status().isOk());
+    }
+
+    static Stream<String> correosSinTerminacionValida() {
+        return Stream.of("x@gmail", "x@gmail.c", "x@gmail.c0", "a@b..co");
+    }
+
+    @ParameterizedTest
+    @MethodSource("correosSinTerminacionValida")
+    void registroYActualizacionRechazanElCorreo(String email) throws Exception {
+        send("POST", "/api/auth/register", registerBody(email))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors.email").value(CORREO_INVALIDO));
+        send("PUT", "/api/users/1", emailBody(email))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors.email").value(CORREO_INVALIDO));
+    }
+
+    static Stream<String> correosConTerminacionValida() {
+        return Stream.of("x@gmail.com", "x@unal.co", "x@unal.edu.co", "x@ong.org");
+    }
+
+    @ParameterizedTest
+    @MethodSource("correosConTerminacionValida")
+    void registroYActualizacionAceptanElCorreo(String email) throws Exception {
+        when(userAppService.register(any(RegisterUserRequest.class))).thenReturn(user(email));
+
+        send("POST", "/api/auth/register", registerBody(email)).andExpect(status().isCreated());
+        send("PUT", "/api/users/1", emailBody(email)).andExpect(status().isOk());
+    }
+
+    /** Login y agregar integrante solo buscan cuentas existentes: no deben bloquear las antiguas. */
+    @ParameterizedTest
+    @MethodSource("correosDeCuentasAntiguas")
+    void loginYAgregarIntegranteAceptanCuentasAntiguas(String email) throws Exception {
+        when(userAppService.login(any(LoginRequest.class))).thenReturn(user(email));
+
+        send("POST", "/api/auth/login", "{\"email\": \"" + email + "\", \"password\": \"secreta\"}")
+                .andExpect(status().isOk());
+        send("POST", "/api/projects/1/members", emailBody(email)).andExpect(status().isOk());
+    }
+
+    static Stream<String> correosDeCuentasAntiguas() {
+        return Stream.of("x@gmail", "x@gmail.c");
+    }
+
+    private static String registerBody(String email) {
+        return "{\"name\": \"Ana\", \"email\": \"" + email + "\", \"password\": \"secreta\"}";
+    }
+
+    private static String emailBody(String email) {
+        return "{\"email\": \"" + email + "\"}";
+    }
+
+    private static UserResponse user(String email) {
+        return new UserResponse(1L, "Ana", email, 0);
     }
 
     private ResultActions send(String method, String path, String body) throws Exception {

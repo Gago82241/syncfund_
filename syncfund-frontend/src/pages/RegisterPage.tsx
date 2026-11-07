@@ -3,9 +3,11 @@ import { useNavigate, Link } from 'react-router-dom';
 import { AuthLayout } from '../components/layout/AuthLayout';
 import { Input } from '../components/ui/Input';
 import { Button } from '../components/ui/Button';
+import { FormError } from '../components/ui/FormError';
 import { authService } from '../features/auth/services/authService';
 import { useAuth } from '../context/useAuth';
-import { getApiErrorMessage } from '../utils/apiError';
+import { useFormErrors } from '../hooks/useFormErrors';
+import { minLength, newEmail, required } from '../utils/validation';
 
 export function RegisterPage() {
   const navigate = useNavigate();
@@ -13,19 +15,27 @@ export function RegisterPage() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const { fieldErrors, formError, formRef, validate, showApiError, clearField } =
+    useFormErrors(['name', 'email', 'password']);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    setError('');
+    const valid = validate({
+      name: required(name, 'El nombre es obligatorio'),
+      email: newEmail(email),
+      password:
+        required(password, 'La contraseña es obligatoria') ??
+        minLength(password, 6, 'La contraseña debe tener al menos 6 caracteres'),
+    });
+    if (!valid) return;
     setLoading(true);
     try {
       const { data } = await authService.register({ name, email, password });
       login(data);
       navigate('/dashboard');
     } catch (err) {
-      setError(getApiErrorMessage(err, 'No se pudo conectar con el servidor.'));
+      showApiError(err, 'No se pudo conectar con el servidor.');
     } finally {
       setLoading(false);
     }
@@ -37,36 +47,47 @@ export function RegisterPage() {
       <p style={{ color: 'var(--ink-muted)', marginTop: '0.5rem', marginBottom: '2rem' }}>
         Te creamos tu billetera personal automáticamente.
       </p>
-      <form onSubmit={handleSubmit}>
+      <form ref={formRef} onSubmit={handleSubmit} noValidate>
         <Input
           label="Nombre"
           name="name"
+          placeholder="Ej: María Gómez"
           value={name}
-          onChange={(e) => setName(e.target.value)}
+          error={fieldErrors.name}
+          onChange={(e) => {
+            setName(e.target.value);
+            clearField('name');
+          }}
           required
         />
         <Input
           label="Correo"
           type="email"
           name="email"
+          placeholder="nombre@correo.com"
           value={email}
-          onChange={(e) => setEmail(e.target.value)}
+          error={fieldErrors.email}
+          onChange={(e) => {
+            setEmail(e.target.value);
+            clearField('email');
+          }}
           required
         />
         <Input
           label="Contraseña"
           type="password"
           name="password"
+          placeholder="Mínimo 6 caracteres"
           value={password}
-          onChange={(e) => setPassword(e.target.value)}
+          error={fieldErrors.password}
+          onChange={(e) => {
+            setPassword(e.target.value);
+            clearField('password');
+          }}
           minLength={6}
           required
         />
-        {error && (
-          <p style={{ color: 'var(--loss-500)', fontSize: '0.875rem', marginBottom: '1rem' }}>
-            {error}
-          </p>
-        )}
+        <FormError message={formError} />
         <Button type="submit" loading={loading}>Crear cuenta</Button>
       </form>
       <p style={{ marginTop: '1.5rem', fontSize: '0.875rem', color: 'var(--ink-muted)' }}>
