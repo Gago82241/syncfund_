@@ -10,7 +10,6 @@ import com.syncfund.application.mapper.TransactionMapper;
 import com.syncfund.domain.model.*;
 import com.syncfund.domain.service.FinancialManager;
 import com.syncfund.domain.util.DebtCalculator;
-import com.syncfund.persistence.repository.CategoryRepository;
 import com.syncfund.persistence.repository.PersonalWalletRepository;
 import com.syncfund.persistence.repository.SharedProjectRepository;
 import com.syncfund.persistence.repository.TransactionRepository;
@@ -33,7 +32,7 @@ public class TransactionAppService {
     private final TransactionRepository transactionRepository;
     private final PersonalWalletRepository personalWalletRepository;
     private final SharedProjectRepository sharedProjectRepository;
-    private final CategoryRepository categoryRepository;
+    private final CategoryAppService categoryAppService;
     private final FinancialManager financialManager;
     private final DebtCalculator debtCalculator;
     private final TransactionMapper mapper;
@@ -42,7 +41,7 @@ public class TransactionAppService {
     public TransactionAppService(TransactionRepository transactionRepository,
                                   PersonalWalletRepository personalWalletRepository,
                                   SharedProjectRepository sharedProjectRepository,
-                                  CategoryRepository categoryRepository,
+                                  CategoryAppService categoryAppService,
                                   FinancialManager financialManager,
                                   DebtCalculator debtCalculator,
                                   TransactionMapper mapper,
@@ -50,7 +49,7 @@ public class TransactionAppService {
         this.transactionRepository = transactionRepository;
         this.personalWalletRepository = personalWalletRepository;
         this.sharedProjectRepository = sharedProjectRepository;
-        this.categoryRepository = categoryRepository;
+        this.categoryAppService = categoryAppService;
         this.financialManager = financialManager;
         this.debtCalculator = debtCalculator;
         this.mapper = mapper;
@@ -73,9 +72,7 @@ public class TransactionAppService {
         transaction.setInvolvedIdsList(request.getInvolvedIdsList() != null ? request.getInvolvedIdsList() : List.of());
 
         if (request.getCategoryId() != null) {
-            Category category = categoryRepository.findById(request.getCategoryId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Categoría no encontrada: " + request.getCategoryId()));
-            transaction.categorize(category);
+            transaction.categorize(categoryAppService.getOwnedCategory(request.getCategoryId()));
         }
 
         // Transaction.execute(): valida saldo (o permiso de sobregiro) y procesa el movimiento.
@@ -126,16 +123,16 @@ public class TransactionAppService {
                 .stream().map(mapper::toResponse).toList();
     }
 
-    /** Transaction.categorize(categoryId). */
+    /** Transaction.categorize(categoryId). Exige acceso a la billetera del movimiento y una categoría propia. */
     @Transactional
     public TransactionResponse categorize(Long transactionId, CategorizeTransactionRequest request) {
         Transaction transaction = transactionRepository.findById(transactionId)
                 .orElseThrow(() -> new ResourceNotFoundException("Transacción no encontrada: " + transactionId));
 
-        Category category = categoryRepository.findById(request.getCategoryId())
-                .orElseThrow(() -> new ResourceNotFoundException("Categoría no encontrada: " + request.getCategoryId()));
+        Transaction.OriginWalletType walletType = transaction.getOriginWalletType();
+        requireAccess(resolveWallet(transaction.getOriginWalletId(), walletType), walletType);
 
-        transaction.categorize(category);
+        transaction.categorize(categoryAppService.getOwnedCategory(request.getCategoryId()));
         return mapper.toResponse(transactionRepository.save(transaction));
     }
 

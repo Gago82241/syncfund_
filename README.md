@@ -39,7 +39,7 @@ La gestión de gastos compartidos (vivienda, viajes, actividades grupales) suele
 | **Billetera personal** (`PersonalWallet`) | Registro de movimientos (ingresos y gastos), meta de ahorro mensual y saldo de reserva ("colchón") que impide que el saldo quede en negativo. |
 | **Proyectos compartidos** (`SharedProject`) | Creación de grupos, incorporación de integrantes por correo electrónico, aportes al fondo común y registro de gastos con selección de participantes. |
 | **Cálculo de deudas** (`DebtCalculator`) | Determinación del saldo neto de cada integrante: si está al día, si le deben o si debe. |
-| **Categorías** | Clasificación de gastos con límite de presupuesto mensual y alerta cuando se supera. |
+| **Categorías** | Clasificación de gastos con límite de presupuesto mensual y alerta cuando se supera. Cada categoría es privada de quien la crea. |
 
 ### Enfoque de desarrollo
 
@@ -63,7 +63,7 @@ En seguridad, además de la autenticación sin estado con JWT, el backend verifi
 - **Billetera personal**: registro de ingresos y gastos, meta de ahorro mensual con cálculo automático de cuota, y un "colchón" de seguridad que nunca permite dejar el saldo en negativo.
 - **Proyectos compartidos**: crea un grupo, agrega integrantes por correo electrónico, registra gastos selectivos (eliges quién participa en cada uno) y aportes al fondo común.
 - **Cálculo de deudas en tiempo real**: en todo momento puedes ver si estás "en paz", te deben, o debes, sin tener que hacer la cuenta a mano.
-- **Categorías con alerta de presupuesto**: define un límite mensual por categoría de gasto y recibe aviso visual cuando lo superas.
+- **Categorías con alerta de presupuesto**: crea tus propias categorías de gasto, define un límite mensual para cada una y recibe aviso visual cuando lo superas. Solo tú puedes verlas y usarlas.
 - **Seguridad**: autenticación con JWT y una capa de autorización que verifica, en cada petición, que el recurso solicitado pertenezca a quien hace la petición, no solo que haya iniciado sesión.
 
 ## Arquitectura del sistema
@@ -243,7 +243,8 @@ El diagrama de secuencia detalla los mensajes intercambiados entre `API_Service`
 | `USER` | Usuario del sistema (nombre, correo y contraseña cifrada). |
 | `PERSONAL_WALLET` | Billetera personal del usuario (relación 1:1), con saldo y meta de ahorro. |
 | `SHARED_PROJECT` | Proyecto compartido entre varios usuarios. |
-| `TRANSACTION` | Movimiento registrado en un proyecto, asociado al usuario que lo pagó. |
+| `TRANSACTION` | Movimiento de una billetera personal o de un proyecto compartido, con categoría opcional. |
+| `CATEGORY` | Categoría de gasto con límite mensual. Pertenece a un usuario (`user_id`), que es el único que puede verla y usarla. |
 
 La relación entre usuarios y proyectos compartidos (N:M) se resuelve con la tabla intermedia `project_participants`.
 
@@ -292,6 +293,8 @@ cd demo
 ```
 
 El backend queda escuchando en `http://localhost:8080`. Hibernate crea las tablas automáticamente en el primer arranque.
+
+> Si tu base de datos ya tiene datos, aplica antes de arrancar los scripts pendientes de `docs/base-de-datos/migraciones/`: Hibernate no migra correctamente una columna obligatoria nueva sobre filas existentes.
 
 ### 3. Frontend (`syncfund-frontend/`)
 
