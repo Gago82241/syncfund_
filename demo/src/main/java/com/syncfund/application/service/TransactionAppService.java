@@ -110,19 +110,25 @@ public class TransactionAppService {
         }
     }
 
-    /** Wallet.getPeriodReport(startDate, endDate), filtrado por billetera. */
+    /** Wallet.getPeriodReport(startDate, endDate), filtrado por billetera. Exige acceso a ella. */
     public List<TransactionResponse> getPeriodReport(Long walletId, String walletType,
                                                        LocalDateTime start, LocalDateTime end) {
+        Transaction.OriginWalletType type = parseWalletType(walletType);
+        requireAccess(resolveWallet(walletId, type), type);
+
         List<Transaction> transactions = transactionRepository
-                .findByOriginWalletIdAndOriginWalletTypeAndDateTimeBetween(
-                        walletId, parseWalletType(walletType), start, end);
+                .findByOriginWalletIdAndOriginWalletTypeAndDateTimeBetween(walletId, type, start, end);
 
         return transactions.stream().map(mapper::toResponse).toList();
     }
 
+    /** Movimientos de una billetera. Exige acceso a ella. */
     public List<TransactionResponse> getByWallet(Long walletId, String walletType) {
+        Transaction.OriginWalletType type = parseWalletType(walletType);
+        requireAccess(resolveWallet(walletId, type), type);
+
         return transactionRepository
-                .findByOriginWalletIdAndOriginWalletType(walletId, parseWalletType(walletType))
+                .findByOriginWalletIdAndOriginWalletType(walletId, type)
                 .stream().map(mapper::toResponse).toList();
     }
 

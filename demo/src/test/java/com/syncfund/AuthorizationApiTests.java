@@ -28,6 +28,8 @@ import com.syncfund.security.JwtService;
 import com.syncfund.security.RestAuthenticationEntryPoint;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
@@ -43,10 +45,13 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -74,7 +79,12 @@ class AuthorizationApiTests {
     private static final Long OUTSIDER_ID = 3L;
     private static final Long NONEXISTENT_USER_ID = 999L;
     private static final Long PROJECT_ID = 100L;
+    private static final Long PERSONAL_WALLET_ID = 200L;
     private static final Long NONEXISTENT_ID = 404L;
+    private static final Long TRANSACTION_ID = 500L;
+    private static final String MOVEMENTS_ROUTE = "/api/transactions/wallet/%d?walletType=%s";
+    private static final String REPORT_ROUTE = "/api/transactions/wallet/%d/report?walletType=%s"
+            + "&start=2026-01-01T00:00:00&end=2026-12-31T23:59:59";
     private static final String INVOLVED_OUTSIDE_MESSAGE = "Solo puedes repartir un gasto entre integrantes del proyecto.";
 
     @Autowired
@@ -101,7 +111,7 @@ class AuthorizationApiTests {
 
         lenient().when(transactionRepository.save(any(Transaction.class))).thenAnswer(call -> {
             Transaction saved = call.getArgument(0);
-            saved.setTransactionId(500L);
+            saved.setTransactionId(TRANSACTION_ID);
             return saved;
         });
     }
@@ -226,6 +236,100 @@ class AuthorizationApiTests {
         mockMvc.perform(asCurrentUser(post("/api/transactions"))
                         .content(sharedTransactionJson(NONEXISTENT_ID, CURRENT_USER_ID)))
                 .andExpect(status().isNotFound());
+    }
+
+    // ---- GET /api/transactions/wallet/{walletId} y /report ----
+
+    @ParameterizedTest
+    @ValueSource(strings = {MOVEMENTS_ROUTE, REPORT_ROUTE})
+    void movimientosDeBilleteraPropiaResponden200(String route) throws Exception {
+        givenOwnedPersonalWallet(currentUser);
+        givenStoredMovement(PERSONAL_WALLET_ID, Transaction.OriginWalletType.PERSONAL);
+
+        mockMvc.perform(asCurrentUser(get(route.formatted(PERSONAL_WALLET_ID, "PERSONAL"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].transactionId").value(TRANSACTION_ID));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {MOVEMENTS_ROUTE, REPORT_ROUTE})
+    void movimientosDeBilleteraAjenaResponden403SinConsultarlos(String route) throws Exception {
+        givenOwnedPersonalWallet(outsider);
+
+        mockMvc.perform(asCurrentUser(get(route.formatted(PERSONAL_WALLET_ID, "PERSONAL"))))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.status").value(403))
+                .andExpect(jsonPath("$.message").value("Esta billetera personal no te pertenece."));
+
+        verifyNoInteractions(transactionRepository);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {MOVEMENTS_ROUTE, REPORT_ROUTE})
+    void movimientosDeBilleteraInexistenteResponden404(String route) throws Exception {
+        when(personalWalletRepository.findById(NONEXISTENT_ID)).thenReturn(Optional.empty());
+
+        mockMvc.perform(asCurrentUser(get(route.formatted(NONEXISTENT_ID, "PERSONAL"))))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.status").value(404));
+
+        verifyNoInteractions(transactionRepository);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {MOVEMENTS_ROUTE, REPORT_ROUTE})
+    void movimientosDeProyectoDelQueEsMiembroResponden200(String route) throws Exception {
+        givenProject(currentUser, member);
+        givenStoredMovement(PROJECT_ID, Transaction.OriginWalletType.SHARED);
+
+        mockMvc.perform(asCurrentUser(get(route.formatted(PROJECT_ID, "SHARED"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].transactionId").value(TRANSACTION_ID));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {MOVEMENTS_ROUTE, REPORT_ROUTE})
+    void movimientosDeProyectoAjenoResponden403SinConsultarlos(String route) throws Exception {
+        givenProject(member);
+
+        mockMvc.perform(asCurrentUser(get(route.formatted(PROJECT_ID, "SHARED"))))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.status").value(403))
+                .andExpect(jsonPath("$.message").value("No perteneces a este proyecto compartido."));
+
+        verifyNoInteractions(transactionRepository);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {MOVEMENTS_ROUTE, REPORT_ROUTE})
+    void movimientosDeProyectoInexistenteResponden404(String route) throws Exception {
+        when(sharedProjectRepository.findById(NONEXISTENT_ID)).thenReturn(Optional.empty());
+
+        mockMvc.perform(asCurrentUser(get(route.formatted(NONEXISTENT_ID, "SHARED"))))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.status").value(404));
+
+        verifyNoInteractions(transactionRepository);
+    }
+
+    private void givenOwnedPersonalWallet(User owner) {
+        PersonalWallet wallet = new PersonalWallet();
+        wallet.setWalletId(PERSONAL_WALLET_ID);
+        wallet.setOwner(owner);
+        when(personalWalletRepository.findById(PERSONAL_WALLET_ID)).thenReturn(Optional.of(wallet));
+    }
+
+    private void givenStoredMovement(Long walletId, Transaction.OriginWalletType walletType) {
+        Transaction movement = new Transaction();
+        movement.setTransactionId(TRANSACTION_ID);
+        movement.setType(Transaction.TransactionType.GASTO);
+        movement.setOriginWalletId(walletId);
+        movement.setOriginWalletType(walletType);
+        lenient().when(transactionRepository.findByOriginWalletIdAndOriginWalletType(walletId, walletType))
+                .thenReturn(List.of(movement));
+        lenient().when(transactionRepository.findByOriginWalletIdAndOriginWalletTypeAndDateTimeBetween(
+                        eq(walletId), eq(walletType), any(), any()))
+                .thenReturn(List.of(movement));
     }
 
     private void verifyNothingSaved() {
