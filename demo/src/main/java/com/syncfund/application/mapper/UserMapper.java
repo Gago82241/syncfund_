@@ -14,4 +14,14 @@ public class UserMapper {
                 user.getGeneralSummary()
         );
     }
+
+    /** Lo que ve un compañero de proyecto: los mismos campos, sin revelar el saldo real. */
+    public UserResponse toProjectMemberResponse(User user) {
+        return new UserResponse(
+                user.getId(),
+                user.getName(),
+                user.getEmail(),
+                0.0
+        );
+    }
 }

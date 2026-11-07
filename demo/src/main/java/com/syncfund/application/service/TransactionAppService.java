@@ -61,6 +61,9 @@ public class TransactionAppService {
         Transaction.OriginWalletType walletType = parseWalletType(request.getOriginWalletType());
         Wallet wallet = resolveWallet(request.getOriginWalletId(), walletType);
         requireAccess(wallet, walletType);
+        if (wallet instanceof SharedProject project) {
+            requireInvolvedAreMembers(project, request.getInvolvedIdsList());
+        }
 
         Transaction transaction = new Transaction();
         transaction.setAmount(request.getAmount());
@@ -107,19 +110,25 @@ public class TransactionAppService {
         }
     }
 
-    /** Wallet.getPeriodReport(startDate, endDate), filtrado por billetera. */
+    /** Wallet.getPeriodReport(startDate, endDate), filtrado por billetera. Exige acceso a ella. */
     public List<TransactionResponse> getPeriodReport(Long walletId, String walletType,
                                                        LocalDateTime start, LocalDateTime end) {
+        Transaction.OriginWalletType type = parseWalletType(walletType);
+        requireAccess(resolveWallet(walletId, type), type);
+
         List<Transaction> transactions = transactionRepository
-                .findByOriginWalletIdAndOriginWalletTypeAndDateTimeBetween(
-                        walletId, parseWalletType(walletType), start, end);
+                .findByOriginWalletIdAndOriginWalletTypeAndDateTimeBetween(walletId, type, start, end);
 
         return transactions.stream().map(mapper::toResponse).toList();
     }
 
+    /** Movimientos de una billetera. Exige acceso a ella. */
     public List<TransactionResponse> getByWallet(Long walletId, String walletType) {
+        Transaction.OriginWalletType type = parseWalletType(walletType);
+        requireAccess(resolveWallet(walletId, type), type);
+
         return transactionRepository
-                .findByOriginWalletIdAndOriginWalletType(walletId, parseWalletType(walletType))
+                .findByOriginWalletIdAndOriginWalletType(walletId, type)
                 .stream().map(mapper::toResponse).toList();
     }
 
@@ -150,6 +159,17 @@ public class TransactionAppService {
             if (!isMember) {
                 throw new ForbiddenException("No perteneces a este proyecto compartido.");
             }
+        }
+    }
+
+    /** Un gasto compartido descuenta de la billetera de cada involucrado: todos deben ser miembros. */
+    private void requireInvolvedAreMembers(SharedProject project, List<Long> involvedIdsList) {
+        if (involvedIdsList == null) {
+            return;
+        }
+        List<Long> memberIds = project.getMembers().stream().map(User::getId).toList();
+        if (!memberIds.containsAll(involvedIdsList)) {
+            throw new ForbiddenException("Solo puedes repartir un gasto entre integrantes del proyecto.");
         }
     }
 
