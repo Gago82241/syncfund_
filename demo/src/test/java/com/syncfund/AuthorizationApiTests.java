@@ -312,6 +312,79 @@ class AuthorizationApiTests {
         verifyNoInteractions(transactionRepository);
     }
 
+    // ---- GET /api/users/{id} ----
+
+    @Test
+    void consultarseASiMismoDevuelveTodosLosDatos() throws Exception {
+        givenStoredUser(currentUser, 300);
+
+        mockMvc.perform(asCurrentUser(get("/api/users/" + CURRENT_USER_ID)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(CURRENT_USER_ID))
+                .andExpect(jsonPath("$.name").value(currentUser.getName()))
+                .andExpect(jsonPath("$.email").value(currentUser.getEmail()))
+                .andExpect(jsonPath("$.generalSummary").value(300.0));
+    }
+
+    @Test
+    void consultarAUnCompaneroDeProyectoOcultaSuSaldo() throws Exception {
+        givenStoredUser(member, 300);
+        givenProjectsOfCurrentUser(currentUser, member);
+
+        mockMvc.perform(asCurrentUser(get("/api/users/" + MEMBER_ID)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(MEMBER_ID))
+                .andExpect(jsonPath("$.name").value(member.getName()))
+                .andExpect(jsonPath("$.email").value(member.getEmail()))
+                .andExpect(jsonPath("$.generalSummary").value(0.0));
+    }
+
+    @Test
+    void consultarAUnUsuarioSinProyectoEnComunResponde403() throws Exception {
+        givenStoredUser(outsider, 300);
+        givenProjectsOfCurrentUser(currentUser, member);
+
+        mockMvc.perform(asCurrentUser(get("/api/users/" + OUTSIDER_ID)))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.status").value(403))
+                .andExpect(jsonPath("$.message").value("No puedes acceder a la información de otro usuario."))
+                .andExpect(jsonPath("$.email").doesNotExist())
+                .andExpect(jsonPath("$.generalSummary").doesNotExist());
+    }
+
+    @Test
+    void consultarAUnUsuarioCuandoNoSeTieneNingunProyectoResponde403() throws Exception {
+        givenStoredUser(outsider, 300);
+        when(sharedProjectRepository.findByMembers_Id(CURRENT_USER_ID)).thenReturn(List.of());
+
+        mockMvc.perform(asCurrentUser(get("/api/users/" + OUTSIDER_ID)))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void consultarAUnUsuarioInexistenteResponde404() throws Exception {
+        when(userRepository.findById(NONEXISTENT_USER_ID)).thenReturn(Optional.empty());
+
+        mockMvc.perform(asCurrentUser(get("/api/users/" + NONEXISTENT_USER_ID)))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.status").value(404));
+    }
+
+    private void givenStoredUser(User user, double balance) {
+        PersonalWallet wallet = new PersonalWallet();
+        wallet.setCurrentBalance(balance);
+        user.setName("Usuario " + user.getId());
+        user.setEmail("usuario" + user.getId() + "@example.com");
+        user.setPersonalWallet(wallet);
+        when(userRepository.findById(user.getId())).thenReturn(Optional.of(user));
+    }
+
+    private void givenProjectsOfCurrentUser(User... members) {
+        SharedProject project = new SharedProject();
+        project.setMembers(List.of(members));
+        when(sharedProjectRepository.findByMembers_Id(CURRENT_USER_ID)).thenReturn(List.of(project));
+    }
+
     private void givenOwnedPersonalWallet(User owner) {
         PersonalWallet wallet = new PersonalWallet();
         wallet.setWalletId(PERSONAL_WALLET_ID);
