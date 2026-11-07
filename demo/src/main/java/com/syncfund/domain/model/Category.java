@@ -9,8 +9,11 @@ import java.util.List;
 
 /**
  * Category (diagrama de clases).
- * Atributos: categoryId, name, monthlyLimit.
+ * Atributos: categoryId, name, monthlyLimit, owner.
  * Métodos: calculateTotalExpense(walletId, month), alertExcess(currentAmount).
+ *
+ * Cada categoría pertenece a un usuario (no a su billetera): se usa tanto en su
+ * PersonalWallet como en los SharedProject donde registra gastos.
  */
 @Entity
 @Table(name = "categories")
@@ -29,6 +32,10 @@ public class Category {
 
     @Column(name = "monthly_limit", columnDefinition = "DECIMAL(12,2)")
     private double monthlyLimit;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false)
+    private User owner;
 
     /**
      * calculateTotalExpense(walletId, month): recorre las transacciones de esa billetera
