@@ -49,9 +49,3 @@
 .tx-form .sf-field__input.tx-form__amount--ingreso:focus {
   box-shadow: 0 0 0 1px var(--gain-500);
 }
-
-.tx-form__error {
-  color: var(--loss-500);
-  font-size: 0.8125rem;
-  margin-bottom: 1rem;
-}
