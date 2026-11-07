@@ -29,9 +29,9 @@ async function fetchCategoriesWithSpend(userId: number): Promise<CategoryWithSpe
 }
 
 /**
- * Trae todas las categorías y, para cada una, el gasto acumulado del mes
- * actual contra la PersonalWallet del usuario (Category.calculateTotalExpense
- * + Category.alertExcess). Las categorías son globales en el backend; aquí
+ * Trae las categorías del usuario y, para cada una, el gasto acumulado del mes
+ * actual contra su PersonalWallet (Category.calculateTotalExpense
+ * + Category.alertExcess). Cada categoría pertenece a un usuario; aquí
  * las medimos contra la billetera personal como caso de uso principal.
  */
 export function useCategories(userId: number) {

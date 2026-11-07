@@ -62,10 +62,14 @@ Antes de dar por terminado un cambio en el backend: `.\mvnw.cmd test` sin fallos
    movimientos o gastos.
 4. **No modificar el esquema de la base de datos** (tablas, columnas, relaciones) sin
    aprobación explícita del equipo. Producción usa la misma estructura.
+   - Un cambio de esquema sobre tablas con datos lleva un script manual en
+     `docs/base-de-datos/migraciones/`, que se ejecuta antes del despliegue. `ddl-auto=update`
+     también corre en producción y no basta: una columna `NOT NULL` nueva deja las filas
+     existentes con un valor por defecto, y si la llave foránea falla solo registra una advertencia.
 
 ## Seguridad (no romper)
 - Todas las rutas exigen JWT excepto `/api/auth/**` y las peticiones `OPTIONS` (preflight CORS).
-- Toda operación sobre PersonalWallet, SharedProject o User debe verificar dueño/membresía con
+- Toda operación sobre PersonalWallet, SharedProject, Category o User debe verificar dueño/membresía con
   `CurrentUserProvider`; si no corresponde, lanzar `ForbiddenException` (403).
 - La configuración CORS usa `.cors(Customizer.withDefaults())`; no eliminarla.
 - Nunca escribir contraseñas, secretos JWT ni URLs de conexión en el código: usar variables
