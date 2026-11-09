@@ -147,21 +147,31 @@ public class SharedProjectAppService {
                 .toList();
     }
 
-    /** notifyPendingDebt() + DebtCalculator.determineNetBalance(userId, projectId). Solo tu propia deuda. */
+    /**
+     * notifyPendingDebt() + DebtCalculator.determineNetBalance(userId, projectId). Solo tu propia deuda.
+     *
+     * Aportes = INGRESO del proyecto en los que el usuario es el aportante (involvedIdsList).
+     * Gastos = GASTO del proyecto en los que el usuario participa (involvedIdsList).
+     * Los INGRESO antiguos sin aportante no cuentan para nadie.
+     */
+    @Transactional(readOnly = true)
     public NetBalanceResponse getNetBalance(Long projectId, Long userId) {
         SharedProject project = findProject(projectId);
         requireMember(project);
         requireSelf(userId, "No puedes consultar la deuda de otro usuario.");
 
-        List<Transaction> contributions = transactionRepository
+        List<Transaction> userMovements = transactionRepository
                 .findByOriginWalletIdAndOriginWalletType(projectId, Transaction.OriginWalletType.SHARED)
                 .stream()
+                .filter(t -> t.getInvolvedIdsList().contains(userId))
+                .toList();
+
+        List<Transaction> contributions = userMovements.stream()
                 .filter(t -> t.getType() == Transaction.TransactionType.INGRESO)
                 .toList();
 
-        List<Transaction> expensesInvolved = transactionRepository.findByInvolvedIdsListContaining(userId).stream()
-                .filter(t -> t.getOriginWalletId().equals(projectId)
-                        && t.getOriginWalletType() == Transaction.OriginWalletType.SHARED)
+        List<Transaction> expensesInvolved = userMovements.stream()
+                .filter(t -> t.getType() == Transaction.TransactionType.GASTO)
                 .toList();
 
         double net = debtCalculator.determineNetBalance(userId, projectId, contributions, expensesInvolved);

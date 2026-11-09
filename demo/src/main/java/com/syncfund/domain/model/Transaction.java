@@ -55,6 +55,8 @@ public class Transaction {
     private OriginWalletType originWalletType;
 
     // involvedIdsList: solo aplica cuando originWalletType = SHARED.
+    //  - GASTO: integrantes que participan del gasto (se reparte entre ellos).
+    //  - INGRESO: el aportante (una sola persona); así el aporte cuenta en su saldo neto.
     @ElementCollection
     @CollectionTable(name = "transaction_involved_users", joinColumns = @JoinColumn(name = "transaction_id"))
     @Column(name = "user_id")

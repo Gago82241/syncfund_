@@ -45,6 +45,8 @@ import static org.mockito.Mockito.verify;
 class SharedProjectAppServiceTests {
 
     private static final Long USER_A = 1L;
+    private static final Long USER_B = 2L;
+    private static final Long USER_C = 3L;
     private static final Long PROJECT_ID = 100L;
     private static final Long WALLET_A = 200L;
     private static final String PROJECT_NAME = "Viaje a Santa Marta";
@@ -144,7 +146,50 @@ class SharedProjectAppServiceTests {
         verify(observer).update(PROJECT_NAME, 40_000, "Aporte al fondo");
     }
 
+    // ---- Saldo neto ----
+
+    /**
+     * A aporta 100.000 y B 20.000; C no aporta. Gasto de 60.000 entre A, B y C (20.000 c/u)
+     * y gasto de 30.000 entre A y B (15.000 c/u). Un INGRESO antiguo de 50.000 sin aportante
+     * no cuenta para nadie. La suma de los saldos netos es igual al fondo atribuible.
+     */
+    @Test
+    void saldoNetoConNumerosConcretos() {
+        project.setMembers(new ArrayList<>(List.of(userA, user(USER_B), user(USER_C))));
+        lenient().when(transactionRepository.findByOriginWalletIdAndOriginWalletType(
+                PROJECT_ID, Transaction.OriginWalletType.SHARED)).thenReturn(List.of(
+                sharedMovement(Transaction.TransactionType.INGRESO, 100_000, USER_A),
+                sharedMovement(Transaction.TransactionType.INGRESO, 20_000, USER_B),
+                sharedMovement(Transaction.TransactionType.GASTO, 60_000, USER_A, USER_B, USER_C),
+                sharedMovement(Transaction.TransactionType.GASTO, 30_000, USER_A, USER_B),
+                sharedMovement(Transaction.TransactionType.INGRESO, 50_000)));
+
+        double netA = netBalanceOf(USER_A);
+        double netB = netBalanceOf(USER_B);
+        double netC = netBalanceOf(USER_C);
+
+        assertEquals(65_000, netA);   // 100.000 - 20.000 - 15.000
+        assertEquals(-15_000, netB);  //  20.000 - 20.000 - 15.000
+        assertEquals(-20_000, netC);  //       0 - 20.000
+        assertEquals(30_000, netA + netB + netC); // 120.000 aportados - 90.000 gastados
+    }
+
     // ---- Utilidades ----
+
+    private double netBalanceOf(Long userId) {
+        lenient().when(currentUserProvider.getUserId()).thenReturn(userId);
+        return service.getNetBalance(PROJECT_ID, userId).getNetBalance();
+    }
+
+    private static Transaction sharedMovement(Transaction.TransactionType type, double amount, Long... involved) {
+        Transaction transaction = new Transaction();
+        transaction.setType(type);
+        transaction.setAmount(amount);
+        transaction.setOriginWalletId(PROJECT_ID);
+        transaction.setOriginWalletType(Transaction.OriginWalletType.SHARED);
+        transaction.setInvolvedIdsList(new ArrayList<>(List.of(involved)));
+        return transaction;
+    }
 
     private PersonalWallet givenWallet(double balance) {
         PersonalWallet wallet = new PersonalWallet();
