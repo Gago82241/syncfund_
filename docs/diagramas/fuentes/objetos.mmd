@@ -37,6 +37,22 @@ classDiagram
         description = "Compra de despensa"
         type = "GASTO"
     }
+    class aporteJuan {
+        <<Transaction>>
+        id = "T-1000"
+        amount = 100.00
+        date = "2026-04-01"
+        description = "Aporte al fondo"
+        type = "INGRESO"
+    }
+    class aporteJuanBilletera {
+        <<Transaction>>
+        id = "T-1001"
+        amount = 100.00
+        date = "2026-04-01"
+        description = "Aporte a Gastos del Piso"
+        type = "GASTO"
+    }
     class catComida {
         <<Category>>
         id = "C-05"
@@ -50,4 +66,7 @@ classDiagram
     juan --> pisoCompartido : participates in
     maria --> pisoCompartido : participates in
     pisoCompartido *-- compraSuper : contains
+    pisoCompartido *-- aporteJuan : contains
+    ahorroPC *-- aporteJuanBilletera : contains
+    aporteJuan ..> aporteJuanBilletera : mismo aporte
     compraSuper --> catComida : classified as

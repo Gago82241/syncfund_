@@ -1,0 +1,31 @@
+sequenceDiagram
+    autonumber
+    participant API as API_Service
+    participant SP as SharedProject<br/>(Sujeto Observable)
+    participant DB as Base de Datos<br/>(MySQL)
+    participant ME as Math_Engine<br/>(DebtCalculator)
+    participant UA as User_A<br/>(Observador)
+    participant UB as User_B<br/>(Observador)
+
+    API->>+SP: addTransaction(monto: Double, descripcion: String)
+
+    alt Fondo insuficiente (monto mayor que el saldo del fondo)
+        SP-->>API: boolean (false): fondos insuficientes, no se guarda ni se notifica
+    else Fondo suficiente
+        Note over SP,DB: El Core_Accounting descuenta el gasto<br/>del fondo y lo guarda en la base de datos
+        SP->>DB: saveTransaction(monto: Double, descripcion: String)
+        DB-->>SP: void
+        SP->>SP: notifyObservers(monto: Double, descripcion: String)
+        Note over SP,ME: Delegación de cálculo al componente vecino
+        SP->>ME: splitBill(monto: Double, usuarios: List<User>)
+        ME-->>SP: Map<User, Double> (nuevos saldos)
+        Note over SP,UB: El patrón Observer notifica a los suscritos
+        SP->>UA: update(proyecto: String, monto: Double, descripcion: String)
+        Note right of UA: La app del Usuario A<br/>recalcula su UI
+        UA-->>SP: void (confirmación)
+        SP->>UB: update(proyecto: String, monto: Double, descripcion: String)
+        Note right of UB: La app del Usuario B<br/>recalcula su UI
+        UB-->>SP: void (confirmación)
+        SP-->>API: boolean (isSuccess)
+    end
+    deactivate SP

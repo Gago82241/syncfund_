@@ -1,12 +1,18 @@
 # SyncFund — Guía del proyecto para Claude Code
 
-> Versión 0.3 — revisada contra la estructura real del repositorio.
+> Versión 0.4 — revisada contra la estructura real del repositorio.
 
 ## Qué es SyncFund
 Aplicación web de finanzas personales y gastos compartidos. Un usuario gestiona su
 billetera personal (PersonalWallet: movimientos, meta de ahorro, colchón) y participa en
 proyectos compartidos (SharedProject: gastos divididos entre integrantes, cálculo de deudas
-y saldo neto). Es un proyecto académico de Ingeniería Informática desarrollado por dos
+y saldo neto).
+- **Modelo de fondo:** un aporte sale de la billetera personal de quien aporta (GASTO en su
+  billetera + INGRESO en el proyecto, con el aportante en `involvedIdsList`). Los gastos
+  compartidos los paga solo el fondo, que nunca queda en negativo (422 si no alcanza).
+  Saldo neto = aportes propios − parte de los gastos en que participó.
+
+Es un proyecto académico de Ingeniería Informática desarrollado por dos
 integrantes; el diseño UML fue entregado y evaluado previamente.
 
 ## Stack

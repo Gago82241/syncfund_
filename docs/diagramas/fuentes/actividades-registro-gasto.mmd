@@ -1,0 +1,30 @@
+flowchart TD
+    subgraph CA["Core_Accounting"]
+        inicio(("Inicio")) --> contador["Contador de intentos en 0"]
+        contador --> recibir["Recibir la solicitud para registrar el gasto<br/>(grupo, valor e integrantes que participan)"]
+        recibir --> valido{"¿El valor del gasto es mayor a cero,<br/>el grupo existe y la persona que ingresa<br/>el registro pertenece al grupo?"}
+        valido -- No --> sumar["Sumar +1 al contador de intentos"]
+        sumar --> tres{"¿El contador llegó<br/>a 3 intentos?"}
+        tres -- No --> recibir
+        tres -- Sí --> cancelada["Transacción cancelada"]
+        cancelada --> finCancelada(("Fin"))
+        valido -- Sí --> fondo{"¿El fondo del grupo tiene<br/>saldo suficiente para pagar el gasto?"}
+        fondo -- No --> insuficiente["Rechazar el gasto: fondos insuficientes<br/>(no se registra ni se notifica)"]
+        insuficiente --> finRechazo(("Fin"))
+        fondo -- Sí --> division[" "]
+        division --> guardar["El fondo paga: descontar el gasto del fondo<br/>y guardar el comprobante en el historial del grupo"]
+        guardar --> union[" "]
+        union --> avisar["Avisar automáticamente a los perfiles<br/>con los nuevos saldos (por medio de Observer)"]
+        avisar --> fin(("Fin"))
+    end
+
+    subgraph ME["Math_Engine"]
+        calcular["Recibir el valor y calcular la división<br/>de la cuenta entre quienes participan"]
+        calcular --> resumen["Crear el resumen de los nuevos saldos"]
+    end
+
+    division --> calcular
+    resumen --> union
+
+    classDef barra fill:#13294B,stroke:#13294B,color:#13294B
+    class division,union barra
