@@ -37,6 +37,11 @@
   box-shadow: 0 0 0 1px var(--loss-500);
 }
 
+.sf-field__hint {
+  font-size: 0.8125rem;
+  color: var(--ink-muted);
+}
+
 .sf-field__error {
   font-size: 0.8125rem;
   color: var(--loss-700);

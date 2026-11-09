@@ -6,18 +6,26 @@ import { FormError } from '../../../components/ui/FormError';
 import { sharedProjectService } from '../services/sharedProjectService';
 import { categoryService } from '../../categories/services/categoryService';
 import { useFormErrors } from '../../../hooks/useFormErrors';
-import { required, wholeAmount } from '../../../utils/validation';
+import { amountWithin, required } from '../../../utils/validation';
+import { formatCOP } from '../../../styles/theme';
 import type { CategoryResponse, UserResponse } from '../../../types/api';
 
 interface Props {
   projectId: number;
   payerId: number;
   members: UserResponse[];
+  /** Saldo actual del fondo del proyecto: es quien paga el gasto. */
+  fundBalance: number;
   onSaved: () => void;
 }
 
-/** SharedProject.registerSelectiveExpense(amount, payerId, involvedIdsList). */
-export function ExpenseForm({ projectId, payerId, members, onSaved }: Props) {
+const FONDO_INSUFICIENTE = 'El fondo del proyecto no tiene saldo suficiente para este gasto.';
+
+/**
+ * SharedProject.registerSelectiveExpense(amount, payerId, involvedIdsList).
+ * El gasto lo paga el fondo del proyecto y se reparte entre quienes participan.
+ */
+export function ExpenseForm({ projectId, payerId, members, fundBalance, onSaved }: Props) {
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
   const [involved, setInvolved] = useState<number[]>(members.map((m) => m.id));
@@ -41,7 +49,7 @@ export function ExpenseForm({ projectId, payerId, members, onSaved }: Props) {
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     const valid = validate({
-      amount: wholeAmount(amount),
+      amount: amountWithin(amount, fundBalance, FONDO_INSUFICIENTE),
       description: required(description, 'La descripción es obligatoria'),
       involvedIdsList: involved.length === 0 ? 'Debes seleccionar al menos un participante' : undefined,
     });
@@ -68,7 +76,7 @@ export function ExpenseForm({ projectId, payerId, members, onSaved }: Props) {
 
   return (
     <form ref={formRef} onSubmit={handleSubmit} noValidate>
-      <h3 style={{ fontSize: '1rem', marginBottom: '0.75rem' }}>Registrar gasto (tú pagas)</h3>
+      <h3 style={{ fontSize: '1rem', marginBottom: '0.75rem' }}>Registrar gasto del fondo</h3>
       <Input
         label="Monto (COP)"
         type="number"
@@ -76,6 +84,7 @@ export function ExpenseForm({ projectId, payerId, members, onSaved }: Props) {
         min="1"
         placeholder="Ej: 80000 (sin puntos)"
         value={amount}
+        hint={`Lo paga el fondo del proyecto (disponible: ${formatCOP(fundBalance)}) y se reparte entre quienes participan.`}
         error={fieldErrors.amount}
         onChange={(e) => {
           setAmount(e.target.value);

@@ -38,6 +38,7 @@ export function SharedProjectDetailPage() {
               projectId={projectId}
               payerId={user!.id}
               members={members}
+              fundBalance={project.currentBalance}
               onSaved={refresh}
             />
             <ContributionForm projectId={projectId} contributorId={user!.id} onSaved={refresh} />

@@ -35,6 +35,20 @@ export function wholeAmount(value: string): string | undefined {
   return Number.isInteger(amount) ? undefined : WHOLE_AMOUNT_MESSAGE;
 }
 
+/**
+ * Monto válido (wholeAmount) que además no supera lo disponible.
+ * Si aún no se conoce lo disponible (undefined), solo valida el monto: el backend decide.
+ */
+export function amountWithin(
+  value: string,
+  available: number | undefined,
+  message: string,
+): string | undefined {
+  const error = wholeAmount(value);
+  if (error || available === undefined) return error;
+  return Number(value) > available ? message : undefined;
+}
+
 /** Monto que admite cero, sin decimales (metas y límites). */
 export function wholeAmountOrZero(
   value: string,
