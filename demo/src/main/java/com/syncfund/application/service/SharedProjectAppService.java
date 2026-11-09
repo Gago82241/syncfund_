@@ -5,13 +5,17 @@ import com.syncfund.application.dto.request.CreateSharedProjectRequest;
 import com.syncfund.application.dto.request.DistributeContributionRequest;
 import com.syncfund.application.dto.response.NetBalanceResponse;
 import com.syncfund.application.dto.response.SharedProjectResponse;
+import com.syncfund.application.exception.BusinessException;
 import com.syncfund.application.exception.ForbiddenException;
 import com.syncfund.application.exception.ResourceNotFoundException;
 import com.syncfund.application.mapper.SharedProjectMapper;
+import com.syncfund.domain.model.PersonalWallet;
 import com.syncfund.domain.model.SharedProject;
 import com.syncfund.domain.model.Transaction;
 import com.syncfund.domain.model.User;
+import com.syncfund.domain.service.FinancialManager;
 import com.syncfund.domain.util.DebtCalculator;
+import com.syncfund.persistence.repository.PersonalWalletRepository;
 import com.syncfund.persistence.repository.SharedProjectRepository;
 import com.syncfund.persistence.repository.TransactionRepository;
 import com.syncfund.persistence.repository.UserRepository;
@@ -19,6 +23,8 @@ import com.syncfund.security.CurrentUserProvider;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -36,20 +42,26 @@ public class SharedProjectAppService {
     private final SharedProjectRepository sharedProjectRepository;
     private final UserRepository userRepository;
     private final TransactionRepository transactionRepository;
+    private final PersonalWalletRepository personalWalletRepository;
     private final DebtCalculator debtCalculator;
+    private final FinancialManager financialManager;
     private final SharedProjectMapper mapper;
     private final CurrentUserProvider currentUserProvider;
 
     public SharedProjectAppService(SharedProjectRepository sharedProjectRepository,
                                     UserRepository userRepository,
                                     TransactionRepository transactionRepository,
+                                    PersonalWalletRepository personalWalletRepository,
                                     DebtCalculator debtCalculator,
+                                    FinancialManager financialManager,
                                     SharedProjectMapper mapper,
                                     CurrentUserProvider currentUserProvider) {
         this.sharedProjectRepository = sharedProjectRepository;
         this.userRepository = userRepository;
         this.transactionRepository = transactionRepository;
+        this.personalWalletRepository = personalWalletRepository;
         this.debtCalculator = debtCalculator;
+        this.financialManager = financialManager;
         this.mapper = mapper;
         this.currentUserProvider = currentUserProvider;
     }
@@ -83,15 +95,43 @@ public class SharedProjectAppService {
         return mapper.toResponse(sharedProjectRepository.save(project));
     }
 
-    /** SharedProject.distributeContribution(amount, contributorId). Solo puedes aportar a tu propio nombre. */
+    /**
+     * SharedProject.distributeContribution(amount, contributorId). Solo puedes aportar a tu propio nombre.
+     *
+     * El aporte es dinero real: sale de la billetera personal de quien aporta (GASTO en su
+     * billetera, validando saldo suficiente) y entra al fondo (INGRESO en el proyecto, con
+     * el aportante en involvedIdsList para que cuente en su saldo neto).
+     */
     @Transactional
     public SharedProjectResponse contribute(Long projectId, DistributeContributionRequest request) {
         SharedProject project = findProject(projectId);
         requireMember(project);
         requireSelf(request.getContributorId(), "No puedes registrar un aporte a nombre de otro usuario.");
 
+        PersonalWallet wallet = personalWalletRepository.findByOwnerId(request.getContributorId())
+                .orElseThrow(() -> new ResourceNotFoundException("No tienes una billetera personal para hacer el aporte."));
+
+        Transaction walletMovement = newTransaction(request.getAmount(), "Aporte a «" + project.getName() + "»",
+                Transaction.TransactionType.GASTO, wallet.getWalletId(), Transaction.OriginWalletType.PERSONAL,
+                List.of());
+
+        // Transaction.execute(): valida el saldo de la billetera sin permitir sobregiro.
+        if (!financialManager.processTransaction(wallet, walletMovement, false)) {
+            throw new BusinessException("Saldo insuficiente en tu billetera personal para este aporte.");
+        }
+
+        // Sube el fondo y notifica a los integrantes (patrón Observer).
         project.distributeContribution(request.getAmount(), request.getContributorId(), request.getDescription());
-        return mapper.toResponse(sharedProjectRepository.save(project));
+
+        Transaction fundMovement = newTransaction(request.getAmount(), request.getDescription(),
+                Transaction.TransactionType.INGRESO, projectId, Transaction.OriginWalletType.SHARED,
+                List.of(request.getContributorId()));
+
+        personalWalletRepository.save(wallet);
+        SharedProject saved = sharedProjectRepository.save(project);
+        transactionRepository.save(walletMovement);
+        transactionRepository.save(fundMovement);
+        return mapper.toResponse(saved);
     }
 
     public SharedProjectResponse getById(Long projectId) {
@@ -126,6 +166,20 @@ public class SharedProjectAppService {
 
         double net = debtCalculator.determineNetBalance(userId, projectId, contributions, expensesInvolved);
         return new NetBalanceResponse(userId, projectId, net);
+    }
+
+    private static Transaction newTransaction(double amount, String description, Transaction.TransactionType type,
+                                              Long walletId, Transaction.OriginWalletType walletType,
+                                              List<Long> involvedIdsList) {
+        Transaction transaction = new Transaction();
+        transaction.setAmount(amount);
+        transaction.setDescription(description);
+        transaction.setType(type);
+        transaction.setDateTime(LocalDateTime.now());
+        transaction.setOriginWalletId(walletId);
+        transaction.setOriginWalletType(walletType);
+        transaction.setInvolvedIdsList(new ArrayList<>(involvedIdsList));
+        return transaction;
     }
 
     private SharedProject findProject(Long id) {
