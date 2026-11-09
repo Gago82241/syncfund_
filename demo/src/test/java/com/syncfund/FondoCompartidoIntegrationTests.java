@@ -116,6 +116,86 @@ class FondoCompartidoIntegrationTests {
         assertEquals(-20_000, netoCaro);
         assertEquals(30_000, fondo(ana, proyecto));
         assertEquals(fondo(ana, proyecto), netoAna + netoBeto + netoCaro);
+
+        // Las billeteras solo cambian por los aportes: los gastos los pagó el fondo.
+        assertEquals(50_000, saldoBilletera(ana));   // 150.000 - 100.000
+        assertEquals(30_000, saldoBilletera(beto));  //  50.000 -  20.000
+        assertEquals(0, saldoBilletera(caro));
+    }
+
+    // ---- Gastos: los paga solo el fondo ----
+
+    @Test
+    void gastoSoloDescuentaDelFondoYNoDeLasBilleteras() throws Exception {
+        Cuenta ana = registrar("Ana");
+        Cuenta beto = registrar("Beto");
+        depositar(ana, 100_000);
+        depositar(beto, 40_000);
+        long proyecto = crearProyecto(ana, "Mercado");
+        agregarIntegrante(ana, proyecto, beto);
+        assertEquals(200, aportar(ana, proyecto, 80_000));
+
+        assertEquals(201, gastar(ana, proyecto, 50_000, ana, beto));
+
+        assertEquals(30_000, fondo(ana, proyecto));
+        assertEquals(20_000, saldoBilletera(ana));   // 100.000 - 80.000 del aporte
+        assertEquals(40_000, saldoBilletera(beto));  // intacta
+        assertEquals(55_000, saldoNeto(ana, proyecto));   // 80.000 - 25.000
+        assertEquals(-25_000, saldoNeto(beto, proyecto)); //      0 - 25.000
+    }
+
+    @Test
+    void gastoMayorQueElFondoResponde422YNoCambiaNada() throws Exception {
+        Cuenta ana = registrar("Ana");
+        Cuenta beto = registrar("Beto");
+        depositar(ana, 100_000);
+        long proyecto = crearProyecto(ana, "Paseo");
+        agregarIntegrante(ana, proyecto, beto);
+        assertEquals(200, aportar(ana, proyecto, 30_000));
+
+        MvcResult result = mockMvc.perform(como(ana, post("/api/projects/" + proyecto + "/expenses"))
+                .content(gastoJson(ana, 50_000, ana, beto))).andReturn();
+
+        assertEquals(422, result.getResponse().getStatus());
+        String body = result.getResponse().getContentAsString(StandardCharsets.UTF_8);
+        assertEquals(422, (int) JsonPath.read(body, "$.status"));
+        assertEquals("El fondo del proyecto no tiene saldo suficiente para este gasto.", JsonPath.read(body, "$.message"));
+        assertEquals(30_000, fondo(ana, proyecto));
+        assertEquals(70_000, saldoBilletera(ana));
+        assertEquals(0, saldoBilletera(beto));
+        List<Object> gastos = JsonPath.read(movimientos(ana, proyecto, "SHARED"), "$[?(@.type == 'GASTO')]");
+        assertTrue(gastos.isEmpty(), "No debe quedar registrado el gasto rechazado");
+        assertEquals(30_000, saldoNeto(ana, proyecto));
+        assertEquals(0, saldoNeto(beto, proyecto));
+    }
+
+    @Test
+    void gastoIgualAlFondoLoDejaEnCero() throws Exception {
+        Cuenta ana = registrar("Ana");
+        depositar(ana, 100_000);
+        long proyecto = crearProyecto(ana, "Cena");
+        assertEquals(200, aportar(ana, proyecto, 45_000));
+
+        assertEquals(201, gastar(ana, proyecto, 45_000, ana));
+
+        assertEquals(0, fondo(ana, proyecto));
+        assertEquals(0, saldoNeto(ana, proyecto));
+    }
+
+    @Test
+    void ingresoDirectoAlFondoResponde422() throws Exception {
+        Cuenta ana = registrar("Ana");
+        long proyecto = crearProyecto(ana, "Arriendo");
+
+        String json = "{\"amount\":50000,\"description\":\"Plata extra\",\"type\":\"INGRESO\",\"originWalletId\":"
+                + proyecto + ",\"originWalletType\":\"SHARED\",\"involvedIdsList\":[" + ana.id() + "]}";
+        MvcResult result = mockMvc.perform(como(ana, post("/api/transactions")).content(json)).andReturn();
+
+        assertEquals(422, result.getResponse().getStatus());
+        assertEquals("Para sumar dinero al fondo usa la opción Aportar.",
+                JsonPath.read(result.getResponse().getContentAsString(StandardCharsets.UTF_8), "$.message"));
+        assertEquals(0, fondo(ana, proyecto));
+        assertEquals(0, saldoNeto(ana, proyecto));
     }
 
     // ---- Utilidades HTTP ----

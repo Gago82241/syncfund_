@@ -56,7 +56,10 @@ public class SharedProjectController {
         return projectService.addMember(id, request);
     }
 
-    /** registerSelectiveExpense(amount, payerId, involvedIdsList): se registra como Transaction tipo GASTO. */
+    /**
+     * registerSelectiveExpense(amount, payerId, involvedIdsList): se registra como Transaction tipo GASTO
+     * que paga el fondo del proyecto; si el fondo no alcanza, responde 422.
+     */
     @PostMapping("/{id}/expenses")
     public ResponseEntity<TransactionResponse> registerSelectiveExpense(
             @PathVariable Long id, @Valid @RequestBody RegisterSelectiveExpenseRequest request) {
@@ -73,7 +76,6 @@ public class SharedProjectController {
         txRequest.setOriginWalletType("SHARED");
         txRequest.setInvolvedIdsList(request.getInvolvedIdsList());
         txRequest.setCategoryId(request.getCategoryId());
-        txRequest.setAllowOverdraft(true); // un gasto grupal puede dejar el fondo en negativo temporalmente
 
         return ResponseEntity.status(HttpStatus.CREATED).body(transactionService.create(txRequest));
     }

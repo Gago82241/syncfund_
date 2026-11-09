@@ -9,7 +9,6 @@ import com.syncfund.application.exception.ResourceNotFoundException;
 import com.syncfund.application.mapper.TransactionMapper;
 import com.syncfund.domain.model.*;
 import com.syncfund.domain.service.FinancialManager;
-import com.syncfund.domain.util.DebtCalculator;
 import com.syncfund.persistence.repository.PersonalWalletRepository;
 import com.syncfund.persistence.repository.SharedProjectRepository;
 import com.syncfund.persistence.repository.TransactionRepository;
@@ -24,7 +23,10 @@ import java.util.List;
  * Equivalente a FinancialManager.processTransaction(userId, walletId, transactionData):
  * resuelve la Wallet (Personal o Shared), delega en el dominio y persiste ambos lados
  * (Wallet con el balance actualizado + la Transaction nueva).
- * Para gastos selectivos de un SharedProject con reparto de deuda, ver SharedProjectAppService.
+ *
+ * Modelo de fondo: un gasto compartido lo paga solo el fondo del proyecto (nunca en
+ * sobregiro) y los involucrados definen cómo se reparte la deuda. El dinero entra al
+ * fondo únicamente con un aporte (SharedProjectAppService.contribute).
  */
 @Service
 public class TransactionAppService {
@@ -34,7 +36,6 @@ public class TransactionAppService {
     private final SharedProjectRepository sharedProjectRepository;
     private final CategoryAppService categoryAppService;
     private final FinancialManager financialManager;
-    private final DebtCalculator debtCalculator;
     private final TransactionMapper mapper;
     private final CurrentUserProvider currentUserProvider;
 
@@ -43,7 +44,6 @@ public class TransactionAppService {
                                   SharedProjectRepository sharedProjectRepository,
                                   CategoryAppService categoryAppService,
                                   FinancialManager financialManager,
-                                  DebtCalculator debtCalculator,
                                   TransactionMapper mapper,
                                   CurrentUserProvider currentUserProvider) {
         this.transactionRepository = transactionRepository;
@@ -51,7 +51,6 @@ public class TransactionAppService {
         this.sharedProjectRepository = sharedProjectRepository;
         this.categoryAppService = categoryAppService;
         this.financialManager = financialManager;
-        this.debtCalculator = debtCalculator;
         this.mapper = mapper;
         this.currentUserProvider = currentUserProvider;
     }
@@ -59,16 +58,20 @@ public class TransactionAppService {
     @Transactional
     public TransactionResponse create(CreateTransactionRequest request) {
         Transaction.OriginWalletType walletType = parseWalletType(request.getOriginWalletType());
+        Transaction.TransactionType type = parseTransactionType(request.getType());
         Wallet wallet = resolveWallet(request.getOriginWalletId(), walletType);
         requireAccess(wallet, walletType);
         if (wallet instanceof SharedProject project) {
             requireInvolvedAreMembers(project, request.getInvolvedIdsList());
+            if (type == Transaction.TransactionType.INGRESO) {
+                throw new BusinessException("Para sumar dinero al fondo usa la opción Aportar.");
+            }
         }
 
         Transaction transaction = new Transaction();
         transaction.setAmount(request.getAmount());
         transaction.setDescription(request.getDescription());
-        transaction.setType(parseTransactionType(request.getType()));
+        transaction.setType(type);
         transaction.setDateTime(LocalDateTime.now());
         transaction.setOriginWalletId(request.getOriginWalletId());
         transaction.setOriginWalletType(walletType);
@@ -79,35 +82,19 @@ public class TransactionAppService {
         }
 
         // Transaction.execute(): valida saldo (o permiso de sobregiro) y procesa el movimiento.
-        boolean success = financialManager.processTransaction(wallet, transaction, request.isAllowOverdraft());
-        if (!success) {
-            throw new BusinessException("Saldo insuficiente para realizar la transacción.");
+        // El fondo de un proyecto nunca queda en negativo, aunque el cliente pida sobregiro.
+        boolean shared = walletType == Transaction.OriginWalletType.SHARED;
+        boolean allowOverdraft = !shared && request.isAllowOverdraft();
+        if (!financialManager.processTransaction(wallet, transaction, allowOverdraft)) {
+            throw new BusinessException(shared
+                    ? "El fondo del proyecto no tiene saldo suficiente para este gasto."
+                    : "Saldo insuficiente para realizar la transacción.");
         }
 
         saveWallet(wallet, walletType);
-
-        // Un gasto compartido también se descuenta, proporcionalmente, de la
-        // billetera personal de cada involucrado (no solo del fondo del proyecto).
-        if (wallet instanceof SharedProject
-                && transaction.getType() == Transaction.TransactionType.GASTO
-                && !transaction.getInvolvedIdsList().isEmpty()) {
-            deductShareFromInvolvedWallets(transaction.getAmount(), transaction.getInvolvedIdsList());
-        }
-
         Transaction saved = transactionRepository.save(transaction);
 
         return mapper.toResponse(saved);
-    }
-
-    private void deductShareFromInvolvedWallets(double amount, List<Long> involvedIdsList) {
-        double share = debtCalculator.splitBill(amount, involvedIdsList);
-
-        for (Long userId : involvedIdsList) {
-            personalWalletRepository.findByOwnerId(userId).ifPresent(memberWallet -> {
-                memberWallet.setCurrentBalance(memberWallet.getCurrentBalance() - share);
-                personalWalletRepository.save(memberWallet);
-            });
-        }
     }
 
     /** Wallet.getPeriodReport(startDate, endDate), filtrado por billetera. Exige acceso a ella. */
@@ -162,7 +149,7 @@ public class TransactionAppService {
         }
     }
 
-    /** Un gasto compartido descuenta de la billetera de cada involucrado: todos deben ser miembros. */
+    /** Un gasto compartido se reparte entre sus involucrados: todos deben ser miembros. */
     private void requireInvolvedAreMembers(SharedProject project, List<Long> involvedIdsList) {
         if (involvedIdsList == null) {
             return;

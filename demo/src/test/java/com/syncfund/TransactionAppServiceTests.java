@@ -3,6 +3,7 @@ package com.syncfund;
 import com.syncfund.application.dto.request.CategorizeTransactionRequest;
 import com.syncfund.application.dto.request.CreateTransactionRequest;
 import com.syncfund.application.dto.response.TransactionResponse;
+import com.syncfund.application.exception.BusinessException;
 import com.syncfund.application.exception.ForbiddenException;
 import com.syncfund.application.mapper.TransactionMapper;
 import com.syncfund.application.service.CategoryAppService;
@@ -38,7 +39,10 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
-/** Comprueba que un movimiento solo pueda clasificarse con una categoría propia. */
+/**
+ * Comprueba que un movimiento solo pueda clasificarse con una categoría propia, y que un
+ * gasto compartido lo pague solo el fondo del proyecto (rechazándolo si no alcanza).
+ */
 @ExtendWith(MockitoExtension.class)
 class TransactionAppServiceTests {
 
@@ -48,13 +52,13 @@ class TransactionAppServiceTests {
     private static final Long OTHER_CATEGORY_ID = 20L;
     private static final Long WALLET_ID = 100L;
     private static final Long TRANSACTION_ID = 500L;
+    private static final String FONDO_INSUFICIENTE = "El fondo del proyecto no tiene saldo suficiente para este gasto.";
 
     @Mock private TransactionRepository transactionRepository;
     @Mock private PersonalWalletRepository personalWalletRepository;
     @Mock private SharedProjectRepository sharedProjectRepository;
     @Mock private CategoryAppService categoryAppService;
     @Mock private FinancialManager financialManager;
-    @Mock private DebtCalculator debtCalculator;
     @Mock private CurrentUserProvider currentUserProvider;
 
     private TransactionAppService service;
@@ -65,7 +69,7 @@ class TransactionAppServiceTests {
     @BeforeEach
     void setUp() {
         service = new TransactionAppService(transactionRepository, personalWalletRepository, sharedProjectRepository,
-                categoryAppService, financialManager, debtCalculator, new TransactionMapper(), currentUserProvider);
+                categoryAppService, financialManager, new TransactionMapper(), currentUserProvider);
 
         currentUser = user(CURRENT_USER_ID);
         otherUser = user(OTHER_USER_ID);
@@ -165,6 +169,108 @@ class TransactionAppServiceTests {
         TransactionResponse response = service.categorize(TRANSACTION_ID, categorizeRequest(OWN_CATEGORY_ID));
 
         assertEquals(OWN_CATEGORY_ID, response.getCategoryId());
+    }
+
+    // ---- Gastos compartidos: los paga solo el fondo (FinancialManager real) ----
+
+    @Test
+    void gastoCompartidoConFondoInsuficienteResponde422SinGuardarNada() {
+        SharedProject project = givenProjectWithFund(40_000, currentUser, otherUser);
+        PersonalWallet currentUserWallet = givenMemberWallet(currentUser, 100_000);
+        PersonalWallet otherUserWallet = givenMemberWallet(otherUser, 100_000);
+
+        BusinessException ex = assertThrows(BusinessException.class,
+                () -> serviceWithRealFinancialManager().create(sharedExpense(60_000, false)));
+
+        assertEquals(FONDO_INSUFICIENTE, ex.getMessage());
+        assertEquals(40_000, project.getCurrentBalance());
+        assertEquals(100_000, currentUserWallet.getCurrentBalance());
+        assertEquals(100_000, otherUserWallet.getCurrentBalance());
+        verify(sharedProjectRepository, never()).save(any());
+        verify(personalWalletRepository, never()).save(any());
+        verify(transactionRepository, never()).save(any());
+    }
+
+    @Test
+    void gastoCompartidoIgnoraElSobregiroPedidoPorElCliente() {
+        SharedProject project = givenProjectWithFund(40_000, currentUser, otherUser);
+
+        BusinessException ex = assertThrows(BusinessException.class,
+                () -> serviceWithRealFinancialManager().create(sharedExpense(60_000, true)));
+
+        assertEquals(FONDO_INSUFICIENTE, ex.getMessage());
+        assertEquals(40_000, project.getCurrentBalance());
+        verify(transactionRepository, never()).save(any());
+    }
+
+    @Test
+    void gastoCompartidoConFondoExactoDejaElFondoEnCero() {
+        SharedProject project = givenProjectWithFund(60_000, currentUser, otherUser);
+
+        serviceWithRealFinancialManager().create(sharedExpense(60_000, false));
+
+        assertEquals(0, project.getCurrentBalance());
+        verify(transactionRepository).save(any(Transaction.class));
+    }
+
+    @Test
+    void gastoCompartidoNoTocaLasBilleterasPersonales() {
+        SharedProject project = givenProjectWithFund(100_000, currentUser, otherUser);
+        PersonalWallet currentUserWallet = givenMemberWallet(currentUser, 100_000);
+        PersonalWallet otherUserWallet = givenMemberWallet(otherUser, 100_000);
+
+        serviceWithRealFinancialManager().create(sharedExpense(60_000, false));
+
+        assertEquals(40_000, project.getCurrentBalance());
+        assertEquals(100_000, currentUserWallet.getCurrentBalance());
+        assertEquals(100_000, otherUserWallet.getCurrentBalance());
+        verify(personalWalletRepository, never()).save(any());
+    }
+
+    @Test
+    void ingresoCompartidoResponde422() {
+        SharedProject project = givenProjectWithFund(100_000, currentUser, otherUser);
+        CreateTransactionRequest request = sharedExpense(50_000, false);
+        request.setType("INGRESO");
+        request.setInvolvedIdsList(List.of());
+
+        BusinessException ex = assertThrows(BusinessException.class,
+                () -> serviceWithRealFinancialManager().create(request));
+
+        assertEquals("Para sumar dinero al fondo usa la opción Aportar.", ex.getMessage());
+        assertEquals(100_000, project.getCurrentBalance());
+        verify(transactionRepository, never()).save(any());
+    }
+
+    private TransactionAppService serviceWithRealFinancialManager() {
+        return new TransactionAppService(transactionRepository, personalWalletRepository, sharedProjectRepository,
+                categoryAppService, new FinancialManager(new DebtCalculator()), new TransactionMapper(),
+                currentUserProvider);
+    }
+
+    private SharedProject givenProjectWithFund(double fund, User... members) {
+        SharedProject project = new SharedProject();
+        project.setName("Finca");
+        project.setCurrentBalance(fund);
+        project.setMembers(List.of(members));
+        when(sharedProjectRepository.findById(WALLET_ID)).thenReturn(Optional.of(project));
+        return project;
+    }
+
+    private PersonalWallet givenMemberWallet(User owner, double balance) {
+        PersonalWallet wallet = new PersonalWallet();
+        wallet.setOwner(owner);
+        wallet.setCurrentBalance(balance);
+        lenient().when(personalWalletRepository.findByOwnerId(owner.getId())).thenReturn(Optional.of(wallet));
+        return wallet;
+    }
+
+    private static CreateTransactionRequest sharedExpense(double amount, boolean allowOverdraft) {
+        CreateTransactionRequest request = createRequest("SHARED", null);
+        request.setAmount(amount);
+        request.setInvolvedIdsList(List.of(CURRENT_USER_ID, OTHER_USER_ID));
+        request.setAllowOverdraft(allowOverdraft);
+        return request;
     }
 
     private void verifyNothingProcessed() {
