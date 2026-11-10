@@ -199,12 +199,15 @@ public class TransactionAppService {
         }
     }
 
+    /** Solo INGRESO o GASTO: ABONO y COBRO los crea únicamente el pago entre integrantes. */
     private Transaction.TransactionType parseTransactionType(String raw) {
-        try {
-            return Transaction.TransactionType.valueOf(raw.toUpperCase());
-        } catch (IllegalArgumentException ex) {
-            throw new BusinessException("type inválido, use INGRESO o GASTO.");
+        if ("INGRESO".equalsIgnoreCase(raw)) {
+            return Transaction.TransactionType.INGRESO;
         }
+        if ("GASTO".equalsIgnoreCase(raw)) {
+            return Transaction.TransactionType.GASTO;
+        }
+        throw new BusinessException("type inválido, use INGRESO o GASTO.");
     }
 
     private Transaction.OriginWalletType parseWalletType(String raw) {

@@ -290,6 +290,19 @@ class TransactionAppServiceTests {
         verify(transactionRepository, never()).save(any());
     }
 
+    @Test
+    void crearUnAbonoOUnCobroDirectoSeRechazaSinProcesarNada() {
+        for (String type : List.of("ABONO", "COBRO", "abono")) {
+            CreateTransactionRequest request = createRequest("PERSONAL", null);
+            request.setType(type);
+
+            BusinessException ex = assertThrows(BusinessException.class, () -> service.create(request));
+
+            assertEquals("type inválido, use INGRESO o GASTO.", ex.getMessage());
+        }
+        verifyNothingProcessed();
+    }
+
     private TransactionAppService serviceWithRealFinancialManager() {
         return new TransactionAppService(transactionRepository, personalWalletRepository, sharedProjectRepository,
                 categoryAppService, new FinancialManager(new DebtCalculator()), new TransactionMapper(),
