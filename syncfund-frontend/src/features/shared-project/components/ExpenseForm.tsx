@@ -1,14 +1,14 @@
-import { useEffect, useId, useState, type FormEvent } from 'react';
+import { useId, useState, type FormEvent } from 'react';
 import { Input } from '../../../components/ui/Input';
 import { Button } from '../../../components/ui/Button';
 import { FieldError } from '../../../components/ui/FieldError';
 import { FormError } from '../../../components/ui/FormError';
+import { ParticipantChips } from './ParticipantChips';
 import { sharedProjectService } from '../services/sharedProjectService';
-import { categoryService } from '../../categories/services/categoryService';
 import { useFormErrors } from '../../../hooks/useFormErrors';
-import { amountWithin, required } from '../../../utils/validation';
+import { amountWithin, required, wholeAmount } from '../../../utils/validation';
 import { formatCOP } from '../../../styles/theme';
-import type { CategoryResponse, UserResponse } from '../../../types/api';
+import type { UserResponse } from '../../../types/api';
 
 interface Props {
   projectId: number;
@@ -22,27 +22,45 @@ interface Props {
 const FONDO_INSUFICIENTE = 'El fondo del proyecto no tiene saldo suficiente para este gasto.';
 
 /**
+ * Texto con la división del gasto. Refleja DebtCalculator.splitBill (monto / participantes,
+ * sin redondear): si no es exacta se muestra redondeada a pesos y con "≈".
+ */
+function splitSummary(amount: string, people: number): string | null {
+  if (people === 0) return null;
+  if (wholeAmount(amount)) return 'Escribe el monto para ver cuánto le toca a cada uno.';
+  const total = Number(amount);
+  if (people === 1) return `${formatCOP(total)} a cargo de 1 persona`;
+  const share = total / people;
+  const sign = Number.isInteger(share) ? '=' : '≈';
+  return `${formatCOP(total)} entre ${people} personas ${sign} ${formatCOP(share)} cada uno`;
+}
+
+/**
  * SharedProject.registerSelectiveExpense(amount, payerId, involvedIdsList).
  * El gasto lo paga el fondo del proyecto y se reparte entre quienes participan.
  */
 export function ExpenseForm({ projectId, payerId, members, fundBalance, onSaved }: Props) {
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
-  const [involved, setInvolved] = useState<number[]>(members.map((m) => m.id));
-  const [categoryId, setCategoryId] = useState('');
-  const [categories, setCategories] = useState<CategoryResponse[]>([]);
+  const [involved, setInvolved] = useState<number[]>(() => members.map((m) => m.id));
+  const [knownIds, setKnownIds] = useState<number[]>(() => members.map((m) => m.id));
   const [loading, setLoading] = useState(false);
   const { fieldErrors, formError, formRef, validate, showApiError, clearField } =
     useFormErrors(['amount', 'description', 'involvedIdsList']);
   const groupId = useId();
   const groupErrorId = `${groupId}-error`;
 
-  useEffect(() => {
-    categoryService.getAll().then(({ data }) => setCategories(data));
-  }, []);
+  // Si cambian los integrantes (p. ej. se agregó uno), los nuevos entran marcados
+  // y se respeta a quienes el usuario desmarcó. Se ajusta durante el render, sin efecto.
+  const memberIds = members.map((m) => m.id);
+  if (memberIds.join() !== knownIds.join()) {
+    const added = memberIds.filter((id) => !knownIds.includes(id));
+    setKnownIds(memberIds);
+    setInvolved((prev) => [...prev.filter((id) => memberIds.includes(id)), ...added]);
+  }
 
-  function toggleMember(id: number) {
-    setInvolved((prev) => (prev.includes(id) ? prev.filter((m) => m !== id) : [...prev, id]));
+  function changeInvolved(ids: number[]) {
+    setInvolved(ids);
     clearField('involvedIdsList');
   }
 
@@ -61,11 +79,9 @@ export function ExpenseForm({ projectId, payerId, members, fundBalance, onSaved 
         payerId,
         involvedIdsList: involved,
         description,
-        categoryId: categoryId ? Number(categoryId) : undefined,
       });
       setAmount('');
       setDescription('');
-      setCategoryId('');
       onSaved();
     } catch (err) {
       showApiError(err, 'No se pudo registrar el gasto.');
@@ -73,6 +89,8 @@ export function ExpenseForm({ projectId, payerId, members, fundBalance, onSaved 
       setLoading(false);
     }
   }
+
+  const split = splitSummary(amount, involved.length);
 
   return (
     <form ref={formRef} onSubmit={handleSubmit} noValidate>
@@ -104,47 +122,19 @@ export function ExpenseForm({ projectId, payerId, members, fundBalance, onSaved 
         }}
         required
       />
-      <div
-        role="group"
-        aria-labelledby={groupId}
-        aria-describedby={fieldErrors.involvedIdsList ? groupErrorId : undefined}
-        style={{ marginBottom: '1.25rem' }}
+      <ParticipantChips
+        members={members}
+        currentUserId={payerId}
+        selected={involved}
+        onChange={changeInvolved}
+        labelId={groupId}
+        describedBy={fieldErrors.involvedIdsList ? groupErrorId : undefined}
       >
-        <span id={groupId} style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--ink-muted)' }}>
-          ¿Quiénes participan de este gasto?
-        </span>
-        <div style={{ marginTop: '0.5rem' }}>
-          {members.map((m) => (
-            <label key={m.id} style={{ display: 'block', fontSize: '0.9375rem', marginBottom: '0.35rem' }}>
-              <input
-                type="checkbox"
-                name="involvedIdsList"
-                checked={involved.includes(m.id)}
-                onChange={() => toggleMember(m.id)}
-                style={{ marginRight: '0.5rem' }}
-              />
-              {m.name}
-            </label>
-          ))}
-        </div>
+        <p className="sf-chips__split tabular-nums" aria-live="polite">
+          {split}
+        </p>
         <FieldError id={groupErrorId} message={fieldErrors.involvedIdsList} />
-      </div>
-      {categories.length > 0 && (
-        <div className="sf-field">
-          <label className="sf-field__label" htmlFor="expense-category">Categoría (opcional)</label>
-          <select
-            id="expense-category"
-            className="sf-field__input"
-            value={categoryId}
-            onChange={(e) => setCategoryId(e.target.value)}
-          >
-            <option value="">Sin categoría</option>
-            {categories.map((c) => (
-              <option key={c.categoryId} value={c.categoryId}>{c.name}</option>
-            ))}
-          </select>
-        </div>
-      )}
+      </ParticipantChips>
       <FormError message={formError} />
       <Button type="submit" loading={loading}>
         Registrar gasto
