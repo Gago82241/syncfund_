@@ -15,6 +15,10 @@ y saldo neto).
   paga, INGRESO en la de quien recibe). El fondo no cambia. En el proyecto quedan un `ABONO`
   (`involvedIdsList = [quien paga]`) y un `COBRO` (`[quien recibe]`), que nunca pasan por
   `recordTransaction` ni cuentan en `auditWallet`. `POST /api/transactions` solo acepta INGRESO o GASTO.
+- **Eliminar integrantes / salir** (`DELETE /api/projects/{id}/members/{userId}`, `SharedProject.removeParticipant`):
+  el admin elimina a otros y un integrante puede salir, solo si está al día (|saldo| < medio centavo).
+  El admin no puede salir ni ser eliminado. Sus transacciones se conservan; solo se borra la fila de
+  `project_participants`.
 - Saldo neto = aportes propios − parte de los gastos en que participó + pagos hechos (ABONO)
   − pagos recibidos (COBRO). Lo calcula `DebtCalculator.calculateBalances`; la suma de los
   saldos netos es igual al fondo (salvo INGRESO antiguos sin aportante, que no cuentan para nadie).

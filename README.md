@@ -15,6 +15,7 @@ Proyecto académico desarrollado para la asignatura de Construcción de Software
 - [Arquitectura del sistema](#arquitectura-del-sistema)
 - [Patrón de diseño: Observer](#patrón-de-diseño-observer)
 - [Saldar deudas entre integrantes](#saldar-deudas-entre-integrantes)
+- [Eliminar integrantes y salir de un proyecto](#eliminar-integrantes-y-salir-de-un-proyecto)
 - [Diagramas de diseño (UML)](#diagramas-de-diseño-uml)
 - [Modelo de datos](#modelo-de-datos)
 - [Instalación y ejecución](#instalación-y-ejecución)
@@ -38,7 +39,7 @@ La gestión de gastos compartidos (vivienda, viajes, actividades grupales) suele
 |---|---|
 | **Autenticación y usuarios** | Registro, inicio de sesión y emisión de tokens JWT. |
 | **Billetera personal** (`PersonalWallet`) | Registro de movimientos (ingresos y gastos), meta de ahorro mensual y saldo de reserva ("colchón") que impide que el saldo quede en negativo. |
-| **Proyectos compartidos** (`SharedProject`) | Creación de grupos, incorporación de integrantes por correo electrónico, aportes al fondo común (descontados de la billetera personal de quien aporta) y registro de gastos con selección de participantes, pagados por el fondo. |
+| **Proyectos compartidos** (`SharedProject`) | Creación de grupos, incorporación de integrantes por correo electrónico, eliminación de integrantes y salida voluntaria (solo si están al día), aportes al fondo común (descontados de la billetera personal de quien aporta) y registro de gastos con selección de participantes, pagados por el fondo. |
 | **Cálculo de deudas** (`DebtCalculator`) | Determinación del saldo neto de cada integrante (si está al día, si le deben o si debe), situación de todo el proyecto, pagos directos entre integrantes para saldar deudas y sugerencia de quién debe pagarle a quién. |
 | **Categorías** | Clasificación de gastos con límite de presupuesto mensual y alerta cuando se supera. Cada categoría es privada de quien la crea. |
 
@@ -69,6 +70,7 @@ Como riesgo aceptado, el registro y la incorporación de integrantes informan si
 - **Proyectos compartidos**: crea un grupo, agrega integrantes por correo electrónico, aporta al fondo común desde tu billetera personal y registra gastos selectivos (eliges quién participa en cada uno) que paga el fondo. Si el fondo no alcanza, el gasto se rechaza.
 - **Cálculo de deudas en tiempo real**: en todo momento puedes ver si estás "en paz", te deben, o debes, sin tener que hacer la cuenta a mano.
 - **Situación del proyecto y pago de deudas**: una tabla muestra cuánto aportó cada integrante, su parte de los gastos y su saldo. Si debes, puedes pagarle directamente a quien tiene saldo a favor desde tu billetera personal, con el monto sugerido para quedar al día.
+- **Eliminar integrantes y salir de un proyecto**: el administrador puede quitar a un integrante y cualquier integrante puede salir, siempre que esté al día. Su historial se conserva y los saldos de los demás no cambian.
 - **Categorías con alerta de presupuesto**: crea tus propias categorías de gasto, define un límite mensual para cada una y recibe aviso visual cuando lo superas. Solo tú puedes verlas y usarlas.
 - **Seguridad**: autenticación con JWT y una capa de autorización que verifica, en cada petición, que el recurso solicitado pertenezca a quien hace la petición, no solo que haya iniciado sesión.
 
@@ -246,6 +248,34 @@ El pago pasa por el sujeto observable: `DebtCalculator.calculateBalances` calcul
 <p align="center">
   <img src="docs/diagramas/secuencia-pago-deuda.png" alt="Diagrama de secuencia del pago de una deuda entre integrantes" width="720">
 </p>
+
+## Eliminar integrantes y salir de un proyecto
+
+El administrador puede eliminar a un integrante, y un integrante puede salir del proyecto por su cuenta. En ambos casos la persona debe estar **al día**: saldo neto de menos de medio centavo, el mismo criterio con que la situación muestra "Al día" y con que no se permite pagar.
+
+### Reglas
+
+- Solo el administrador elimina a otros; un integrante solo puede quitarse a sí mismo (si no, 403). Quien no es integrante recibe 403.
+- El administrador no puede salir ni ser eliminado (422).
+- Si la persona debe o le deben, se rechaza con un mensaje que lo explica (422), por ejemplo: "No se puede eliminar a Beto porque tiene un saldo pendiente (debe $7.500). Primero deben saldar las deudas."
+- El historial se conserva: sus aportes, gastos y pagos siguen en el proyecto. Deja de aparecer en la situación y en "¿Quiénes participan?", y ya no puede ver el proyecto ni registrar movimientos.
+- Puede volver a ser agregado; al reingresar recupera exactamente su saldo, porque sus movimientos siguen con su id.
+
+### Por qué los saldos de los demás no cambian
+
+El saldo de cada integrante solo depende de los movimientos en que aparece, y cada gasto se divide entre su propia lista de involucrados (`involvedIdsList`), no entre los integrantes actuales. Un gasto antiguo en el que participó la persona eliminada sigue dividiéndose entre las mismas personas. El fondo es un valor guardado que no depende de la lista de integrantes. Como quien sale tiene saldo 0, la suma de los saldos sigue siendo igual al fondo.
+
+Un saldo de menos de medio centavo (por ejemplo, −0,0033 tras dividir un gasto entre tres) no se puede pagar, así que cuenta como al día. Al salir esa persona, esa fracción pasa al monto "sin asignar", igual que los aportes antiguos sin aportante.
+
+### Endpoint
+
+| Método | Ruta | Descripción |
+|---|---|---|
+| `DELETE` | `/api/projects/{id}/members/{userId}` | El administrador elimina a `userId`, o el usuario del token sale del proyecto si `userId` es el suyo. Responde 204 sin cuerpo: quien sale ya no puede ver el proyecto. |
+
+### Patrón Observer
+
+`SharedProject.removeParticipant(user)` quita a la persona de los integrantes y de los observadores (`removeObserver`), y notifica a los que quedan. El servicio valida antes los permisos y el saldo con `DebtCalculator.calculateBalances`. No se modifica ninguna transacción ni el esquema de la base de datos: solo se borra la fila de `project_participants`.
 
 ## Diagramas de diseño (UML)
 

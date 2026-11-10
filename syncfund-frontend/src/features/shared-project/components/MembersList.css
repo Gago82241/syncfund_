@@ -1,0 +1,87 @@
+.members-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.members-list__item {
+  border-bottom: 1px solid var(--hairline);
+}
+
+.members-list__item:last-child {
+  border-bottom: none;
+}
+
+.members-list__row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0;
+  font-size: 0.9375rem;
+}
+
+.members-list__name {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.members-list__you {
+  color: var(--ink-muted);
+}
+
+.members-list__role {
+  font-size: 0.75rem;
+  color: var(--ink-faint);
+}
+
+/* Acción destructiva discreta: solo texto terracota hasta que se confirma. */
+.members-list__action {
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--loss-700);
+  background: transparent;
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-sm);
+  padding: 0.35rem 0.75rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.members-list__action:hover {
+  border-color: var(--loss-700);
+  background: var(--loss-100);
+}
+
+.remove-member {
+  background: var(--paper);
+  border: 1px solid var(--loss-100);
+  border-left: 3px solid var(--loss-700);
+  border-radius: var(--radius-sm);
+  padding: 0.875rem 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.remove-member__title {
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+.remove-member__text {
+  font-size: 0.875rem;
+  color: var(--ink-muted);
+  margin-bottom: 0.75rem;
+}
+
+.remove-member__actions {
+  display: flex;
+  gap: 0.75rem;
+}
+
+/* Móvil: las acciones de confirmación se apilan para que sean fáciles de tocar. */
+@media (max-width: 640px) {
+  .remove-member__actions {
+    flex-direction: column-reverse;
+  }
+}

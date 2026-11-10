@@ -33,6 +33,7 @@ classDiagram
         -User[] participants
         -Map debts
         +addParticipant(User u) void
+        +removeParticipant(User u) void
         +settleDebts(payerId, payeeId, amount) void
     }
     class Transaction {

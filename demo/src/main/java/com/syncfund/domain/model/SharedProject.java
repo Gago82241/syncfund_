@@ -15,8 +15,9 @@ import java.util.Map;
 /**
  * SharedProject (inherits from Wallet) + rol de Sujeto Observable.
  * Atributos: memberIdsList, adminId, commonFund (= currentBalance heredado).
- * Métodos: addMember(userId), registerSelectiveExpense(...), distributeContribution(...),
- * notifyPendingDebt(), addObserver(), removeObserver(), notifyObservers() (patrón Observer).
+ * Métodos: addMember(userId), removeParticipant(user), registerSelectiveExpense(...),
+ * distributeContribution(...), notifyPendingDebt(), settleDebts(...), addObserver(), removeObserver(),
+ * notifyObservers() (patrón Observer).
  *
  * Mapea a la tabla shared_projects del MER + project_participants como tabla intermedia
  * (memberIdsList / relación "participates_in").
@@ -69,6 +70,23 @@ public class SharedProject extends Wallet implements IObservable {
             members.add(user);
             addObserver(user);
         }
+    }
+
+    /**
+     * removeParticipant(User u): el integrante deja de pertenecer al proyecto y de ser observador, y
+     * se notifica a los que quedan (patrón Observer). Sus movimientos siguen en el historial y el
+     * fondo no cambia. Las reglas (permisos, admin, saldo al día) las valida antes
+     * SharedProjectAppService. Se busca por id porque User no define equals: al cargar desde la
+     * base puede llegar otra instancia del mismo usuario.
+     */
+    public void removeParticipant(User user) {
+        User member = members.stream()
+                .filter(m -> m.getId().equals(user.getId()))
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("Esa persona no es integrante del proyecto."));
+        members.remove(member);
+        removeObserver(member);
+        notifyObservers(0.0, member.getName() + " ya no es integrante del proyecto");
     }
 
     /**

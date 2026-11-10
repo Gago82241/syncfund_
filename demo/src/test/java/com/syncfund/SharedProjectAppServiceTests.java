@@ -6,6 +6,7 @@ import com.syncfund.application.dto.response.MemberBalanceResponse;
 import com.syncfund.application.dto.response.ProjectBalancesResponse;
 import com.syncfund.application.exception.BusinessException;
 import com.syncfund.application.exception.ForbiddenException;
+import com.syncfund.application.exception.ResourceNotFoundException;
 import com.syncfund.application.mapper.SharedProjectMapper;
 import com.syncfund.application.service.SharedProjectAppService;
 import com.syncfund.domain.model.PersonalWallet;
@@ -416,6 +417,189 @@ class SharedProjectAppServiceTests {
 
         ProjectBalancesResponse response = service.settleDebt(PROJECT_ID, settle(USER_C, USER_A, 33_333.33));
         assertEquals(0, response.getMembers().get(2).getNetBalance());
+    }
+
+    // ---- Eliminar integrantes y salir del proyecto ----
+    // Ana (USER_A) es la administradora. Tras el pago de Caro: Ana +20.000, Beto −5.000, Caro 0.
+
+    @Test
+    void adminEliminaAUnIntegranteAlDia() {
+        givenThreeNamedMembers();
+        givenProjectMovements(ejemploConPagoDeCaroAAna());
+        IObserver observer = mock(IObserver.class);
+        project.addObserver(observer);
+
+        service.removeMember(PROJECT_ID, USER_C);
+
+        assertEquals(List.of(USER_A, USER_B), project.getMembers().stream().map(User::getId).toList());
+        verify(sharedProjectRepository).save(project);
+        verify(observer).update(PROJECT_NAME, 0.0, "Caro ya no es integrante del proyecto");
+        verify(transactionRepository, never()).save(any());
+    }
+
+    @Test
+    void adminNoPuedeEliminarAQuienDebe() {
+        givenThreeNamedMembers();
+        givenProjectMovements(ejemploConPagoDeCaroAAna());
+
+        assertRemovalRejected(BusinessException.class,
+                "No se puede eliminar a Beto porque tiene un saldo pendiente (debe $5.000). "
+                        + "Primero deben saldar las deudas.", USER_B);
+    }
+
+    /** Aportes Ana 45.000 y Beto 75.000, gasto de 105.000 entre los tres: Ana +10.000, Beto +40.000, Caro −35.000. */
+    @Test
+    void adminNoPuedeEliminarAQuienTieneSaldoAFavor() {
+        givenThreeNamedMembers();
+        givenProjectMovements(List.of(
+                sharedMovement(Transaction.TransactionType.INGRESO, 45_000, USER_A),
+                sharedMovement(Transaction.TransactionType.INGRESO, 75_000, USER_B),
+                sharedMovement(Transaction.TransactionType.GASTO, 105_000, USER_A, USER_B, USER_C)));
+
+        assertRemovalRejected(BusinessException.class,
+                "No se puede eliminar a Beto porque tiene un saldo pendiente (le deben $40.000). "
+                        + "Primero deben saldar las deudas.", USER_B);
+    }
+
+    @Test
+    void adminNoPuedeSalirDelProyecto() {
+        givenThreeNamedMembers();
+        givenProjectMovements(List.of());
+
+        assertRemovalRejected(BusinessException.class,
+                "El administrador no puede salir ni ser eliminado del proyecto.", USER_A);
+    }
+
+    @Test
+    void integranteNoPuedeEliminarAlAdmin() {
+        givenThreeNamedMembers();
+        whenCurrentUser(USER_C);
+
+        assertRemovalRejected(ForbiddenException.class,
+                "Solo el administrador puede eliminar a otros integrantes.", USER_A);
+    }
+
+    @Test
+    void integranteNoPuedeEliminarAOtroIntegrante() {
+        givenThreeNamedMembers();
+        givenProjectMovements(ejemploConPagoDeCaroAAna());
+        whenCurrentUser(USER_C);
+
+        assertRemovalRejected(ForbiddenException.class,
+                "Solo el administrador puede eliminar a otros integrantes.", USER_B);
+    }
+
+    @Test
+    void quienNoEsMiembroRecibe403() {
+        givenThreeNamedMembers();
+        whenCurrentUser(99L);
+
+        assertRemovalRejected(ForbiddenException.class, "No perteneces a este proyecto compartido.", USER_C);
+    }
+
+    @Test
+    void quienNoEsMiembroTampocoPuedeSalir() {
+        givenThreeNamedMembers();
+        whenCurrentUser(99L);
+
+        assertRemovalRejected(ForbiddenException.class, "No perteneces a este proyecto compartido.", 99L);
+    }
+
+    @Test
+    void eliminarAQuienNoEsIntegranteResponde404() {
+        givenThreeNamedMembers();
+
+        assertRemovalRejected(ResourceNotFoundException.class, "Esa persona no es integrante del proyecto.", 99L);
+    }
+
+    @Test
+    void integranteAlDiaSalePorSuCuenta() {
+        givenThreeNamedMembers();
+        givenProjectMovements(ejemploConPagoDeCaroAAna());
+        whenCurrentUser(USER_C);
+
+        service.removeMember(PROJECT_ID, USER_C);
+
+        assertEquals(List.of(USER_A, USER_B), project.getMembers().stream().map(User::getId).toList());
+        verify(sharedProjectRepository).save(project);
+    }
+
+    @Test
+    void integranteConDeudaNoPuedeSalir() {
+        givenThreeNamedMembers();
+        givenProjectMovements(ejemploConPagoDeCaroAAna());
+        whenCurrentUser(USER_B);
+
+        assertRemovalRejected(BusinessException.class,
+                "No puedes salir del proyecto porque tienes un saldo pendiente (debes $5.000). "
+                        + "Primero deben saldar las deudas.", USER_B);
+    }
+
+    @Test
+    void integranteConSaldoAFavorNoPuedeSalir() {
+        givenThreeNamedMembers();
+        givenProjectMovements(List.of(
+                sharedMovement(Transaction.TransactionType.INGRESO, 45_000, USER_A),
+                sharedMovement(Transaction.TransactionType.INGRESO, 75_000, USER_B),
+                sharedMovement(Transaction.TransactionType.GASTO, 105_000, USER_A, USER_B, USER_C)));
+        whenCurrentUser(USER_B);
+
+        assertRemovalRejected(BusinessException.class,
+                "No puedes salir del proyecto porque tienes un saldo pendiente (te deben $40.000). "
+                        + "Primero deben saldar las deudas.", USER_B);
+    }
+
+    /**
+     * Caro aporta 33.333,33 y su parte de un gasto de 100.000 entre tres es 33.333,333…: su saldo es
+     * −0,0033. En pantalla está "al día" y no puede pagar menos de medio centavo, así que puede salir.
+     */
+    @Test
+    void saldoMenorQueMedioCentavoCuentaComoAlDia() {
+        givenThreeNamedMembers();
+        givenProjectMovements(List.of(
+                sharedMovement(Transaction.TransactionType.INGRESO, 66_666.67, USER_A),
+                sharedMovement(Transaction.TransactionType.INGRESO, 33_333.33, USER_C),
+                sharedMovement(Transaction.TransactionType.GASTO, 100_000, USER_A, USER_B, USER_C)));
+
+        service.removeMember(PROJECT_ID, USER_C);
+
+        assertEquals(List.of(USER_A, USER_B), project.getMembers().stream().map(User::getId).toList());
+    }
+
+    @Test
+    void eliminarAUnIntegranteNoCambiaElSaldoDeLosDemasNiElFondo() {
+        // Dani participó en el gasto y quedó en 0: los demás deben quedar exactamente igual.
+        givenThreeNamedMembers();
+        project.getMembers().add(named(4L, "Dani"));
+        project.setCurrentBalance(20_000);
+        givenProjectMovements(List.of(
+                sharedMovement(Transaction.TransactionType.INGRESO, 90_000, USER_A),
+                sharedMovement(Transaction.TransactionType.INGRESO, 30_000, USER_B),
+                sharedMovement(Transaction.TransactionType.INGRESO, 25_000, 4L),
+                sharedMovement(Transaction.TransactionType.GASTO, 100_000, USER_A, USER_B, USER_C, 4L),
+                sharedMovement(Transaction.TransactionType.GASTO, 25_000, USER_A, USER_B)));
+        ProjectBalancesResponse before = service.getBalances(PROJECT_ID);
+
+        service.removeMember(PROJECT_ID, 4L);
+        ProjectBalancesResponse after = service.getBalances(PROJECT_ID);
+
+        assertEquals(before.getFund(), after.getFund());
+        assertEquals(before.getTotalBalances(), after.getTotalBalances());
+        assertEquals(before.getUnassigned(), after.getUnassigned());
+        assertEquals(List.of(USER_A, USER_B, USER_C),
+                after.getMembers().stream().map(MemberBalanceResponse::getUserId).toList());
+        for (int i = 0; i < 3; i++) {
+            assertEquals(before.getMembers().get(i).getNetBalance(), after.getMembers().get(i).getNetBalance());
+            assertEquals(before.getMembers().get(i).getShareOfExpenses(), after.getMembers().get(i).getShareOfExpenses());
+        }
+    }
+
+    private void assertRemovalRejected(Class<? extends RuntimeException> type, String message, Long userId) {
+        List<Long> membersBefore = project.getMembers().stream().map(User::getId).toList();
+        RuntimeException ex = assertThrows(type, () -> service.removeMember(PROJECT_ID, userId));
+        assertEquals(message, ex.getMessage());
+        assertEquals(membersBefore, project.getMembers().stream().map(User::getId).toList());
+        verify(sharedProjectRepository, never()).save(any());
     }
 
     // ---- Utilidades ----

@@ -38,6 +38,13 @@ export const sharedProjectService = {
   getBalances(projectId: number) {
     return apiClient.get<ProjectBalancesResponse>(`/projects/${projectId}/balances`);
   },
+  /**
+   * SharedProject.removeParticipant: el admin elimina a un integrante, o el usuario actual sale
+   * (userId = el suyo). Solo si está al día; el backend responde 204 sin cuerpo.
+   */
+  removeMember(projectId: number, userId: number) {
+    return apiClient.delete<void>(`/projects/${projectId}/members/${userId}`);
+  },
   /** SharedProject.settleDebts: el usuario actual le paga a otro integrante. */
   settle(projectId: number, data: SettleDebtRequest) {
     return apiClient.post<ProjectBalancesResponse>(`/projects/${projectId}/settlements`, data);
