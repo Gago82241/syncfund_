@@ -53,6 +53,17 @@ public class SharedProjectController {
     }
 
     /**
+     * SharedProject.removeParticipant(user): el administrador elimina a un integrante, o un integrante
+     * sale del proyecto (userId = usuario actual). Las reglas y la autorización las valida el service.
+     * 204 sin cuerpo: quien sale ya no puede ver el proyecto.
+     */
+    @DeleteMapping("/{id}/members/{userId}")
+    public ResponseEntity<Void> removeMember(@PathVariable Long id, @PathVariable Long userId) {
+        projectService.removeMember(id, userId);
+        return ResponseEntity.noContent().build();
+    }
+
+    /**
      * registerSelectiveExpense(amount, payerId, involvedIdsList): se registra como Transaction tipo GASTO
      * que paga el fondo del proyecto; si el fondo no alcanza, responde 422. Las verificaciones
      * (pagador, membresía, involucrados) las hace TransactionAppService.

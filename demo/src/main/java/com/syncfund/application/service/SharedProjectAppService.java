@@ -107,6 +107,47 @@ public class SharedProjectAppService {
     }
 
     /**
+     * SharedProject.removeParticipant(user): el administrador elimina a un integrante, o un integrante
+     * sale por su cuenta (userId = usuario actual). Solo si está al día: saldo neto de menos de medio
+     * centavo, el mismo criterio con que la situación muestra "Al día" y con que no se permite pagar.
+     * El administrador no puede salir ni ser eliminado.
+     *
+     * Sus movimientos se conservan: el saldo de cada integrante solo depende de las transacciones en
+     * que aparece, y cada gasto se divide entre su propio involvedIdsList, así que quitar a alguien al
+     * día no cambia el saldo de los demás ni el fondo.
+     */
+    @Transactional
+    public void removeMember(Long projectId, Long userId) {
+        SharedProject project = findProject(projectId);
+        requireMember(project);
+
+        boolean leaving = currentUserProvider.getUserId().equals(userId);
+        if (!leaving && !project.getAdmin().getId().equals(currentUserProvider.getUserId())) {
+            throw new ForbiddenException("Solo el administrador puede eliminar a otros integrantes.");
+        }
+        User member = project.getMembers().stream()
+                .filter(m -> m.getId().equals(userId))
+                .findFirst()
+                .orElseThrow(() -> new ResourceNotFoundException("Esa persona no es integrante del proyecto."));
+        if (project.getAdmin().getId().equals(userId)) {
+            throw new BusinessException("El administrador no puede salir ni ser eliminado del proyecto.");
+        }
+
+        double net = debtCalculator.calculateBalances(project, projectMovements(projectId)).getOrDefault(userId, 0.0);
+        if (Math.abs(net) >= CENT_TOLERANCE) {
+            throw new BusinessException(leaving
+                    ? "No puedes salir del proyecto porque tienes un saldo pendiente ("
+                            + (net < 0 ? "debes " : "te deben ") + money(Math.abs(net)) + "). Primero deben saldar las deudas."
+                    : "No se puede eliminar a " + member.getName() + " porque tiene un saldo pendiente ("
+                            + (net < 0 ? "debe " : "le deben ") + money(Math.abs(net)) + "). Primero deben saldar las deudas.");
+        }
+
+        // Lo quita de la lista y de los observadores, y notifica a los que quedan (patrón Observer).
+        project.removeParticipant(member);
+        sharedProjectRepository.save(project);
+    }
+
+    /**
      * SharedProject.distributeContribution(amount, contributorId). Solo puedes aportar a tu propio nombre.
      *
      * El aporte es dinero real: sale de la billetera personal de quien aporta (GASTO en su
