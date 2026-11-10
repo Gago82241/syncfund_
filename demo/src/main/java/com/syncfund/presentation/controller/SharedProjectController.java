@@ -9,9 +9,6 @@ import com.syncfund.application.dto.response.SharedProjectResponse;
 import com.syncfund.application.dto.response.TransactionResponse;
 import com.syncfund.application.service.SharedProjectAppService;
 import com.syncfund.application.service.TransactionAppService;
-import com.syncfund.application.dto.request.CreateTransactionRequest;
-import com.syncfund.application.exception.ForbiddenException;
-import com.syncfund.security.CurrentUserProvider;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -26,14 +23,11 @@ public class SharedProjectController {
 
     private final SharedProjectAppService projectService;
     private final TransactionAppService transactionService;
-    private final CurrentUserProvider currentUserProvider;
 
     public SharedProjectController(SharedProjectAppService projectService,
-                                    TransactionAppService transactionService,
-                                    CurrentUserProvider currentUserProvider) {
+                                    TransactionAppService transactionService) {
         this.projectService = projectService;
         this.transactionService = transactionService;
-        this.currentUserProvider = currentUserProvider;
     }
 
     @PostMapping
@@ -58,26 +52,14 @@ public class SharedProjectController {
 
     /**
      * registerSelectiveExpense(amount, payerId, involvedIdsList): se registra como Transaction tipo GASTO
-     * que paga el fondo del proyecto; si el fondo no alcanza, responde 422.
+     * que paga el fondo del proyecto; si el fondo no alcanza, responde 422. Las verificaciones
+     * (pagador, membresía, involucrados) las hace TransactionAppService.
      */
     @PostMapping("/{id}/expenses")
     public ResponseEntity<TransactionResponse> registerSelectiveExpense(
             @PathVariable Long id, @Valid @RequestBody RegisterSelectiveExpenseRequest request) {
-
-        if (!currentUserProvider.getUserId().equals(request.getPayerId())) {
-            throw new ForbiddenException("No puedes registrar un gasto a nombre de otro usuario como pagador.");
-        }
-
-        CreateTransactionRequest txRequest = new CreateTransactionRequest();
-        txRequest.setAmount(request.getAmount());
-        txRequest.setDescription(request.getDescription());
-        txRequest.setType("GASTO");
-        txRequest.setOriginWalletId(id);
-        txRequest.setOriginWalletType("SHARED");
-        txRequest.setInvolvedIdsList(request.getInvolvedIdsList());
-        txRequest.setCategoryId(request.getCategoryId());
-
-        return ResponseEntity.status(HttpStatus.CREATED).body(transactionService.create(txRequest));
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(transactionService.registerSelectiveExpense(id, request));
     }
 
     @PostMapping("/{id}/contributions")

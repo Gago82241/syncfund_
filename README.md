@@ -47,6 +47,8 @@ El sistema se diseñó antes de su implementación mediante un modelo orientado 
 
 En seguridad, además de la autenticación sin estado con JWT, el backend verifica en cada operación que el recurso solicitado pertenezca al usuario o que este sea miembro del proyecto. Un token válido no permite consultar ni modificar información de otro usuario.
 
+Como riesgo aceptado, el registro y la incorporación de integrantes informan si un correo ya está registrado: ocultarlo dejaría a los usuarios sin saber por qué falló la acción y exigiría verificación por correo, que el sistema aún no tiene. El inicio de sesión, en cambio, responde igual ante un correo inexistente o una contraseña incorrecta. Esta decisión se revisará cuando se implemente la invitación de integrantes con aceptación.
+
 ### Decisiones técnicas relevantes
 
 - **Patrón Observer sobre una API REST:** el patrón se mantuvo fiel al diseño original pese a que la comunicación entre cliente y servidor es sin estado.

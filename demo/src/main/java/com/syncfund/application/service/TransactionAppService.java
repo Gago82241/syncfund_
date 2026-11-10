@@ -2,6 +2,7 @@ package com.syncfund.application.service;
 
 import com.syncfund.application.dto.request.CategorizeTransactionRequest;
 import com.syncfund.application.dto.request.CreateTransactionRequest;
+import com.syncfund.application.dto.request.RegisterSelectiveExpenseRequest;
 import com.syncfund.application.dto.response.TransactionResponse;
 import com.syncfund.application.exception.BusinessException;
 import com.syncfund.application.exception.ForbiddenException;
@@ -81,11 +82,10 @@ public class TransactionAppService {
             transaction.categorize(categoryAppService.getOwnedCategory(request.getCategoryId()));
         }
 
-        // Transaction.execute(): valida saldo (o permiso de sobregiro) y procesa el movimiento.
-        // El fondo de un proyecto nunca queda en negativo, aunque el cliente pida sobregiro.
+        // Transaction.execute(): valida el saldo y procesa el movimiento. Ninguna billetera queda en
+        // negativo por pedido del cliente: el allowOverdraft que llegue en la petición se ignora.
         boolean shared = walletType == Transaction.OriginWalletType.SHARED;
-        boolean allowOverdraft = !shared && request.isAllowOverdraft();
-        if (!financialManager.processTransaction(wallet, transaction, allowOverdraft)) {
+        if (!financialManager.processTransaction(wallet, transaction, false)) {
             throw new BusinessException(shared
                     ? "El fondo del proyecto no tiene saldo suficiente para este gasto."
                     : "Saldo insuficiente para realizar la transacción.");
@@ -95,6 +95,28 @@ public class TransactionAppService {
         Transaction saved = transactionRepository.save(transaction);
 
         return mapper.toResponse(saved);
+    }
+
+    /**
+     * SharedProject.registerSelectiveExpense(amount, payerId, involvedIdsList): un gasto del
+     * proyecto que paga el fondo. Solo puedes registrarlo a tu propio nombre como pagador; el resto
+     * (membresía, involucrados, categoría y fondo suficiente) lo valida create().
+     */
+    @Transactional
+    public TransactionResponse registerSelectiveExpense(Long projectId, RegisterSelectiveExpenseRequest request) {
+        if (!currentUserProvider.getUserId().equals(request.getPayerId())) {
+            throw new ForbiddenException("No puedes registrar un gasto a nombre de otro usuario como pagador.");
+        }
+
+        CreateTransactionRequest txRequest = new CreateTransactionRequest();
+        txRequest.setAmount(request.getAmount());
+        txRequest.setDescription(request.getDescription());
+        txRequest.setType(Transaction.TransactionType.GASTO.name());
+        txRequest.setOriginWalletId(projectId);
+        txRequest.setOriginWalletType(Transaction.OriginWalletType.SHARED.name());
+        txRequest.setInvolvedIdsList(request.getInvolvedIdsList());
+        txRequest.setCategoryId(request.getCategoryId());
+        return create(txRequest);
     }
 
     /** Wallet.getPeriodReport(startDate, endDate), filtrado por billetera. Exige acceso a ella. */

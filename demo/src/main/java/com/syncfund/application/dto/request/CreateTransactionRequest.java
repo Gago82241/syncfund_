@@ -30,5 +30,10 @@ public class CreateTransactionRequest {
 
     private List<Long> involvedIdsList;
     private Long categoryId;
+
+    /**
+     * Se conserva para no cambiar el contrato de la API, pero el backend lo ignora:
+     * el sobregiro nunca lo decide el cliente.
+     */
     private boolean allowOverdraft = false;
 }

@@ -2,6 +2,7 @@ package com.syncfund;
 
 import com.syncfund.application.dto.request.CategorizeTransactionRequest;
 import com.syncfund.application.dto.request.CreateTransactionRequest;
+import com.syncfund.application.dto.request.RegisterSelectiveExpenseRequest;
 import com.syncfund.application.dto.response.TransactionResponse;
 import com.syncfund.application.exception.BusinessException;
 import com.syncfund.application.exception.ForbiddenException;
@@ -204,6 +205,53 @@ class TransactionAppServiceTests {
     }
 
     @Test
+    void gastoCompartidoANombreDeOtroPagadorResponde403SinProcesarNada() {
+        RegisterSelectiveExpenseRequest request = selectiveExpense(OTHER_USER_ID);
+
+        ForbiddenException ex = assertThrows(ForbiddenException.class,
+                () -> service.registerSelectiveExpense(WALLET_ID, request));
+
+        assertEquals("No puedes registrar un gasto a nombre de otro usuario como pagador.", ex.getMessage());
+        verifyNothingProcessed();
+        verifyNoInteractions(sharedProjectRepository);
+    }
+
+    @Test
+    void gastoCompartidoDelPagadorActualSeRegistraComoGastoDelFondo() {
+        SharedProject project = givenProjectWithFund(100_000, currentUser, otherUser);
+
+        TransactionResponse response = serviceWithRealFinancialManager()
+                .registerSelectiveExpense(WALLET_ID, selectiveExpense(CURRENT_USER_ID));
+
+        assertEquals(40_000, project.getCurrentBalance());
+        assertEquals("GASTO", response.getType());
+        assertEquals("SHARED", response.getOriginWalletType());
+        assertEquals(WALLET_ID, response.getOriginWalletId());
+        assertEquals(List.of(CURRENT_USER_ID, OTHER_USER_ID), response.getInvolvedIdsList());
+        assertEquals(OWN_CATEGORY_ID, response.getCategoryId());
+        verify(transactionRepository).save(any(Transaction.class));
+    }
+
+    @Test
+    void gastoPersonalIgnoraElSobregiroPedidoPorElCliente() {
+        PersonalWallet wallet = new PersonalWallet();
+        wallet.setOwner(currentUser);
+        wallet.setCurrentBalance(10_000);
+        when(personalWalletRepository.findById(WALLET_ID)).thenReturn(Optional.of(wallet));
+        CreateTransactionRequest request = createRequest("PERSONAL", null);
+        request.setAmount(50_000);
+        request.setAllowOverdraft(true);
+
+        BusinessException ex = assertThrows(BusinessException.class,
+                () -> serviceWithRealFinancialManager().create(request));
+
+        assertEquals("Saldo insuficiente para realizar la transacción.", ex.getMessage());
+        assertEquals(10_000, wallet.getCurrentBalance());
+        verify(personalWalletRepository, never()).save(any());
+        verify(transactionRepository, never()).save(any());
+    }
+
+    @Test
     void gastoCompartidoConFondoExactoDejaElFondoEnCero() {
         SharedProject project = givenProjectWithFund(60_000, currentUser, otherUser);
 
@@ -270,6 +318,16 @@ class TransactionAppServiceTests {
         request.setAmount(amount);
         request.setInvolvedIdsList(List.of(CURRENT_USER_ID, OTHER_USER_ID));
         request.setAllowOverdraft(allowOverdraft);
+        return request;
+    }
+
+    private static RegisterSelectiveExpenseRequest selectiveExpense(Long payerId) {
+        RegisterSelectiveExpenseRequest request = new RegisterSelectiveExpenseRequest();
+        request.setAmount(60_000);
+        request.setPayerId(payerId);
+        request.setInvolvedIdsList(List.of(CURRENT_USER_ID, OTHER_USER_ID));
+        request.setDescription("Mercado");
+        request.setCategoryId(OWN_CATEGORY_ID);
         return request;
     }
 
