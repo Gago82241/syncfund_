@@ -29,7 +29,7 @@ SyncFund es una aplicación web que integra en un mismo sistema la administraci�
 
 ### Contexto
 
-La gestión de gastos compartidos (vivienda, viajes, actividades grupales) suele llevarse por separado de las finanzas personales, lo que obliga a calcular manualmente cuánto aportó cada persona y cuánto adeuda. SyncFund unifica ambos registros: cuando un usuario participa en un gasto grupal, el valor correspondiente se descuenta tanto del fondo del grupo como de su billetera personal, de modo que ambos saldos se mantienen consistentes.
+La gestión de gastos compartidos (vivienda, viajes, actividades grupales) suele llevarse por separado de las finanzas personales, lo que obliga a calcular manualmente cuánto aportó cada persona y cuánto adeuda. SyncFund unifica ambos registros: cada integrante aporta al fondo del grupo desde su billetera personal, el fondo paga los gastos compartidos y el sistema calcula cuánto le deben o cuánto debe cada uno según lo que aportó y los gastos en los que participó.
 
 ### Módulos del sistema
 
@@ -37,7 +37,7 @@ La gestión de gastos compartidos (vivienda, viajes, actividades grupales) suele
 |---|---|
 | **Autenticación y usuarios** | Registro, inicio de sesión y emisión de tokens JWT. |
 | **Billetera personal** (`PersonalWallet`) | Registro de movimientos (ingresos y gastos), meta de ahorro mensual y saldo de reserva ("colchón") que impide que el saldo quede en negativo. |
-| **Proyectos compartidos** (`SharedProject`) | Creación de grupos, incorporación de integrantes por correo electrónico, aportes al fondo común y registro de gastos con selección de participantes. |
+| **Proyectos compartidos** (`SharedProject`) | Creación de grupos, incorporación de integrantes por correo electrónico, aportes al fondo común (descontados de la billetera personal de quien aporta) y registro de gastos con selección de participantes, pagados por el fondo. |
 | **Cálculo de deudas** (`DebtCalculator`) | Determinación del saldo neto de cada integrante: si está al día, si le deben o si debe. |
 | **Categorías** | Clasificación de gastos con límite de presupuesto mensual y alerta cuando se supera. Cada categoría es privada de quien la crea. |
 
@@ -50,7 +50,8 @@ En seguridad, además de la autenticación sin estado con JWT, el backend verifi
 ### Decisiones técnicas relevantes
 
 - **Patrón Observer sobre una API REST:** el patrón se mantuvo fiel al diseño original pese a que la comunicación entre cliente y servidor es sin estado.
-- **Doble registro de los gastos compartidos:** un mismo gasto afecta el fondo del proyecto y la billetera de cada participante, sin alterar el cálculo de deudas.
+- **Doble registro de los aportes:** un aporte queda como gasto en la billetera personal de quien aporta y como ingreso en el fondo del proyecto. Los gastos compartidos solo afectan el fondo, de modo que el dinero nunca se cobra dos veces y la suma de los saldos netos de los integrantes es igual al saldo del fondo.
+- **El fondo no se sobregira:** un gasto compartido que supera el saldo del fondo se rechaza; primero hay que aportar.
 - **Autorización por recurso:** se separó la verificación de identidad (autenticación) de la verificación de propiedad o membresía (autorización).
 
 ### Limitaciones y trabajo futuro
@@ -61,7 +62,7 @@ En seguridad, además de la autenticación sin estado con JWT, el backend verifi
 ## Características principales
 
 - **Billetera personal**: registro de ingresos y gastos, meta de ahorro mensual con cálculo automático de cuota, y un "colchón" de seguridad que nunca permite dejar el saldo en negativo.
-- **Proyectos compartidos**: crea un grupo, agrega integrantes por correo electrónico, registra gastos selectivos (eliges quién participa en cada uno) y aportes al fondo común.
+- **Proyectos compartidos**: crea un grupo, agrega integrantes por correo electrónico, aporta al fondo común desde tu billetera personal y registra gastos selectivos (eliges quién participa en cada uno) que paga el fondo. Si el fondo no alcanza, el gasto se rechaza.
 - **Cálculo de deudas en tiempo real**: en todo momento puedes ver si estás "en paz", te deben, o debes, sin tener que hacer la cuenta a mano.
 - **Categorías con alerta de presupuesto**: crea tus propias categorías de gasto, define un límite mensual para cada una y recibe aviso visual cuando lo superas. Solo tú puedes verlas y usarlas.
 - **Seguridad**: autenticación con JWT y una capa de autorización que verifica, en cada petición, que el recurso solicitado pertenezca a quien hace la petición, no solo que haya iniciado sesión.
@@ -174,7 +175,7 @@ Al incorporar un integrante con `addMember(user)`, este se registra automáticam
 
 ### Flujo de registro de un gasto compartido
 
-El diagrama de actividades muestra la validación del gasto (monto mayor a cero, existencia del grupo y pertenencia del usuario) y la ejecución en paralelo del registro (`Core_Accounting`) y del cálculo de la división (`Math_Engine`), antes de notificar a los participantes mediante el patrón Observer.
+El diagrama de actividades muestra la validación del gasto (monto mayor a cero, existencia del grupo y pertenencia del usuario), la verificación de que el fondo tenga saldo suficiente para pagarlo y la ejecución en paralelo del registro (`Core_Accounting`) y del cálculo de la división (`Math_Engine`), antes de notificar a los participantes mediante el patrón Observer.
 
 <p align="center">
   <img src="docs/diagramas/actividades-registro-gasto.png" alt="Diagrama de actividades del registro de un gasto" width="520">

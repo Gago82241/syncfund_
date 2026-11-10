@@ -5,13 +5,17 @@ import './Input.css';
 interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   label: string;
   error?: string;
+  /** Texto de ayuda bajo el campo (ej. el saldo disponible). */
+  hint?: string;
 }
 
-export function Input({ label, error, id, className, ...rest }: InputProps) {
+export function Input({ label, error, hint, id, className, ...rest }: InputProps) {
   // Una misma página puede tener dos campos con el mismo name (ej. dos "amount").
   const generatedId = useId();
   const inputId = id ?? generatedId;
   const errorId = `${inputId}-error`;
+  const hintId = `${inputId}-hint`;
+  const describedBy = [hint && hintId, error && errorId].filter(Boolean).join(' ');
   const inputClassName = ['sf-field__input', error && 'sf-field__input--error', className]
     .filter(Boolean)
     .join(' ');
@@ -23,9 +27,10 @@ export function Input({ label, error, id, className, ...rest }: InputProps) {
         id={inputId}
         className={inputClassName}
         aria-invalid={error ? true : undefined}
-        aria-describedby={error ? errorId : undefined}
+        aria-describedby={describedBy || undefined}
         {...rest}
       />
+      {hint && <span id={hintId} className="sf-field__hint">{hint}</span>}
       <FieldError id={errorId} message={error} />
     </div>
   );

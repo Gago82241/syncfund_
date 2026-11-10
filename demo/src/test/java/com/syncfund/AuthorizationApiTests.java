@@ -86,6 +86,7 @@ class AuthorizationApiTests {
     private static final String REPORT_ROUTE = "/api/transactions/wallet/%d/report?walletType=%s"
             + "&start=2026-01-01T00:00:00&end=2026-12-31T23:59:59";
     private static final String INVOLVED_OUTSIDE_MESSAGE = "Solo puedes repartir un gasto entre integrantes del proyecto.";
+    private static final String FONDO_INSUFICIENTE = "El fondo del proyecto no tiene saldo suficiente para este gasto.";
 
     @Autowired
     private MockMvc mockMvc;
@@ -119,8 +120,8 @@ class AuthorizationApiTests {
     // ---- POST /api/projects/{id}/expenses ----
 
     @Test
-    void gastoEntreMiembrosResponde201YDescuentaSoloASusInvolucrados() throws Exception {
-        givenProject(currentUser, member);
+    void gastoEntreMiembrosResponde201YSoloDescuentaDelFondo() throws Exception {
+        SharedProject project = givenProject(currentUser, member);
         PersonalWallet currentUserWallet = givenPersonalWallet(currentUser, 100);
         PersonalWallet memberWallet = givenPersonalWallet(member, 100);
 
@@ -128,8 +129,26 @@ class AuthorizationApiTests {
                         .content(expenseJson(CURRENT_USER_ID, CURRENT_USER_ID, MEMBER_ID)))
                 .andExpect(status().isCreated());
 
-        assertEquals(75, currentUserWallet.getCurrentBalance());
-        assertEquals(75, memberWallet.getCurrentBalance());
+        assertEquals(50, project.getCurrentBalance());
+        assertEquals(100, currentUserWallet.getCurrentBalance());
+        assertEquals(100, memberWallet.getCurrentBalance());
+    }
+
+    @Test
+    void gastoMayorQueElFondoResponde422SinTocarSaldos() throws Exception {
+        SharedProject project = givenProjectWithFund(20, currentUser, member);
+        PersonalWallet currentUserWallet = givenPersonalWallet(currentUser, 100);
+
+        mockMvc.perform(asCurrentUser(post("/api/projects/" + PROJECT_ID + "/expenses"))
+                        .content(expenseJson(CURRENT_USER_ID, CURRENT_USER_ID, MEMBER_ID)))
+                .andExpect(status().is(422))
+                .andExpect(jsonPath("$.status").value(422))
+                .andExpect(jsonPath("$.message").value(FONDO_INSUFICIENTE))
+                .andExpect(jsonPath("$.errors").doesNotExist());
+
+        assertEquals(20, project.getCurrentBalance());
+        assertEquals(100, currentUserWallet.getCurrentBalance());
+        verifyNothingSaved();
     }
 
     @Test
@@ -193,15 +212,104 @@ class AuthorizationApiTests {
     // ---- POST /api/transactions con billetera SHARED ----
 
     @Test
-    void movimientoCompartidoEntreMiembrosResponde201() throws Exception {
-        givenProject(currentUser, member);
+    void movimientoCompartidoEntreMiembrosResponde201YSoloDescuentaDelFondo() throws Exception {
+        SharedProject project = givenProject(currentUser, member);
         PersonalWallet memberWallet = givenPersonalWallet(member, 100);
 
         mockMvc.perform(asCurrentUser(post("/api/transactions"))
                         .content(sharedTransactionJson(PROJECT_ID, MEMBER_ID)))
                 .andExpect(status().isCreated());
 
-        assertEquals(50, memberWallet.getCurrentBalance());
+        assertEquals(50, project.getCurrentBalance());
+        assertEquals(100, memberWallet.getCurrentBalance());
+    }
+
+    @Test
+    void movimientoCompartidoConSobregiroPedidoPorElClienteIgualSeRechazaSiElFondoNoAlcanza() throws Exception {
+        SharedProject project = givenProjectWithFund(20, currentUser, member);
+
+        mockMvc.perform(asCurrentUser(post("/api/transactions"))
+                        .content(sharedTransactionJson(PROJECT_ID, MEMBER_ID)))
+                .andExpect(status().is(422))
+                .andExpect(jsonPath("$.message").value(FONDO_INSUFICIENTE));
+
+        assertEquals(20, project.getCurrentBalance());
+        verifyNothingSaved();
+    }
+
+    @Test
+    void ingresoDirectoAlFondoResponde422() throws Exception {
+        SharedProject project = givenProject(currentUser, member);
+
+        mockMvc.perform(asCurrentUser(post("/api/transactions"))
+                        .content("{\"amount\":50,\"description\":\"Plata extra\",\"type\":\"INGRESO\",\"originWalletId\":"
+                                + PROJECT_ID + ",\"originWalletType\":\"SHARED\"}"))
+                .andExpect(status().is(422))
+                .andExpect(jsonPath("$.status").value(422))
+                .andExpect(jsonPath("$.message").value("Para sumar dinero al fondo usa la opción Aportar."));
+
+        assertEquals(100, project.getCurrentBalance());
+        verifyNothingSaved();
+    }
+
+    // ---- POST /api/projects/{id}/contributions ----
+
+    @Test
+    void aportePropioResponde200YDescuentaDeLaBilletera() throws Exception {
+        SharedProject project = givenProjectWithFund(0, currentUser, member);
+        PersonalWallet wallet = givenPersonalWallet(currentUser, 100);
+
+        mockMvc.perform(asCurrentUser(post("/api/projects/" + PROJECT_ID + "/contributions"))
+                        .content(contributionJson(CURRENT_USER_ID, 60)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.currentBalance").value(60.0));
+
+        assertEquals(40, wallet.getCurrentBalance());
+        assertEquals(60, project.getCurrentBalance());
+    }
+
+    @Test
+    void aporteSinSaldoSuficienteResponde422SinTocarSaldos() throws Exception {
+        SharedProject project = givenProjectWithFund(0, currentUser, member);
+        PersonalWallet wallet = givenPersonalWallet(currentUser, 30);
+
+        mockMvc.perform(asCurrentUser(post("/api/projects/" + PROJECT_ID + "/contributions"))
+                        .content(contributionJson(CURRENT_USER_ID, 60)))
+                .andExpect(status().is(422))
+                .andExpect(jsonPath("$.status").value(422))
+                .andExpect(jsonPath("$.message").value("Saldo insuficiente en tu billetera personal para este aporte."));
+
+        assertEquals(30, wallet.getCurrentBalance());
+        assertEquals(0, project.getCurrentBalance());
+        verifyNothingSaved();
+    }
+
+    @Test
+    void aporteANombreDeOtroResponde403() throws Exception {
+        givenProject(currentUser, member);
+        PersonalWallet memberWallet = givenPersonalWallet(member, 100);
+
+        mockMvc.perform(asCurrentUser(post("/api/projects/" + PROJECT_ID + "/contributions"))
+                        .content(contributionJson(MEMBER_ID, 60)))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.message").value("No puedes registrar un aporte a nombre de otro usuario."));
+
+        assertEquals(100, memberWallet.getCurrentBalance());
+        verifyNothingSaved();
+    }
+
+    @Test
+    void aporteEnProyectoDelQueNoEsMiembroResponde403() throws Exception {
+        givenProject(member);
+        PersonalWallet wallet = givenPersonalWallet(currentUser, 100);
+
+        mockMvc.perform(asCurrentUser(post("/api/projects/" + PROJECT_ID + "/contributions"))
+                        .content(contributionJson(CURRENT_USER_ID, 60)))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.message").value("No perteneces a este proyecto compartido."));
+
+        assertEquals(100, wallet.getCurrentBalance());
+        verifyNothingSaved();
     }
 
     @Test
@@ -417,11 +525,20 @@ class AuthorizationApiTests {
                 .contentType(MediaType.APPLICATION_JSON);
     }
 
-    private void givenProject(User... members) {
+    /** Proyecto con 100 en el fondo, suficiente para los gastos de 50 de estas pruebas. */
+    private SharedProject givenProject(User... members) {
+        return givenProjectWithFund(100, members);
+    }
+
+    private SharedProject givenProjectWithFund(double fund, User... members) {
         SharedProject project = new SharedProject();
         project.setProjectId(PROJECT_ID);
+        project.setName("Proyecto de prueba");
+        project.setCurrentBalance(fund);
         project.setMembers(List.of(members));
         when(sharedProjectRepository.findById(PROJECT_ID)).thenReturn(Optional.of(project));
+        lenient().when(sharedProjectRepository.save(any(SharedProject.class))).thenAnswer(call -> call.getArgument(0));
+        return project;
     }
 
     private PersonalWallet givenPersonalWallet(User owner, double balance) {
@@ -435,6 +552,10 @@ class AuthorizationApiTests {
     private static String expenseJson(Long payerId, Long... involvedIds) {
         return "{\"amount\":50,\"description\":\"Almuerzo\",\"payerId\":" + payerId
                 + ",\"involvedIdsList\":" + List.of(involvedIds) + "}";
+    }
+
+    private static String contributionJson(Long contributorId, double amount) {
+        return "{\"amount\":" + amount + ",\"contributorId\":" + contributorId + ",\"description\":\"Aporte al fondo\"}";
     }
 
     private static String sharedTransactionJson(Long projectId, Long... involvedIds) {
