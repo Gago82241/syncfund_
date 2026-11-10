@@ -23,6 +23,7 @@ import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 
@@ -111,6 +112,183 @@ class SaldarDeudasIntegrationTests {
         assertEquals(404, status(como(ana, get(situacionUrl(Long.MAX_VALUE)))));
     }
 
+    // ---- Pagar una deuda ----
+
+    @Test
+    void pagoDeCaroAAnaAntesYDespues() throws Exception {
+        Ejemplo e = ejemplo();
+        assertEquals(110_000, saldoBilletera(e.ana()), DELTA);
+        assertEquals(70_000, saldoBilletera(e.beto()), DELTA);
+        assertEquals(100_000, saldoBilletera(e.caro()), DELTA);
+        assertEquals(15_000, fondo(e.ana(), e.proyecto()), DELTA);
+
+        MvcResult result = mockMvc.perform(como(e.caro(), post(pagoUrl(e.proyecto())))
+                .content(pagoJson(e.caro(), e.ana(), 35_000))).andReturn();
+
+        assertEquals(201, result.getResponse().getStatus(), result.getResponse().getContentAsString(StandardCharsets.UTF_8));
+        String respuesta = result.getResponse().getContentAsString(StandardCharsets.UTF_8);
+        assertEquals(20_000, saldoEnSituacion(respuesta, e.ana()), DELTA);
+        assertEquals(0, saldoEnSituacion(respuesta, e.caro()), DELTA);
+
+        // Billeteras: sale de Caro y entra a Ana; Beto no cambia. El fondo no cambia.
+        assertEquals(145_000, saldoBilletera(e.ana()), DELTA);
+        assertEquals(70_000, saldoBilletera(e.beto()), DELTA);
+        assertEquals(65_000, saldoBilletera(e.caro()), DELTA);
+        assertEquals(15_000, fondo(e.ana(), e.proyecto()), DELTA);
+
+        // Situación: Ana 20.000 a favor, Beto debe 5.000, Caro al día; la suma sigue igual al fondo.
+        String situacion = ok(como(e.beto(), get(situacionUrl(e.proyecto()))));
+        assertEquals(20_000, saldoEnSituacion(situacion, e.ana()), DELTA);
+        assertEquals(-5_000, saldoEnSituacion(situacion, e.beto()), DELTA);
+        assertEquals(0, saldoEnSituacion(situacion, e.caro()), DELTA);
+        assertEquals(15_000, numero(situacion, "$.totalBalances"), DELTA);
+        assertEquals(15_000, numero(situacion, "$.fund"), DELTA);
+        assertEquals(0, saldoNeto(e.caro(), e.proyecto()), DELTA);
+        assertEquals(20_000, saldoNeto(e.ana(), e.proyecto()), DELTA);
+
+        // Historiales: GASTO en la billetera de Caro, INGRESO en la de Ana, ABONO y COBRO en el proyecto.
+        assertTrue(contiene(movimientos(e.caro(), billetera(e.caro()), "PERSONAL"), "GASTO", 35_000, "Pago a Ana – «Viaje»"));
+        assertTrue(contiene(movimientos(e.ana(), billetera(e.ana()), "PERSONAL"), "INGRESO", 35_000, "Pago de Caro – «Viaje»"));
+        String delProyecto = movimientos(e.ana(), e.proyecto(), "SHARED");
+        assertTrue(contiene(delProyecto, "ABONO", 35_000, "Pago de Caro a Ana"), delProyecto);
+        assertTrue(contiene(delProyecto, "COBRO", 35_000, "Pago de Caro a Ana"), delProyecto);
+    }
+
+    @Test
+    void despuesDeSaldarTodoUnSegundoPagoSeRechaza() throws Exception {
+        Ejemplo e = ejemplo();
+        assertEquals(201, pagar(e.caro(), e.proyecto(), e.caro(), e.ana(), 35_000));
+
+        assertRechazado(e, e.caro(), pagoJson(e.caro(), e.ana(), 1_000), 422, "No tienes deudas pendientes en este proyecto.");
+    }
+
+    @Test
+    void pagoANombreDeOtroResponde403() throws Exception {
+        Ejemplo e = ejemplo();
+
+        assertRechazado(e, e.ana(), pagoJson(e.caro(), e.ana(), 35_000), 403,
+                "No puedes registrar un pago a nombre de otro usuario.");
+    }
+
+    @Test
+    void pagoDeQuienNoEsIntegranteResponde403() throws Exception {
+        Ejemplo e = ejemplo();
+        Cuenta intrusa = registrar("Intrusa");
+        depositar(intrusa, 50_000);
+
+        assertRechazado(e, intrusa, pagoJson(intrusa, e.ana(), 10_000), 403, "No perteneces a este proyecto compartido.");
+    }
+
+    @Test
+    void pagoAQuienNoEsIntegranteResponde403() throws Exception {
+        Ejemplo e = ejemplo();
+        Cuenta ajena = registrar("Ajena");
+
+        assertRechazado(e, e.caro(), pagoJson(e.caro(), ajena, 10_000), 403,
+                "Solo puedes pagarle a un integrante del proyecto.");
+    }
+
+    @Test
+    void pagarseASiMismoResponde422() throws Exception {
+        Ejemplo e = ejemplo();
+
+        assertRechazado(e, e.caro(), pagoJson(e.caro(), e.caro(), 1_000), 422, "No puedes pagarte a ti mismo.");
+    }
+
+    @Test
+    void pagoDeQuienNoDebeResponde422() throws Exception {
+        Ejemplo e = ejemplo();
+
+        assertRechazado(e, e.ana(), pagoJson(e.ana(), e.caro(), 1_000), 422, "No tienes deudas pendientes en este proyecto.");
+    }
+
+    @Test
+    void pagoMayorQueLaDeudaResponde422() throws Exception {
+        Ejemplo e = ejemplo();
+
+        assertRechazado(e, e.beto(), pagoJson(e.beto(), e.ana(), 10_000), 422, "El monto supera lo que debes ($5.000).");
+    }
+
+    @Test
+    void pagoAQuienNoTieneSaldoAFavorResponde422() throws Exception {
+        Ejemplo e = ejemplo();
+
+        assertRechazado(e, e.caro(), pagoJson(e.caro(), e.beto(), 5_000), 422,
+                "Beto no tiene saldo a favor en este proyecto.");
+    }
+
+    @Test
+    void pagoMayorQueElSaldoAFavorDeQuienRecibeResponde422() throws Exception {
+        // Aportes Ana 45.000 y Beto 75.000; gasto de 105.000 entre los tres: Ana +10.000, Beto +40.000, Caro −35.000.
+        Cuenta ana = registrar("Ana");
+        Cuenta beto = registrar("Beto");
+        Cuenta caro = registrar("Caro");
+        depositar(ana, 100_000);
+        depositar(beto, 100_000);
+        depositar(caro, 100_000);
+        long proyecto = crearProyecto(ana, "Finca");
+        agregarIntegrante(ana, proyecto, beto);
+        agregarIntegrante(ana, proyecto, caro);
+        assertEquals(200, aportar(ana, proyecto, 45_000));
+        assertEquals(200, aportar(beto, proyecto, 75_000));
+        assertEquals(201, gastar(ana, proyecto, 105_000, ana, beto, caro));
+
+        assertRechazado(new Ejemplo(ana, beto, caro, proyecto), caro, pagoJson(caro, ana, 20_000), 422,
+                "El monto supera el saldo a favor de Ana ($10.000).");
+    }
+
+    @Test
+    void pagoSinSaldoSuficienteEnLaBilleteraResponde422() throws Exception {
+        Ejemplo e = ejemplo();
+        gastarDeLaBilletera(e.caro(), 90_000); // a Caro le quedan 10.000
+
+        assertRechazado(e, e.caro(), pagoJson(e.caro(), e.ana(), 35_000), 422,
+                "Saldo insuficiente en tu billetera personal para este pago.");
+    }
+
+    @Test
+    void pagoConDatosInvalidosResponde400ConUnErrorPorCampo() throws Exception {
+        Ejemplo e = ejemplo();
+
+        MvcResult result = mockMvc.perform(como(e.caro(), post(pagoUrl(e.proyecto())))
+                .content("{\"payerId\":" + e.caro().id() + ",\"amount\":0}")).andReturn();
+
+        assertEquals(400, result.getResponse().getStatus());
+        String body = result.getResponse().getContentAsString(StandardCharsets.UTF_8);
+        assertEquals("El monto debe ser mayor que cero", JsonPath.read(body, "$.errors.amount"));
+        assertEquals("Quien recibe el pago es obligatorio", JsonPath.read(body, "$.errors.payeeId"));
+    }
+
+    @Test
+    void pagoSinSesionResponde401() throws Exception {
+        Ejemplo e = ejemplo();
+
+        int status = mockMvc.perform(post(pagoUrl(e.proyecto())).contentType(MediaType.APPLICATION_JSON)
+                .content(pagoJson(e.caro(), e.ana(), 35_000))).andReturn().getResponse().getStatus();
+
+        assertEquals(401, status);
+    }
+
+    @Test
+    void pagoEnUnProyectoInexistenteResponde404() throws Exception {
+        Ejemplo e = ejemplo();
+
+        assertEquals(404, status(como(e.caro(), post(pagoUrl(Long.MAX_VALUE))).content(pagoJson(e.caro(), e.ana(), 1_000))));
+    }
+
+    @Test
+    void unAbonoDirectoPorLaApiDeMovimientosSeRechaza() throws Exception {
+        Ejemplo e = ejemplo();
+        String json = "{\"amount\":1000,\"description\":\"Truco\",\"type\":\"ABONO\",\"originWalletId\":"
+                + e.proyecto() + ",\"originWalletType\":\"SHARED\",\"involvedIdsList\":[" + e.caro().id() + "]}";
+
+        MvcResult result = mockMvc.perform(como(e.caro(), post("/api/transactions")).content(json)).andReturn();
+
+        assertEquals(422, result.getResponse().getStatus());
+        assertEquals("type inválido, use INGRESO o GASTO.", mensaje(result));
+        assertEquals(-35_000, saldoNeto(e.caro(), e.proyecto()), DELTA);
+    }
+
     // ---- Ejemplo base ----
 
     private record Ejemplo(Cuenta ana, Cuenta beto, Cuenta caro, long proyecto) {
@@ -139,6 +317,48 @@ class SaldarDeudasIntegrationTests {
 
     private static String situacionUrl(long proyecto) {
         return "/api/projects/" + proyecto + "/balances";
+    }
+
+    private static String pagoUrl(long proyecto) {
+        return "/api/projects/" + proyecto + "/settlements";
+    }
+
+    private static String pagoJson(Cuenta paga, Cuenta recibe, double monto) {
+        return "{\"payerId\":" + paga.id() + ",\"payeeId\":" + recibe.id() + ",\"amount\":" + monto + "}";
+    }
+
+    private int pagar(Cuenta quien, long proyecto, Cuenta paga, Cuenta recibe, double monto) throws Exception {
+        return status(como(quien, post(pagoUrl(proyecto))).content(pagoJson(paga, recibe, monto)));
+    }
+
+    /** Comprueba el código y el mensaje, y que billeteras, fondo, saldos e historial del proyecto quedan iguales. */
+    private void assertRechazado(Ejemplo e, Cuenta quien, String json, int esperado, String mensajeEsperado) throws Exception {
+        String antes = foto(e);
+
+        MvcResult result = mockMvc.perform(como(quien, post(pagoUrl(e.proyecto()))).content(json)).andReturn();
+
+        assertEquals(esperado, result.getResponse().getStatus(), result.getResponse().getContentAsString(StandardCharsets.UTF_8));
+        assertEquals(esperado, (int) JsonPath.read(result.getResponse().getContentAsString(StandardCharsets.UTF_8), "$.status"));
+        assertEquals(mensajeEsperado, mensaje(result));
+        assertEquals(antes, foto(e), "Un pago rechazado no debe cambiar nada");
+    }
+
+    private String foto(Ejemplo e) throws Exception {
+        return saldoBilletera(e.ana()) + "|" + saldoBilletera(e.beto()) + "|" + saldoBilletera(e.caro())
+                + "|" + ok(como(e.ana(), get(situacionUrl(e.proyecto()))))
+                + "|" + movimientos(e.ana(), e.proyecto(), "SHARED").length();
+    }
+
+    private void gastarDeLaBilletera(Cuenta cuenta, double monto) throws Exception {
+        String json = "{\"amount\":" + monto + ",\"description\":\"Arriendo\",\"type\":\"GASTO\",\"originWalletId\":"
+                + billetera(cuenta) + ",\"originWalletType\":\"PERSONAL\"}";
+        assertEquals(201, status(como(cuenta, post("/api/transactions")).content(json)));
+    }
+
+    private static boolean contiene(String movimientos, String tipo, double monto, String descripcion) {
+        List<Object> encontrados = JsonPath.read(movimientos,
+                "$[?(@.type == '" + tipo + "' && @.amount == " + monto + " && @.description == '" + descripcion + "')]");
+        return !encontrados.isEmpty();
     }
 
     private double saldoEnSituacion(String body, Cuenta cuenta) {

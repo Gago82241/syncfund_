@@ -3,6 +3,7 @@ package com.syncfund.application.service;
 import com.syncfund.application.dto.request.AddMemberRequest;
 import com.syncfund.application.dto.request.CreateSharedProjectRequest;
 import com.syncfund.application.dto.request.DistributeContributionRequest;
+import com.syncfund.application.dto.request.SettleDebtRequest;
 import com.syncfund.application.dto.response.MemberBalanceResponse;
 import com.syncfund.application.dto.response.NetBalanceResponse;
 import com.syncfund.application.dto.response.ProjectBalancesResponse;
@@ -27,8 +28,11 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -179,6 +183,106 @@ public class SharedProjectAppService {
         SharedProject project = findProject(projectId);
         requireMember(project);
         return toBalancesResponse(project, projectMovements(projectId));
+    }
+
+    /**
+     * SharedProject.settleDebts(payerId, payeeId, amount): un integrante que debe le paga
+     * directamente a otro que tiene saldo a favor.
+     *
+     * El dinero va de billetera personal a billetera personal (GASTO en la de quien paga, validando
+     * saldo, e INGRESO en la de quien recibe); el fondo no cambia. En el proyecto quedan un ABONO
+     * ([quien paga]) y un COBRO ([quien recibe]) del mismo monto, que ajustan sus saldos netos.
+     * Todas las reglas se validan antes de modificar nada, y todo ocurre en una sola transacción.
+     */
+    @Transactional
+    public ProjectBalancesResponse settleDebt(Long projectId, SettleDebtRequest request) {
+        SharedProject project = findProject(projectId);
+        requireMember(project);
+        requireSelf(request.getPayerId(), "No puedes registrar un pago a nombre de otro usuario.");
+
+        Long payerId = request.getPayerId();
+        Long payeeId = request.getPayeeId();
+        double amount = request.getAmount();
+        User payee = project.getMembers().stream()
+                .filter(m -> m.getId().equals(payeeId))
+                .findFirst()
+                .orElseThrow(() -> new ForbiddenException("Solo puedes pagarle a un integrante del proyecto."));
+        User payer = project.getMembers().stream()
+                .filter(m -> m.getId().equals(payerId))
+                .findFirst()
+                .orElseThrow();
+        if (payerId.equals(payeeId)) {
+            throw new BusinessException("No puedes pagarte a ti mismo.");
+        }
+
+        List<Transaction> movements = new ArrayList<>(projectMovements(projectId));
+        Map<Long, Double> balances = new HashMap<>(debtCalculator.calculateBalances(project, movements));
+
+        double debt = -balances.get(payerId);
+        if (debt < CENT_TOLERANCE) {
+            throw new BusinessException("No tienes deudas pendientes en este proyecto.");
+        }
+        if (amount > debt + CENT_TOLERANCE) {
+            throw new BusinessException("El monto supera lo que debes (" + money(debt) + ").");
+        }
+        double credit = balances.get(payeeId);
+        if (credit < CENT_TOLERANCE) {
+            throw new BusinessException(payee.getName() + " no tiene saldo a favor en este proyecto.");
+        }
+        if (amount > credit + CENT_TOLERANCE) {
+            throw new BusinessException("El monto supera el saldo a favor de " + payee.getName() + " (" + money(credit) + ").");
+        }
+
+        PersonalWallet payerWallet = personalWalletRepository.findByOwnerId(payerId)
+                .orElseThrow(() -> new ResourceNotFoundException("No tienes una billetera personal para hacer el pago."));
+        PersonalWallet payeeWallet = personalWalletRepository.findByOwnerId(payeeId)
+                .orElseThrow(() -> new ResourceNotFoundException(payee.getName() + " no tiene una billetera personal."));
+
+        Transaction paid = newTransaction(amount, "Pago a " + payee.getName() + " – «" + project.getName() + "»",
+                Transaction.TransactionType.GASTO, payerWallet.getWalletId(), Transaction.OriginWalletType.PERSONAL,
+                List.of());
+        // Transaction.execute(): valida el saldo de la billetera de quien paga, sin sobregiro.
+        if (!financialManager.processTransaction(payerWallet, paid, false)) {
+            throw new BusinessException("Saldo insuficiente en tu billetera personal para este pago.");
+        }
+        Transaction received = newTransaction(amount, "Pago de " + payer.getName() + " – «" + project.getName() + "»",
+                Transaction.TransactionType.INGRESO, payeeWallet.getWalletId(), Transaction.OriginWalletType.PERSONAL,
+                List.of());
+        financialManager.processTransaction(payeeWallet, received, true);
+
+        // Ajusta los saldos netos y notifica a los integrantes (patrón Observer). El fondo no cambia.
+        project.setDebts(balances);
+        project.settleDebts(payerId, payeeId, amount);
+
+        String description = "Pago de " + payer.getName() + " a " + payee.getName();
+        Transaction abono = newTransaction(amount, description, Transaction.TransactionType.ABONO,
+                projectId, Transaction.OriginWalletType.SHARED, List.of(payerId));
+        Transaction cobro = newTransaction(amount, description, Transaction.TransactionType.COBRO,
+                projectId, Transaction.OriginWalletType.SHARED, List.of(payeeId));
+
+        personalWalletRepository.save(payerWallet);
+        personalWalletRepository.save(payeeWallet);
+        transactionRepository.save(paid);
+        transactionRepository.save(received);
+        transactionRepository.save(abono);
+        transactionRepository.save(cobro);
+
+        movements.add(abono);
+        movements.add(cobro);
+        return toBalancesResponse(project, movements);
+    }
+
+    /** Medio centavo: las partes de un gasto entre 3 no son exactas, y en pantalla se ven redondeadas. */
+    private static final double CENT_TOLERANCE = 0.005;
+
+    /** Monto en pesos para los mensajes: $35.000 o $33.333,33. */
+    private static String money(double value) {
+        DecimalFormatSymbols symbols = new DecimalFormatSymbols();
+        symbols.setGroupingSeparator('.');
+        symbols.setDecimalSeparator(',');
+        DecimalFormat format = new DecimalFormat("#,##0.##", symbols);
+        format.setRoundingMode(RoundingMode.HALF_UP);
+        return "$" + format.format(value);
     }
 
     private ProjectBalancesResponse toBalancesResponse(SharedProject project, List<Transaction> movements) {
