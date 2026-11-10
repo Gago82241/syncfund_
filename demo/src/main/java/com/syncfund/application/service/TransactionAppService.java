@@ -2,6 +2,7 @@ package com.syncfund.application.service;
 
 import com.syncfund.application.dto.request.CategorizeTransactionRequest;
 import com.syncfund.application.dto.request.CreateTransactionRequest;
+import com.syncfund.application.dto.request.RegisterSelectiveExpenseRequest;
 import com.syncfund.application.dto.response.TransactionResponse;
 import com.syncfund.application.exception.BusinessException;
 import com.syncfund.application.exception.ForbiddenException;
@@ -94,6 +95,28 @@ public class TransactionAppService {
         Transaction saved = transactionRepository.save(transaction);
 
         return mapper.toResponse(saved);
+    }
+
+    /**
+     * SharedProject.registerSelectiveExpense(amount, payerId, involvedIdsList): un gasto del
+     * proyecto que paga el fondo. Solo puedes registrarlo a tu propio nombre como pagador; el resto
+     * (membresía, involucrados, categoría y fondo suficiente) lo valida create().
+     */
+    @Transactional
+    public TransactionResponse registerSelectiveExpense(Long projectId, RegisterSelectiveExpenseRequest request) {
+        if (!currentUserProvider.getUserId().equals(request.getPayerId())) {
+            throw new ForbiddenException("No puedes registrar un gasto a nombre de otro usuario como pagador.");
+        }
+
+        CreateTransactionRequest txRequest = new CreateTransactionRequest();
+        txRequest.setAmount(request.getAmount());
+        txRequest.setDescription(request.getDescription());
+        txRequest.setType(Transaction.TransactionType.GASTO.name());
+        txRequest.setOriginWalletId(projectId);
+        txRequest.setOriginWalletType(Transaction.OriginWalletType.SHARED.name());
+        txRequest.setInvolvedIdsList(request.getInvolvedIdsList());
+        txRequest.setCategoryId(request.getCategoryId());
+        return create(txRequest);
     }
 
     /** Wallet.getPeriodReport(startDate, endDate), filtrado por billetera. Exige acceso a ella. */

@@ -14,8 +14,10 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 import org.springframework.transaction.annotation.Transactional;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -77,6 +79,42 @@ class CorreccionesAuditoriaIntegrationTests {
         assertEquals(6_000, saldoBilletera(ana));
     }
 
+    // ---- Pagador de un gasto compartido (verificado en el service) ----
+
+    @Test
+    void gastoANombreDeOtroPagadorResponde403YNoTocaElFondo() throws Exception {
+        Cuenta ana = registrar("Ana");
+        Cuenta beto = registrar("Beto");
+        depositar(ana, 100_000);
+        long proyecto = crearProyecto(ana, "Finca");
+        agregarIntegrante(ana, proyecto, beto);
+        assertEquals(200, status(como(ana, post("/api/projects/" + proyecto + "/contributions"))
+                .content("{\"amount\":80000,\"contributorId\":" + ana.id() + ",\"description\":\"Aporte\"}")));
+
+        MvcResult result = mockMvc.perform(como(ana, post("/api/projects/" + proyecto + "/expenses"))
+                .content(gastoCompartidoJson(beto, 30_000, ana, beto))).andReturn();
+
+        assertEquals(403, result.getResponse().getStatus());
+        assertEquals("No puedes registrar un gasto a nombre de otro usuario como pagador.",
+                JsonPath.read(result.getResponse().getContentAsString(StandardCharsets.UTF_8), "$.message"));
+        assertEquals(80_000, fondo(ana, proyecto));
+    }
+
+    @Test
+    void gastoDelPagadorActualResponde201YDescuentaDelFondo() throws Exception {
+        Cuenta ana = registrar("Ana");
+        Cuenta beto = registrar("Beto");
+        depositar(ana, 100_000);
+        long proyecto = crearProyecto(ana, "Finca");
+        agregarIntegrante(ana, proyecto, beto);
+        assertEquals(200, status(como(ana, post("/api/projects/" + proyecto + "/contributions"))
+                .content("{\"amount\":80000,\"contributorId\":" + ana.id() + ",\"description\":\"Aporte\"}")));
+
+        assertEquals(201, status(como(ana, post("/api/projects/" + proyecto + "/expenses"))
+                .content(gastoCompartidoJson(ana, 30_000, ana, beto))));
+        assertEquals(50_000, fondo(ana, proyecto));
+    }
+
     // ---- Utilidades HTTP ----
 
     private record Cuenta(long id, String email, String token) {
@@ -111,6 +149,28 @@ class CorreccionesAuditoriaIntegrationTests {
     private String gastoPersonalJson(Cuenta cuenta, double monto, boolean allowOverdraft) throws Exception {
         return "{\"amount\":" + monto + ",\"description\":\"Compra\",\"type\":\"GASTO\",\"originWalletId\":"
                 + billetera(cuenta) + ",\"originWalletType\":\"PERSONAL\",\"allowOverdraft\":" + allowOverdraft + "}";
+    }
+
+    private long crearProyecto(Cuenta admin, String nombre) throws Exception {
+        String body = mockMvc.perform(como(admin, post("/api/projects"))
+                        .content("{\"name\":\"" + nombre + "\",\"description\":\"Prueba\",\"adminId\":" + admin.id() + "}"))
+                .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+        return ((Number) JsonPath.read(body, "$.projectId")).longValue();
+    }
+
+    private void agregarIntegrante(Cuenta admin, long proyecto, Cuenta integrante) throws Exception {
+        assertEquals(200, status(como(admin, post("/api/projects/" + proyecto + "/members"))
+                .content("{\"email\":\"" + integrante.email() + "\"}")));
+    }
+
+    private double fondo(Cuenta cuenta, long proyecto) throws Exception {
+        return ((Number) JsonPath.read(ok(como(cuenta, get("/api/projects/" + proyecto))), "$.currentBalance")).doubleValue();
+    }
+
+    private static String gastoCompartidoJson(Cuenta pagador, double monto, Cuenta... involucrados) {
+        String ids = Arrays.stream(involucrados).map(c -> String.valueOf(c.id())).collect(Collectors.joining(","));
+        return "{\"amount\":" + monto + ",\"payerId\":" + pagador.id() + ",\"involvedIdsList\":[" + ids
+                + "],\"description\":\"Mercado\"}";
     }
 
     private int cantidadDeMovimientos(Cuenta cuenta) throws Exception {
