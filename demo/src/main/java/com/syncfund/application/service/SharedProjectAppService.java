@@ -8,6 +8,7 @@ import com.syncfund.application.dto.response.MemberBalanceResponse;
 import com.syncfund.application.dto.response.NetBalanceResponse;
 import com.syncfund.application.dto.response.ProjectBalancesResponse;
 import com.syncfund.application.dto.response.SharedProjectResponse;
+import com.syncfund.application.dto.response.SuggestedPaymentResponse;
 import com.syncfund.application.exception.BusinessException;
 import com.syncfund.application.exception.ForbiddenException;
 import com.syncfund.application.exception.ResourceNotFoundException;
@@ -33,6 +34,7 @@ import java.text.DecimalFormatSymbols;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -300,7 +302,13 @@ public class SharedProjectAppService {
 
         double total = details.values().stream().mapToDouble(DebtCalculator.MemberBalance::netBalance).sum();
         double fund = project.getCurrentBalance();
-        return new ProjectBalancesResponse(project.getProjectId(), cents(fund), cents(total), cents(fund - total), members);
+        Map<Long, Double> balances = new LinkedHashMap<>();
+        details.forEach((userId, detail) -> balances.put(userId, detail.netBalance()));
+        List<SuggestedPaymentResponse> suggestions = debtCalculator.suggestPayments(balances).stream()
+                .map(p -> new SuggestedPaymentResponse(p.fromUserId(), p.toUserId(), cents(p.amount())))
+                .toList();
+        return new ProjectBalancesResponse(project.getProjectId(), cents(fund), cents(total), cents(fund - total),
+                members, suggestions);
     }
 
     private List<Transaction> projectMovements(Long projectId) {

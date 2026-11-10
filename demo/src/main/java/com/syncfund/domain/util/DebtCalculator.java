@@ -5,6 +5,8 @@ import com.syncfund.domain.model.Transaction;
 import com.syncfund.domain.model.User;
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -109,6 +111,56 @@ public class DebtCalculator {
     /** Saldo neto de un integrante con su desglose (positivo: a favor; negativo: debe). */
     public record MemberBalance(Long userId, double contributed, double shareOfExpenses,
                                 double paymentsMade, double paymentsReceived, double netBalance) {
+    }
+
+    /**
+     * suggestPayments(balances): quién debe pagarle a quién para saldar las deudas.
+     * Algoritmo voraz: ordena a quienes deben y a quienes tienen saldo a favor de mayor a menor
+     * (con empate, en el orden de los integrantes) y los va emparejando; cada pago salda por
+     * completo a uno de los dos, así que bastan como mucho n − 1 pagos.
+     * Solo reparte deudas contra saldos a favor: lo que queda a favor y está respaldado por el
+     * fondo no se sugiere como pago. Ignora diferencias de menos de medio centavo.
+     */
+    public List<SuggestedPayment> suggestPayments(Map<Long, Double> balances) {
+        List<double[]> debtors = new ArrayList<>();
+        List<double[]> creditors = new ArrayList<>();
+        List<Long> ids = new ArrayList<>(balances.keySet());
+        for (int i = 0; i < ids.size(); i++) {
+            double net = balances.get(ids.get(i));
+            if (net < -HALF_CENT) {
+                debtors.add(new double[]{i, -net});
+            } else if (net > HALF_CENT) {
+                creditors.add(new double[]{i, net});
+            }
+        }
+        Comparator<double[]> largestFirst = Comparator.comparingDouble((double[] p) -> p[1]).reversed();
+        debtors.sort(largestFirst);
+        creditors.sort(largestFirst);
+
+        List<SuggestedPayment> payments = new ArrayList<>();
+        int d = 0;
+        int c = 0;
+        while (d < debtors.size() && c < creditors.size()) {
+            double[] debtor = debtors.get(d);
+            double[] creditor = creditors.get(c);
+            double amount = Math.min(debtor[1], creditor[1]);
+            payments.add(new SuggestedPayment(ids.get((int) debtor[0]), ids.get((int) creditor[0]), amount));
+            debtor[1] -= amount;
+            creditor[1] -= amount;
+            if (debtor[1] <= HALF_CENT) {
+                d++;
+            }
+            if (creditor[1] <= HALF_CENT) {
+                c++;
+            }
+        }
+        return payments;
+    }
+
+    private static final double HALF_CENT = 0.005;
+
+    /** Pago sugerido: fromUserId le paga amount a toUserId. */
+    public record SuggestedPayment(Long fromUserId, Long toUserId, double amount) {
     }
 
     private static List<Transaction> ofType(List<Transaction> movements, Transaction.TransactionType type) {

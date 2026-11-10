@@ -122,7 +122,62 @@ class DebtCalculatorTests {
         assertEquals(0, sum(balances), DELTA);
     }
 
+    // ---- Sugerencias de pago ----
+
+    @Test
+    void sugerenciasDelEjemplo() {
+        Map<Long, Double> balances = calculator.calculateBalances(project, ejemploAntesDelPago());
+
+        assertEquals(List.of(
+                        new DebtCalculator.SuggestedPayment(CARO, ANA, 35_000),
+                        new DebtCalculator.SuggestedPayment(BETO, ANA, 5_000)),
+                calculator.suggestPayments(balances));
+    }
+
+    @Test
+    void sinDeudasNoHaySugerencias() {
+        assertEquals(List.of(), calculator.suggestPayments(balances(ANA, 15_000.0, BETO, 0.0, CARO, 0.0)));
+        assertEquals(List.of(), calculator.suggestPayments(balances(ANA, 0.0, BETO, 0.0, CARO, 0.0)));
+    }
+
+    @Test
+    void quienDebeLePagaPrimeroAQuienTieneMasSaldoAFavor() {
+        assertEquals(List.of(new DebtCalculator.SuggestedPayment(CARO, BETO, 35_000)),
+                calculator.suggestPayments(balances(ANA, 10_000.0, BETO, 40_000.0, CARO, -35_000.0)));
+    }
+
+    /** Cuatro integrantes: A +30.000, B +20.000, C −25.000, D −25.000. Bastan 3 pagos (n − 1). */
+    @Test
+    void conCuatroIntegrantesSeSaldaConComoMucho3PagosYCadaDeudaQuedaCubierta() {
+        Long dani = 4L;
+        Map<Long, Double> balances = new java.util.LinkedHashMap<>();
+        balances.put(ANA, 30_000.0);
+        balances.put(BETO, 20_000.0);
+        balances.put(CARO, -25_000.0);
+        balances.put(dani, -25_000.0);
+
+        List<DebtCalculator.SuggestedPayment> payments = calculator.suggestPayments(balances);
+
+        assertEquals(List.of(
+                new DebtCalculator.SuggestedPayment(CARO, ANA, 25_000),
+                new DebtCalculator.SuggestedPayment(dani, ANA, 5_000),
+                new DebtCalculator.SuggestedPayment(dani, BETO, 20_000)), payments);
+    }
+
+    @Test
+    void lasDiferenciasDeMenosDeMedioCentavoNoGeneranPagos() {
+        assertEquals(List.of(), calculator.suggestPayments(balances(ANA, 0.003, BETO, -0.003, CARO, 0.0)));
+    }
+
     // ---- Utilidades ----
+
+    private static Map<Long, Double> balances(Long a, Double va, Long b, Double vb, Long c, Double vc) {
+        Map<Long, Double> balances = new java.util.LinkedHashMap<>();
+        balances.put(a, va);
+        balances.put(b, vb);
+        balances.put(c, vc);
+        return balances;
+    }
 
     private static double sum(Map<Long, Double> balances) {
         return balances.values().stream().mapToDouble(Double::doubleValue).sum();

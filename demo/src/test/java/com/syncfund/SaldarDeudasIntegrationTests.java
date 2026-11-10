@@ -112,6 +112,27 @@ class SaldarDeudasIntegrationTests {
         assertEquals(404, status(como(ana, get(situacionUrl(Long.MAX_VALUE)))));
     }
 
+    @Test
+    void situacionSugiereQuienLePagaAQuienYSeActualizaTrasUnPago() throws Exception {
+        Ejemplo e = ejemplo();
+
+        String antes = ok(como(e.ana(), get(situacionUrl(e.proyecto()))));
+        assertEquals(2, (int) JsonPath.read(antes, "$.suggestedPayments.length()"));
+        assertEquals(e.caro().id(), numero(antes, "$.suggestedPayments[0].fromUserId"), DELTA);
+        assertEquals(e.ana().id(), numero(antes, "$.suggestedPayments[0].toUserId"), DELTA);
+        assertEquals(35_000, numero(antes, "$.suggestedPayments[0].amount"), DELTA);
+        assertEquals(e.beto().id(), numero(antes, "$.suggestedPayments[1].fromUserId"), DELTA);
+        assertEquals(5_000, numero(antes, "$.suggestedPayments[1].amount"), DELTA);
+
+        assertEquals(201, pagar(e.caro(), e.proyecto(), e.caro(), e.ana(), 35_000));
+
+        String despues = ok(como(e.ana(), get(situacionUrl(e.proyecto()))));
+        assertEquals(1, (int) JsonPath.read(despues, "$.suggestedPayments.length()"));
+        assertEquals(e.beto().id(), numero(despues, "$.suggestedPayments[0].fromUserId"), DELTA);
+        assertEquals(e.ana().id(), numero(despues, "$.suggestedPayments[0].toUserId"), DELTA);
+        assertEquals(5_000, numero(despues, "$.suggestedPayments[0].amount"), DELTA);
+    }
+
     // ---- Pagar una deuda ----
 
     @Test

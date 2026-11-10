@@ -20,4 +20,6 @@ public class ProjectBalancesResponse {
     private double totalBalances;
     private double unassigned;
     private List<MemberBalanceResponse> members;
+    /** Quién debe pagarle a quién para saldar las deudas con la menor cantidad de pagos. */
+    private List<SuggestedPaymentResponse> suggestedPayments;
 }

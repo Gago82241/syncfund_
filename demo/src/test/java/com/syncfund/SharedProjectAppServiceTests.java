@@ -217,6 +217,12 @@ class SharedProjectAppServiceTests {
         assertEquals("Caro", caro.getName());
         assertEquals(35_000, caro.getPaymentsMade());
         assertEquals(0, caro.getNetBalance());
+
+        // Tras el pago de Caro solo queda pendiente Beto: le debe 5.000 a Ana.
+        assertEquals(1, response.getSuggestedPayments().size());
+        assertEquals(USER_B, response.getSuggestedPayments().get(0).getFromUserId());
+        assertEquals(USER_A, response.getSuggestedPayments().get(0).getToUserId());
+        assertEquals(5_000, response.getSuggestedPayments().get(0).getAmount());
     }
 
     @Test
