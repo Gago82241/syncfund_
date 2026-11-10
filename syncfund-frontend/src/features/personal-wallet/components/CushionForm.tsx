@@ -1,9 +1,10 @@
 import { useState, type FormEvent } from 'react';
-import axios from 'axios';
 import { Input } from '../../../components/ui/Input';
 import { Button } from '../../../components/ui/Button';
+import { FormError } from '../../../components/ui/FormError';
 import { personalWalletService } from '../services/personalWalletService';
-import type { ApiErrorResponse } from '../../../types/api';
+import { useFormErrors } from '../../../hooks/useFormErrors';
+import { wholeAmount } from '../../../utils/validation';
 
 interface Props {
   walletId: number;
@@ -13,39 +14,42 @@ interface Props {
 /** PersonalWallet.manageCushion(amount, type). */
 export function CushionForm({ walletId, onSaved }: Props) {
   const [amount, setAmount] = useState('');
-  const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const { fieldErrors, formError, formRef, validate, showApiError, clearField } =
+    useFormErrors(['amount']);
 
   async function handleAction(type: 'APARTAR' | 'LIBERAR') {
-    if (!amount) return;
-    setError('');
+    if (!validate({ amount: wholeAmount(amount) })) return;
     setLoading(true);
     try {
       await personalWalletService.manageCushion(walletId, { amount: Number(amount), type });
       setAmount('');
       onSaved();
     } catch (err) {
-      if (axios.isAxiosError<ApiErrorResponse>(err) && err.response) {
-        setError(err.response.data.message);
-      } else {
-        setError('No se pudo completar la operación.');
-      }
+      showApiError(err, 'No se pudo completar la operación.');
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <form onSubmit={(e: FormEvent) => e.preventDefault()}>
+    <form ref={formRef} onSubmit={(e: FormEvent) => e.preventDefault()} noValidate>
       <h3 style={{ fontSize: '1rem', marginBottom: '0.75rem' }}>Colchón de seguridad</h3>
       <Input
         label="Monto (COP)"
         type="number"
-        min="0"
+        name="amount"
+        min="1"
+        placeholder="Ej: 100000 (sin puntos)"
         value={amount}
-        onChange={(e) => setAmount(e.target.value)}
+        error={fieldErrors.amount}
+        onChange={(e) => {
+          setAmount(e.target.value);
+          clearField('amount');
+        }}
+        required
       />
-      {error && <p style={{ color: 'var(--loss-500)', fontSize: '0.8125rem', marginBottom: '1rem' }}>{error}</p>}
+      <FormError message={formError} />
       <div style={{ display: 'flex', gap: '0.75rem' }}>
         <Button type="button" variant="ghost" loading={loading} onClick={() => handleAction('APARTAR')}>
           Apartar

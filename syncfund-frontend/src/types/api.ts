@@ -123,9 +123,7 @@ export interface CreateTransactionRequest {
 }
 
 export interface ApiErrorResponse {
-  timestamp: string;
   status: number;
-  error: string;
   message: string;
-  details: string[];
+  errors?: Record<string, string>;
 }

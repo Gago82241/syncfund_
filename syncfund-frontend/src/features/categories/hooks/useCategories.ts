@@ -8,10 +8,30 @@ export interface CategoryWithSpend extends CategoryResponse {
   overLimit: boolean;
 }
 
+async function fetchCategoriesWithSpend(userId: number): Promise<CategoryWithSpend[]> {
+  const { data: wallet } = await personalWalletService.getByUser(userId);
+  const { data: rawCategories } = await categoryService.getAll();
+
+  const month = new Date().toISOString().slice(0, 7); // "yyyy-MM"
+
+  return Promise.all(
+    rawCategories.map(async (cat) => {
+      const { data: spent } = await categoryService.getExpense(
+        cat.categoryId,
+        wallet.walletId,
+        'PERSONAL',
+        month,
+      );
+      const { data: overLimit } = await categoryService.isOverLimit(cat.categoryId, spent);
+      return { ...cat, spentThisMonth: spent, overLimit };
+    }),
+  );
+}
+
 /**
- * Trae todas las categorías y, para cada una, el gasto acumulado del mes
- * actual contra la PersonalWallet del usuario (Category.calculateTotalExpense
- * + Category.alertExcess). Las categorías son globales en el backend; aquí
+ * Trae las categorías del usuario y, para cada una, el gasto acumulado del mes
+ * actual contra su PersonalWallet (Category.calculateTotalExpense
+ * + Category.alertExcess). Cada categoría pertenece a un usuario; aquí
  * las medimos contra la billetera personal como caso de uso principal.
  */
 export function useCategories(userId: number) {
@@ -19,39 +39,25 @@ export function useCategories(userId: number) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  const refresh = useCallback(async () => {
+  // load no marca "cargando": el estado inicial ya lo hace y refresh lo marca antes de recargar.
+  const load = useCallback(
+    () =>
+      fetchCategoriesWithSpend(userId)
+        .then((withSpend) => setCategories(withSpend))
+        .catch(() => setError('No se pudieron cargar las categorías.'))
+        .finally(() => setLoading(false)),
+    [userId],
+  );
+
+  const refresh = useCallback(() => {
     setLoading(true);
     setError('');
-    try {
-      const { data: wallet } = await personalWalletService.getByUser(userId);
-      const { data: rawCategories } = await categoryService.getAll();
-
-      const month = new Date().toISOString().slice(0, 7); // "yyyy-MM"
-
-      const withSpend = await Promise.all(
-        rawCategories.map(async (cat) => {
-          const { data: spent } = await categoryService.getExpense(
-            cat.categoryId,
-            wallet.walletId,
-            'PERSONAL',
-            month,
-          );
-          const { data: overLimit } = await categoryService.isOverLimit(cat.categoryId, spent);
-          return { ...cat, spentThisMonth: spent, overLimit };
-        }),
-      );
-
-      setCategories(withSpend);
-    } catch {
-      setError('No se pudieron cargar las categorías.');
-    } finally {
-      setLoading(false);
-    }
-  }, [userId]);
+    return load();
+  }, [load]);
 
   useEffect(() => {
-    refresh();
-  }, [refresh]);
+    load();
+  }, [load]);
 
   return { categories, loading, error, refresh };
 }

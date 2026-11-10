@@ -6,19 +6,24 @@ export function useSharedProjects(userId: number) {
   const [projects, setProjects] = useState<SharedProjectResponse[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const refresh = useCallback(async () => {
+  // load no marca "cargando": el estado inicial ya lo hace y refresh lo marca antes de recargar.
+  const load = useCallback(
+    () =>
+      sharedProjectService
+        .getByMember(userId)
+        .then(({ data }) => setProjects(data))
+        .finally(() => setLoading(false)),
+    [userId],
+  );
+
+  const refresh = useCallback(() => {
     setLoading(true);
-    try {
-      const { data } = await sharedProjectService.getByMember(userId);
-      setProjects(data);
-    } finally {
-      setLoading(false);
-    }
-  }, [userId]);
+    return load();
+  }, [load]);
 
   useEffect(() => {
-    refresh();
-  }, [refresh]);
+    load();
+  }, [load]);
 
   return { projects, loading, refresh };
 }

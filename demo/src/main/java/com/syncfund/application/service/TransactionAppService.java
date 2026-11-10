@@ -9,8 +9,6 @@ import com.syncfund.application.exception.ResourceNotFoundException;
 import com.syncfund.application.mapper.TransactionMapper;
 import com.syncfund.domain.model.*;
 import com.syncfund.domain.service.FinancialManager;
-import com.syncfund.domain.util.DebtCalculator;
-import com.syncfund.persistence.repository.CategoryRepository;
 import com.syncfund.persistence.repository.PersonalWalletRepository;
 import com.syncfund.persistence.repository.SharedProjectRepository;
 import com.syncfund.persistence.repository.TransactionRepository;
@@ -25,7 +23,10 @@ import java.util.List;
  * Equivalente a FinancialManager.processTransaction(userId, walletId, transactionData):
  * resuelve la Wallet (Personal o Shared), delega en el dominio y persiste ambos lados
  * (Wallet con el balance actualizado + la Transaction nueva).
- * Para gastos selectivos de un SharedProject con reparto de deuda, ver SharedProjectAppService.
+ *
+ * Modelo de fondo: un gasto compartido lo paga solo el fondo del proyecto (nunca en
+ * sobregiro) y los involucrados definen cómo se reparte la deuda. El dinero entra al
+ * fondo únicamente con un aporte (SharedProjectAppService.contribute).
  */
 @Service
 public class TransactionAppService {
@@ -33,26 +34,23 @@ public class TransactionAppService {
     private final TransactionRepository transactionRepository;
     private final PersonalWalletRepository personalWalletRepository;
     private final SharedProjectRepository sharedProjectRepository;
-    private final CategoryRepository categoryRepository;
+    private final CategoryAppService categoryAppService;
     private final FinancialManager financialManager;
-    private final DebtCalculator debtCalculator;
     private final TransactionMapper mapper;
     private final CurrentUserProvider currentUserProvider;
 
     public TransactionAppService(TransactionRepository transactionRepository,
                                   PersonalWalletRepository personalWalletRepository,
                                   SharedProjectRepository sharedProjectRepository,
-                                  CategoryRepository categoryRepository,
+                                  CategoryAppService categoryAppService,
                                   FinancialManager financialManager,
-                                  DebtCalculator debtCalculator,
                                   TransactionMapper mapper,
                                   CurrentUserProvider currentUserProvider) {
         this.transactionRepository = transactionRepository;
         this.personalWalletRepository = personalWalletRepository;
         this.sharedProjectRepository = sharedProjectRepository;
-        this.categoryRepository = categoryRepository;
+        this.categoryAppService = categoryAppService;
         this.financialManager = financialManager;
-        this.debtCalculator = debtCalculator;
         this.mapper = mapper;
         this.currentUserProvider = currentUserProvider;
     }
@@ -60,82 +58,77 @@ public class TransactionAppService {
     @Transactional
     public TransactionResponse create(CreateTransactionRequest request) {
         Transaction.OriginWalletType walletType = parseWalletType(request.getOriginWalletType());
+        Transaction.TransactionType type = parseTransactionType(request.getType());
         Wallet wallet = resolveWallet(request.getOriginWalletId(), walletType);
         requireAccess(wallet, walletType);
+        if (wallet instanceof SharedProject project) {
+            requireInvolvedAreMembers(project, request.getInvolvedIdsList());
+            if (type == Transaction.TransactionType.INGRESO) {
+                throw new BusinessException("Para sumar dinero al fondo usa la opción Aportar.");
+            }
+        }
 
         Transaction transaction = new Transaction();
         transaction.setAmount(request.getAmount());
         transaction.setDescription(request.getDescription());
-        transaction.setType(parseTransactionType(request.getType()));
+        transaction.setType(type);
         transaction.setDateTime(LocalDateTime.now());
         transaction.setOriginWalletId(request.getOriginWalletId());
         transaction.setOriginWalletType(walletType);
         transaction.setInvolvedIdsList(request.getInvolvedIdsList() != null ? request.getInvolvedIdsList() : List.of());
 
         if (request.getCategoryId() != null) {
-            Category category = categoryRepository.findById(request.getCategoryId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Categoría no encontrada: " + request.getCategoryId()));
-            transaction.categorize(category);
+            transaction.categorize(categoryAppService.getOwnedCategory(request.getCategoryId()));
         }
 
         // Transaction.execute(): valida saldo (o permiso de sobregiro) y procesa el movimiento.
-        boolean success = financialManager.processTransaction(wallet, transaction, request.isAllowOverdraft());
-        if (!success) {
-            throw new BusinessException("Saldo insuficiente para realizar la transacción.");
+        // El fondo de un proyecto nunca queda en negativo, aunque el cliente pida sobregiro.
+        boolean shared = walletType == Transaction.OriginWalletType.SHARED;
+        boolean allowOverdraft = !shared && request.isAllowOverdraft();
+        if (!financialManager.processTransaction(wallet, transaction, allowOverdraft)) {
+            throw new BusinessException(shared
+                    ? "El fondo del proyecto no tiene saldo suficiente para este gasto."
+                    : "Saldo insuficiente para realizar la transacción.");
         }
 
         saveWallet(wallet, walletType);
-
-        // Un gasto compartido también se descuenta, proporcionalmente, de la
-        // billetera personal de cada involucrado (no solo del fondo del proyecto).
-        if (wallet instanceof SharedProject
-                && transaction.getType() == Transaction.TransactionType.GASTO
-                && !transaction.getInvolvedIdsList().isEmpty()) {
-            deductShareFromInvolvedWallets(transaction.getAmount(), transaction.getInvolvedIdsList());
-        }
-
         Transaction saved = transactionRepository.save(transaction);
 
         return mapper.toResponse(saved);
     }
 
-    private void deductShareFromInvolvedWallets(double amount, List<Long> involvedIdsList) {
-        double share = debtCalculator.splitBill(amount, involvedIdsList);
-
-        for (Long userId : involvedIdsList) {
-            personalWalletRepository.findByOwnerId(userId).ifPresent(memberWallet -> {
-                memberWallet.setCurrentBalance(memberWallet.getCurrentBalance() - share);
-                personalWalletRepository.save(memberWallet);
-            });
-        }
-    }
-
-    /** Wallet.getPeriodReport(startDate, endDate), filtrado por billetera. */
+    /** Wallet.getPeriodReport(startDate, endDate), filtrado por billetera. Exige acceso a ella. */
     public List<TransactionResponse> getPeriodReport(Long walletId, String walletType,
                                                        LocalDateTime start, LocalDateTime end) {
+        Transaction.OriginWalletType type = parseWalletType(walletType);
+        requireAccess(resolveWallet(walletId, type), type);
+
         List<Transaction> transactions = transactionRepository
-                .findByOriginWalletIdAndOriginWalletTypeAndDateTimeBetween(
-                        walletId, parseWalletType(walletType), start, end);
+                .findByOriginWalletIdAndOriginWalletTypeAndDateTimeBetween(walletId, type, start, end);
 
         return transactions.stream().map(mapper::toResponse).toList();
     }
 
+    /** Movimientos de una billetera. Exige acceso a ella. */
     public List<TransactionResponse> getByWallet(Long walletId, String walletType) {
+        Transaction.OriginWalletType type = parseWalletType(walletType);
+        requireAccess(resolveWallet(walletId, type), type);
+
         return transactionRepository
-                .findByOriginWalletIdAndOriginWalletType(walletId, parseWalletType(walletType))
+                .findByOriginWalletIdAndOriginWalletType(walletId, type)
                 .stream().map(mapper::toResponse).toList();
     }
 
-    /** Transaction.categorize(categoryId). */
+    /** Transaction.categorize(categoryId). Exige acceso a la billetera del movimiento y una categoría propia. */
     @Transactional
     public TransactionResponse categorize(Long transactionId, CategorizeTransactionRequest request) {
         Transaction transaction = transactionRepository.findById(transactionId)
                 .orElseThrow(() -> new ResourceNotFoundException("Transacción no encontrada: " + transactionId));
 
-        Category category = categoryRepository.findById(request.getCategoryId())
-                .orElseThrow(() -> new ResourceNotFoundException("Categoría no encontrada: " + request.getCategoryId()));
+        Transaction.OriginWalletType walletType = transaction.getOriginWalletType();
+        requireAccess(resolveWallet(transaction.getOriginWalletId(), walletType), walletType);
 
-        transaction.categorize(category);
+        transaction.categorize(categoryAppService.getOwnedCategory(request.getCategoryId()));
         return mapper.toResponse(transactionRepository.save(transaction));
     }
 
@@ -153,6 +146,17 @@ public class TransactionAppService {
             if (!isMember) {
                 throw new ForbiddenException("No perteneces a este proyecto compartido.");
             }
+        }
+    }
+
+    /** Un gasto compartido se reparte entre sus involucrados: todos deben ser miembros. */
+    private void requireInvolvedAreMembers(SharedProject project, List<Long> involvedIdsList) {
+        if (involvedIdsList == null) {
+            return;
+        }
+        List<Long> memberIds = project.getMembers().stream().map(User::getId).toList();
+        if (!memberIds.containsAll(involvedIdsList)) {
+            throw new ForbiddenException("Solo puedes repartir un gasto entre integrantes del proyecto.");
         }
     }
 

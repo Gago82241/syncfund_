@@ -1,12 +1,18 @@
 # SyncFund — Guía del proyecto para Claude Code
 
-> Versión 0.3 — revisada contra la estructura real del repositorio.
+> Versión 0.4 — revisada contra la estructura real del repositorio.
 
 ## Qué es SyncFund
 Aplicación web de finanzas personales y gastos compartidos. Un usuario gestiona su
 billetera personal (PersonalWallet: movimientos, meta de ahorro, colchón) y participa en
 proyectos compartidos (SharedProject: gastos divididos entre integrantes, cálculo de deudas
-y saldo neto). Es un proyecto académico de Ingeniería Informática desarrollado por dos
+y saldo neto).
+- **Modelo de fondo:** un aporte sale de la billetera personal de quien aporta (GASTO en su
+  billetera + INGRESO en el proyecto, con el aportante en `involvedIdsList`). Los gastos
+  compartidos los paga solo el fondo, que nunca queda en negativo (422 si no alcanza).
+  Saldo neto = aportes propios − parte de los gastos en que participó.
+
+Es un proyecto académico de Ingeniería Informática desarrollado por dos
 integrantes; el diseño UML fue entregado y evaluado previamente.
 
 ## Stack
@@ -62,10 +68,14 @@ Antes de dar por terminado un cambio en el backend: `.\mvnw.cmd test` sin fallos
    movimientos o gastos.
 4. **No modificar el esquema de la base de datos** (tablas, columnas, relaciones) sin
    aprobación explícita del equipo. Producción usa la misma estructura.
+   - Un cambio de esquema sobre tablas con datos lleva un script manual en
+     `docs/base-de-datos/migraciones/`, que se ejecuta antes del despliegue. `ddl-auto=update`
+     también corre en producción y no basta: una columna `NOT NULL` nueva deja las filas
+     existentes con un valor por defecto, y si la llave foránea falla solo registra una advertencia.
 
 ## Seguridad (no romper)
 - Todas las rutas exigen JWT excepto `/api/auth/**` y las peticiones `OPTIONS` (preflight CORS).
-- Toda operación sobre PersonalWallet, SharedProject o User debe verificar dueño/membresía con
+- Toda operación sobre PersonalWallet, SharedProject, Category o User debe verificar dueño/membresía con
   `CurrentUserProvider`; si no corresponde, lanzar `ForbiddenException` (403).
 - La configuración CORS usa `.cors(Customizer.withDefaults())`; no eliminarla.
 - Nunca escribir contraseñas, secretos JWT ni URLs de conexión en el código: usar variables
@@ -79,9 +89,15 @@ Antes de dar por terminado un cambio en el backend: `.\mvnw.cmd test` sin fallos
   (`@NotBlank`, `@Email`, `@Positive`, `@Size`, …) y el controller usa `@Valid`.
 - Los errores se devuelven siempre con el mismo formato JSON desde un único
   `@RestControllerAdvice`:
-  - Validación → 400 `{ "status": 400, "errors": { "campo": "mensaje" } }`
+  - Validación → 400 `{ "status": 400, "message": "...", "errors": { "campo": "mensaje" } }`
+    (un solo mensaje por campo)
+  - Solicitud mal formada → 400 `{ "status": 400, "message": "..." }` (sin `errors`)
+  - Sin sesión válida → 401 `{ "status": 401, "message": "..." }`
   - Sin permiso → 403 `{ "status": 403, "message": "..." }`
   - No encontrado → 404 `{ "status": 404, "message": "..." }`
+  - Conflicto de estado → 409 `{ "status": 409, "message": "..." }`
+  - Regla de negocio incumplida → 422 `{ "status": 422, "message": "..." }`
+  - Error interno → 500 `{ "status": 500, "message": "..." }` (mensaje genérico, sin detalles técnicos)
 - Mensajes de error en español, claros para el usuario final.
 - El frontend valida también los formularios antes de enviar, pero el backend es la
   validación definitiva.

@@ -7,9 +7,9 @@ import lombok.Data;
 /** Datos para crear una Category. */
 @Data
 public class CreateCategoryRequest {
-    @NotBlank
+    @NotBlank(message = "El nombre de la categoría es obligatorio")
     private String name;
 
-    @PositiveOrZero
+    @PositiveOrZero(message = "El límite mensual no puede ser negativo")
     private double monthlyLimit;
 }

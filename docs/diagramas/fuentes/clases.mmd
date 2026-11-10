@@ -1,0 +1,67 @@
+classDiagram
+    class FinancialManager {
+        -FinancialManager instance$
+        -FinancialManager()
+        +getInstance()$ FinancialManager
+        +processTransaction(userId, walletId, amount, category) void
+        +generateGeneralReport() String
+    }
+    class User {
+        -String id
+        -String name
+        -String email
+        -String password
+        +login(email, password) bool
+        +logout() void
+        +getWallets() Wallet[]
+    }
+    class Wallet {
+        <<abstract>>
+        #String id
+        #String name
+        #float balance
+        #String currency
+        +addTransaction(Transaction t) void
+        +getBalance() float
+    }
+    class PersonalWallet {
+        -float savingsGoal
+        +setGoal(float goalAmount) void
+        +checkGoalProgress() float
+    }
+    class SharedProject {
+        -User[] participants
+        -Map debts
+        +addParticipant(User u) void
+        +settleDebts() void
+    }
+    class Transaction {
+        -String id
+        -float amount
+        -Date date
+        -String description
+        -String type
+        +getDetails() String
+    }
+    class Category {
+        -String id
+        -String name
+        -float monthlyLimit
+        +getName() String
+    }
+    class DebtCalculator {
+        +splitBill(amount, participants)$ float
+        +calculateBalances(sharedProject)$ Map
+    }
+
+    FinancialManager "1" --> "*" User : manages
+    FinancialManager ..> DebtCalculator : uses
+    User "1" --> "*" Wallet : owns
+    User "1" --> "*" Category : owns
+    User "*" -- Transaction : has participants
+    Wallet <|-- PersonalWallet
+    Wallet <|-- SharedProject
+    Wallet "1" *-- "*" Transaction : contains
+    SharedProject "1" o-- Transaction
+    SharedProject ..> DebtCalculator : uses
+    Transaction "*" --> "1" Category : belongs to

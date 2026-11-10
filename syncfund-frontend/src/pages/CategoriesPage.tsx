@@ -1,5 +1,5 @@
 import { AppLayout } from '../components/layout/AppLayout';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/useAuth';
 import { useCategories } from '../features/categories/hooks/useCategories';
 import { CategoryForm } from '../features/categories/components/CategoryForm';
 import { CategoryList } from '../features/categories/components/CategoryList';

@@ -13,19 +13,19 @@ import java.util.List;
  */
 @Data
 public class CreateTransactionRequest {
-    @Positive
+    @Positive(message = "El monto debe ser mayor que cero")
     private double amount;
 
-    @NotBlank
+    @NotBlank(message = "La descripción es obligatoria")
     private String description;
 
-    @NotBlank
+    @NotBlank(message = "El tipo de movimiento es obligatorio")
     private String type;
 
-    @NotNull
+    @NotNull(message = "La billetera de origen es obligatoria")
     private Long originWalletId;
 
-    @NotBlank
+    @NotBlank(message = "El tipo de billetera de origen es obligatorio")
     private String originWalletType;
 
     private List<Long> involvedIdsList;

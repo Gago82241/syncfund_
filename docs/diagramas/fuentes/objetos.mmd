@@ -1,0 +1,72 @@
+classDiagram
+    class gestor_principal {
+        <<FinancialManager>>
+    }
+    class juan {
+        <<User>>
+        id = "U-001"
+        name = "Juan Perez"
+        email = " "
+    }
+    class maria {
+        <<User>>
+        id = "U-002"
+        name = "Maria Lopez"
+        email = " "
+    }
+    class ahorroPC {
+        <<PersonalWallet>>
+        id = "W-101"
+        name = "Ahorros para el PC"
+        balance = 850.00
+        currency = "USD"
+        savingsGoal = 1200.00
+    }
+    class pisoCompartido {
+        <<SharedProject>>
+        id = "W-202"
+        name = "Gastos del Piso"
+        balance = 120.00
+        currency = "USD"
+    }
+    class compraSuper {
+        <<Transaction>>
+        id = "T-999"
+        amount = 50.00
+        date = "2026-04-04"
+        description = "Compra de despensa"
+        type = "GASTO"
+    }
+    class aporteJuan {
+        <<Transaction>>
+        id = "T-1000"
+        amount = 100.00
+        date = "2026-04-01"
+        description = "Aporte al fondo"
+        type = "INGRESO"
+    }
+    class aporteJuanBilletera {
+        <<Transaction>>
+        id = "T-1001"
+        amount = 100.00
+        date = "2026-04-01"
+        description = "Aporte a Gastos del Piso"
+        type = "GASTO"
+    }
+    class catComida {
+        <<Category>>
+        id = "C-05"
+        name = "Alimentación"
+    }
+
+    gestor_principal --> juan : manages
+    gestor_principal --> maria : manages
+    juan --> ahorroPC : owns
+    juan --> catComida : owns
+    juan --> pisoCompartido : participates in
+    maria --> pisoCompartido : participates in
+    pisoCompartido *-- compraSuper : contains
+    pisoCompartido *-- aporteJuan : contains
+    ahorroPC *-- aporteJuanBilletera : contains
+    aporteJuan ..> aporteJuanBilletera : mismo aporte
+    compraSuper --> catComida : classified as

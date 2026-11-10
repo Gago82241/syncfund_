@@ -7,9 +7,9 @@ import lombok.Data;
 /** Datos para PersonalWallet.manageCushion(amount, type). type: "APARTAR" | "LIBERAR". */
 @Data
 public class ManageCushionRequest {
-    @Positive
+    @Positive(message = "El monto debe ser mayor que cero")
     private double amount;
 
-    @NotBlank
+    @NotBlank(message = "El tipo de operación es obligatorio")
     private String type;
 }

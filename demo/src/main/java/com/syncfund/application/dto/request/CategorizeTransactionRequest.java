@@ -6,6 +6,6 @@ import lombok.Data;
 /** Datos para Transaction.categorize(categoryId). */
 @Data
 public class CategorizeTransactionRequest {
-    @NotNull
+    @NotNull(message = "La categoría es obligatoria")
     private Long categoryId;
 }

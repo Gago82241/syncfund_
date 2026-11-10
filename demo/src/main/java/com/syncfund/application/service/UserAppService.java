@@ -11,6 +11,7 @@ import com.syncfund.application.mapper.UserMapper;
 import com.syncfund.domain.model.PersonalWallet;
 import com.syncfund.domain.model.User;
 import com.syncfund.persistence.repository.PersonalWalletRepository;
+import com.syncfund.persistence.repository.SharedProjectRepository;
 import com.syncfund.persistence.repository.UserRepository;
 import com.syncfund.security.CurrentUserProvider;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -22,17 +23,20 @@ public class UserAppService {
 
     private final UserRepository userRepository;
     private final PersonalWalletRepository personalWalletRepository;
+    private final SharedProjectRepository sharedProjectRepository;
     private final PasswordEncoder passwordEncoder;
     private final UserMapper userMapper;
     private final CurrentUserProvider currentUserProvider;
 
     public UserAppService(UserRepository userRepository,
                            PersonalWalletRepository personalWalletRepository,
+                           SharedProjectRepository sharedProjectRepository,
                            PasswordEncoder passwordEncoder,
                            UserMapper userMapper,
                            CurrentUserProvider currentUserProvider) {
         this.userRepository = userRepository;
         this.personalWalletRepository = personalWalletRepository;
+        this.sharedProjectRepository = sharedProjectRepository;
         this.passwordEncoder = passwordEncoder;
         this.userMapper = userMapper;
         this.currentUserProvider = currentUserProvider;
@@ -42,7 +46,7 @@ public class UserAppService {
     @Transactional
     public UserResponse register(RegisterUserRequest request) {
         if (userRepository.existsByEmail(request.getEmail())) {
-            throw new BusinessException("Ya existe un usuario registrado con ese email");
+            throw new BusinessException("Ya existe un usuario registrado con ese correo");
         }
 
         User user = new User();
@@ -76,8 +80,17 @@ public class UserAppService {
         return userMapper.toResponse(user);
     }
 
+    /** El propio usuario ve todos sus datos; un compañero de proyecto, todo menos el saldo; nadie más, nada. */
     public UserResponse findById(Long id) {
-        return userMapper.toResponse(getUserOrThrow(id));
+        User user = getUserOrThrow(id);
+
+        if (currentUserProvider.getUserId().equals(id)) {
+            return userMapper.toResponse(user);
+        }
+        if (!sharesProjectWithCurrentUser(id)) {
+            throw new ForbiddenException("No puedes acceder a la información de otro usuario.");
+        }
+        return userMapper.toProjectMemberResponse(user);
     }
 
     /** User.updateData(newName, newEmail). Solo el propio usuario puede editar su perfil. */
@@ -93,6 +106,12 @@ public class UserAppService {
     public double getGeneralSummary(Long id) {
         requireSelf(id);
         return getUserOrThrow(id).getGeneralSummary();
+    }
+
+    private boolean sharesProjectWithCurrentUser(Long userId) {
+        return sharedProjectRepository.findByMembers_Id(currentUserProvider.getUserId()).stream()
+                .flatMap(project -> project.getMembers().stream())
+                .anyMatch(member -> member.getId().equals(userId));
     }
 
     private void requireSelf(Long id) {
