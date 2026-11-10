@@ -204,6 +204,25 @@ class TransactionAppServiceTests {
     }
 
     @Test
+    void gastoPersonalIgnoraElSobregiroPedidoPorElCliente() {
+        PersonalWallet wallet = new PersonalWallet();
+        wallet.setOwner(currentUser);
+        wallet.setCurrentBalance(10_000);
+        when(personalWalletRepository.findById(WALLET_ID)).thenReturn(Optional.of(wallet));
+        CreateTransactionRequest request = createRequest("PERSONAL", null);
+        request.setAmount(50_000);
+        request.setAllowOverdraft(true);
+
+        BusinessException ex = assertThrows(BusinessException.class,
+                () -> serviceWithRealFinancialManager().create(request));
+
+        assertEquals("Saldo insuficiente para realizar la transacción.", ex.getMessage());
+        assertEquals(10_000, wallet.getCurrentBalance());
+        verify(personalWalletRepository, never()).save(any());
+        verify(transactionRepository, never()).save(any());
+    }
+
+    @Test
     void gastoCompartidoConFondoExactoDejaElFondoEnCero() {
         SharedProject project = givenProjectWithFund(60_000, currentUser, otherUser);
 

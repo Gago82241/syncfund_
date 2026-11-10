@@ -81,11 +81,10 @@ public class TransactionAppService {
             transaction.categorize(categoryAppService.getOwnedCategory(request.getCategoryId()));
         }
 
-        // Transaction.execute(): valida saldo (o permiso de sobregiro) y procesa el movimiento.
-        // El fondo de un proyecto nunca queda en negativo, aunque el cliente pida sobregiro.
+        // Transaction.execute(): valida el saldo y procesa el movimiento. Ninguna billetera queda en
+        // negativo por pedido del cliente: el allowOverdraft que llegue en la petición se ignora.
         boolean shared = walletType == Transaction.OriginWalletType.SHARED;
-        boolean allowOverdraft = !shared && request.isAllowOverdraft();
-        if (!financialManager.processTransaction(wallet, transaction, allowOverdraft)) {
+        if (!financialManager.processTransaction(wallet, transaction, false)) {
             throw new BusinessException(shared
                     ? "El fondo del proyecto no tiene saldo suficiente para este gasto."
                     : "Saldo insuficiente para realizar la transacción.");
