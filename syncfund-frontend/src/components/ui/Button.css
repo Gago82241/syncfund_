@@ -28,6 +28,16 @@
   border-color: var(--ink-600);
 }
 
+/* Terracota oscuro: con texto blanco mantiene contraste AA (el 500 no lo alcanza). */
+.sf-button--danger {
+  background: var(--loss-700);
+  color: var(--paper);
+}
+
+.sf-button--danger:hover:not(:disabled) {
+  border-color: var(--ink);
+}
+
 .sf-button:disabled {
   opacity: 0.6;
   cursor: not-allowed;

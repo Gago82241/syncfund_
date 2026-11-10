@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { AppLayout } from '../components/layout/AppLayout';
 import { useAuth } from '../context/useAuth';
 import { useSharedProjectDetail } from '../features/shared-project/hooks/useSharedProjectDetail';
@@ -14,6 +14,7 @@ import { TransactionList } from '../features/transactions/components/Transaction
 export function SharedProjectDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
+  const navigate = useNavigate();
   const projectId = Number(id);
 
   const { project, members, balances, netBalance, transactions, loading, error, refresh } =
@@ -67,7 +68,16 @@ export function SharedProjectDetailPage() {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem', marginBottom: '2.5rem' }}>
             <div>
               <h3 style={{ fontSize: '1rem', marginBottom: '0.5rem' }}>Integrantes</h3>
-              <MembersList members={members} adminId={project.adminId} />
+              <MembersList
+                projectId={projectId}
+                projectName={project.name}
+                members={members}
+                adminId={project.adminId}
+                currentUserId={user!.id}
+                onRemoved={refresh}
+                // Quien sale ya no puede ver el proyecto: vuelve a la lista de sus proyectos.
+                onLeft={() => navigate('/projects', { replace: true })}
+              />
             </div>
             <AddMemberForm projectId={projectId} onSaved={refresh} />
           </div>
