@@ -115,7 +115,26 @@ class CorreccionesAuditoriaIntegrationTests {
         assertEquals(50_000, fondo(ana, proyecto));
     }
 
+    // ---- Login ----
+
+    @Test
+    void loginConCorreoInexistenteYConClaveIncorrectaRespondenIgual() throws Exception {
+        Cuenta ana = registrar("Ana");
+
+        MvcResult inexistente = intentarLogin("nadie-" + UUID.randomUUID() + "@syncfund.test", "clave-123");
+        MvcResult claveIncorrecta = intentarLogin(ana.email(), "otra-clave");
+
+        assertEquals(claveIncorrecta.getResponse().getStatus(), inexistente.getResponse().getStatus());
+        assertEquals(claveIncorrecta.getResponse().getContentAsString(StandardCharsets.UTF_8),
+                inexistente.getResponse().getContentAsString(StandardCharsets.UTF_8));
+    }
+
     // ---- Utilidades HTTP ----
+
+    private MvcResult intentarLogin(String email, String clave) throws Exception {
+        return mockMvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"email\":\"" + email + "\",\"password\":\"" + clave + "\"}")).andReturn();
+    }
 
     private record Cuenta(long id, String email, String token) {
     }
