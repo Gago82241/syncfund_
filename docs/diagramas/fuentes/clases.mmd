@@ -33,7 +33,7 @@ classDiagram
         -User[] participants
         -Map debts
         +addParticipant(User u) void
-        +settleDebts() void
+        +settleDebts(payerId, payeeId, amount) void
     }
     class Transaction {
         -String id
@@ -51,7 +51,8 @@ classDiagram
     }
     class DebtCalculator {
         +splitBill(amount, participants)$ float
-        +calculateBalances(sharedProject)$ Map
+        +calculateBalances(sharedProject, movimientos)$ Map
+        +suggestPayments(balances)$ List
     }
 
     FinancialManager "1" --> "*" User : manages
@@ -65,3 +66,4 @@ classDiagram
     SharedProject "1" o-- Transaction
     SharedProject ..> DebtCalculator : uses
     Transaction "*" --> "1" Category : belongs to
+    note for Transaction "type: INGRESO, GASTO, ABONO o COBRO.<br/>ABONO y COBRO registran un pago entre<br/>integrantes y no mueven el fondo."
