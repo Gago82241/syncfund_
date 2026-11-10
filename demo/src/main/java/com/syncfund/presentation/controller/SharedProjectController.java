@@ -5,6 +5,7 @@ import com.syncfund.application.dto.request.CreateSharedProjectRequest;
 import com.syncfund.application.dto.request.DistributeContributionRequest;
 import com.syncfund.application.dto.request.RegisterSelectiveExpenseRequest;
 import com.syncfund.application.dto.response.NetBalanceResponse;
+import com.syncfund.application.dto.response.ProjectBalancesResponse;
 import com.syncfund.application.dto.response.SharedProjectResponse;
 import com.syncfund.application.dto.response.TransactionResponse;
 import com.syncfund.application.service.SharedProjectAppService;
@@ -67,9 +68,15 @@ public class SharedProjectController {
         return projectService.contribute(id, request);
     }
 
-    /** notifyPendingDebt() + DebtCalculator.determineNetBalance(userId, projectId). */
+    /** notifyPendingDebt() + saldo neto del usuario actual (incluye los pagos entre integrantes). */
     @GetMapping("/{id}/debts/{userId}")
     public NetBalanceResponse getNetBalance(@PathVariable Long id, @PathVariable Long userId) {
         return projectService.getNetBalance(id, userId);
+    }
+
+    /** DebtCalculator.calculateBalances(sharedProject): situación de todos los integrantes. */
+    @GetMapping("/{id}/balances")
+    public ProjectBalancesResponse getBalances(@PathVariable Long id) {
+        return projectService.getBalances(id);
     }
 }

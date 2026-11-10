@@ -3,7 +3,9 @@ package com.syncfund.application.service;
 import com.syncfund.application.dto.request.AddMemberRequest;
 import com.syncfund.application.dto.request.CreateSharedProjectRequest;
 import com.syncfund.application.dto.request.DistributeContributionRequest;
+import com.syncfund.application.dto.response.MemberBalanceResponse;
 import com.syncfund.application.dto.response.NetBalanceResponse;
+import com.syncfund.application.dto.response.ProjectBalancesResponse;
 import com.syncfund.application.dto.response.SharedProjectResponse;
 import com.syncfund.application.exception.BusinessException;
 import com.syncfund.application.exception.ForbiddenException;
@@ -23,9 +25,12 @@ import com.syncfund.security.CurrentUserProvider;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Orquesta SharedProject: addMember, distributeContribution, notifyPendingDebt
@@ -148,10 +153,11 @@ public class SharedProjectAppService {
     }
 
     /**
-     * notifyPendingDebt() + DebtCalculator.determineNetBalance(userId, projectId). Solo tu propia deuda.
+     * notifyPendingDebt() + saldo neto de un integrante. Solo tu propia deuda.
      *
-     * Aportes = INGRESO del proyecto en los que el usuario es el aportante (involvedIdsList).
-     * Gastos = GASTO del proyecto en los que el usuario participa (involvedIdsList).
+     * Saldo neto = aportes (INGRESO con el usuario como aportante) − parte de los gastos (GASTO en
+     * que participa) + pagos hechos (ABONO) − pagos recibidos (COBRO). Lo calcula
+     * DebtCalculator.calculateBalances, el mismo cálculo de la situación del proyecto.
      * Los INGRESO antiguos sin aportante no cuentan para nadie.
      */
     @Transactional(readOnly = true)
@@ -160,22 +166,47 @@ public class SharedProjectAppService {
         requireMember(project);
         requireSelf(userId, "No puedes consultar la deuda de otro usuario.");
 
-        List<Transaction> userMovements = transactionRepository
-                .findByOriginWalletIdAndOriginWalletType(projectId, Transaction.OriginWalletType.SHARED)
-                .stream()
-                .filter(t -> t.getInvolvedIdsList().contains(userId))
-                .toList();
-
-        List<Transaction> contributions = userMovements.stream()
-                .filter(t -> t.getType() == Transaction.TransactionType.INGRESO)
-                .toList();
-
-        List<Transaction> expensesInvolved = userMovements.stream()
-                .filter(t -> t.getType() == Transaction.TransactionType.GASTO)
-                .toList();
-
-        double net = debtCalculator.determineNetBalance(userId, projectId, contributions, expensesInvolved);
+        double net = debtCalculator.calculateBalances(project, projectMovements(projectId)).getOrDefault(userId, 0.0);
         return new NetBalanceResponse(userId, projectId, net);
+    }
+
+    /**
+     * Situación de todos los integrantes (DebtCalculator.calculateBalances). Cualquier integrante
+     * la puede ver; solo incluye cifras del proyecto, nunca correos ni saldos de billeteras personales.
+     */
+    @Transactional(readOnly = true)
+    public ProjectBalancesResponse getBalances(Long projectId) {
+        SharedProject project = findProject(projectId);
+        requireMember(project);
+        return toBalancesResponse(project, projectMovements(projectId));
+    }
+
+    private ProjectBalancesResponse toBalancesResponse(SharedProject project, List<Transaction> movements) {
+        Map<Long, DebtCalculator.MemberBalance> details = debtCalculator.calculateBalanceDetails(project, movements);
+
+        List<MemberBalanceResponse> members = project.getMembers().stream()
+                .map(member -> {
+                    DebtCalculator.MemberBalance detail = details.get(member.getId());
+                    return new MemberBalanceResponse(member.getId(), member.getName(),
+                            cents(detail.contributed()), cents(detail.shareOfExpenses()),
+                            cents(detail.paymentsMade()), cents(detail.paymentsReceived()),
+                            cents(detail.netBalance()));
+                })
+                .toList();
+
+        double total = details.values().stream().mapToDouble(DebtCalculator.MemberBalance::netBalance).sum();
+        double fund = project.getCurrentBalance();
+        return new ProjectBalancesResponse(project.getProjectId(), cents(fund), cents(total), cents(fund - total), members);
+    }
+
+    private List<Transaction> projectMovements(Long projectId) {
+        return transactionRepository.findByOriginWalletIdAndOriginWalletType(projectId, Transaction.OriginWalletType.SHARED);
+    }
+
+    /** Redondea a centavos (las partes de un gasto entre 3 no son exactas) y evita mostrar "-0.0". */
+    private static double cents(double value) {
+        double rounded = BigDecimal.valueOf(value).setScale(2, RoundingMode.HALF_UP).doubleValue();
+        return rounded == 0 ? 0.0 : rounded;
     }
 
     private static Transaction newTransaction(double amount, String description, Transaction.TransactionType type,
