@@ -49,6 +49,22 @@ export function amountWithin(
   return Number(value) > available ? message : undefined;
 }
 
+/**
+ * Monto de un pago entre integrantes: mayor que cero y con máximo 2 decimales, porque una deuda
+ * puede tener centavos (un gasto de 100.000 entre 3). Cada límite se revisa en orden y se compara
+ * con medio centavo de tolerancia, igual que el backend.
+ */
+export function paymentAmount(
+  value: string,
+  limits: { max: number | undefined; message: string }[],
+): string | undefined {
+  const amount = Number(value);
+  if (value.trim() === '' || !Number.isFinite(amount)) return 'El monto es obligatorio';
+  if (amount <= 0) return 'El monto debe ser mayor que cero';
+  if (!/^\d+(\.\d{1,2})?$/.test(value.trim())) return 'El monto admite máximo 2 decimales';
+  return limits.find(({ max }) => max !== undefined && amount > max + 0.005)?.message;
+}
+
 /** Monto que admite cero, sin decimales (metas y límites). */
 export function wholeAmountOrZero(
   value: string,
