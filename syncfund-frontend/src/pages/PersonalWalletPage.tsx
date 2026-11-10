@@ -1,4 +1,6 @@
 import { AppLayout } from '../components/layout/AppLayout';
+import { LoadError } from '../components/ui/LoadError';
+import { LoadingState } from '../components/ui/LoadingState';
 import { useAuth } from '../context/useAuth';
 import { usePersonalWallet } from '../features/personal-wallet/hooks/usePersonalWallet';
 import { WalletSummaryCard } from '../features/personal-wallet/components/WalletSummaryCard';
@@ -15,10 +17,19 @@ export function PersonalWalletPage() {
     <AppLayout>
       <h2>Billetera personal</h2>
 
-      {loading && <p style={{ color: 'var(--ink-muted)', marginTop: '1rem' }}>Cargando...</p>}
-      {error && <p style={{ color: 'var(--loss-500)', marginTop: '1rem' }}>{error}</p>}
+      {/* Con error no se muestran los datos anteriores: podrían no estar actualizados. */}
+      {error && (
+        <LoadError
+          message={error.message}
+          onRetry={error.canRetry ? refresh : undefined}
+          retrying={loading}
+        />
+      )}
+      {!error && (wallet === null || transactions === null) && (
+        <LoadingState message="Cargando tu billetera…" />
+      )}
 
-      {wallet && (
+      {!error && wallet && transactions && (
         <>
           <WalletSummaryCard wallet={wallet} />
 

@@ -34,6 +34,11 @@ export interface LoadErrorInfo {
   canRetry: boolean;
 }
 
+/** Lo que se cargaba no existe o no es del usuario: reintentar no cambia nada. */
+export function notFoundLoadError(what: string): LoadErrorInfo {
+  return { message: `No encontramos ${what} o no tienes acceso.`, canRetry: false };
+}
+
 /**
  * Mensaje para una carga de datos que falló, sin detalles técnicos.
  * `what` nombra lo que se cargaba, ej. "tus proyectos" o "este proyecto compartido".
@@ -49,7 +54,7 @@ export function describeLoadError(err: unknown, what: string): LoadErrorInfo {
       };
     }
     if (status === 403 || status === 404) {
-      return { message: `No encontramos ${what} o no tienes acceso.`, canRetry: false };
+      return notFoundLoadError(what);
     }
     if (status >= 500) {
       return {

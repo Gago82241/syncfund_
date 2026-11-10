@@ -1,6 +1,8 @@
 import { useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { AppLayout } from '../components/layout/AppLayout';
+import { LoadError } from '../components/ui/LoadError';
+import { LoadingState } from '../components/ui/LoadingState';
 import { useAuth } from '../context/useAuth';
 import { useSharedProjectDetail } from '../features/shared-project/hooks/useSharedProjectDetail';
 import { ProjectSummaryCard } from '../features/shared-project/components/ProjectSummaryCard';
@@ -25,10 +27,19 @@ export function SharedProjectDetailPage() {
 
   return (
     <AppLayout>
-      {loading && <p style={{ color: 'var(--ink-muted)' }}>Cargando...</p>}
-      {error && <p style={{ color: 'var(--loss-500)' }}>{error}</p>}
+      {/* Con error no se muestran los datos anteriores: podrían no estar actualizados. */}
+      {error && (
+        <LoadError
+          message={error.message}
+          onRetry={error.canRetry ? refresh : undefined}
+          retrying={loading}
+          // Si el proyecto no existe o ya no es tuyo, reintentar no sirve: se ofrece volver.
+          action={error.canRetry ? undefined : <Link to="/projects">Volver a tus proyectos</Link>}
+        />
+      )}
+      {!error && project === null && <LoadingState message="Cargando el proyecto…" />}
 
-      {project && balances && netBalance && (
+      {!error && project && balances && netBalance && (
         <>
           <h2>{project.name}</h2>
           {project.description && (
