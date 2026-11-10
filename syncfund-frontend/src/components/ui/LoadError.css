@@ -1,0 +1,32 @@
+.sf-load-error {
+  background: var(--loss-100);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md);
+  padding: 1rem;
+  margin: 1rem 0;
+}
+
+.sf-load-error__message {
+  color: var(--loss-700);
+  font-weight: 500;
+}
+
+.sf-load-error__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+}
+
+/* El ghost es transparente: sobre el fondo terracota claro se le da papel para que se lea como botón. */
+.sf-load-error .sf-button--ghost {
+  background: var(--paper);
+}
+
+/* En móvil el botón ocupa todo el ancho (como .sf-button); desde pantallas medianas, solo lo necesario. */
+@media (min-width: 480px) {
+  .sf-load-error .sf-button {
+    width: auto;
+  }
+}
