@@ -26,6 +26,18 @@
   color: var(--ink-faint);
 }
 
+/* Pago entre integrantes: no suma ni resta al fondo, así que va en gris y sin signo. */
+.tx-list__neutral {
+  color: var(--ink-muted);
+  text-align: right;
+}
+
+.tx-list__neutral-note {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--ink-faint);
+}
+
 .tx-list__empty {
   color: var(--ink-faint);
   font-size: 0.9375rem;

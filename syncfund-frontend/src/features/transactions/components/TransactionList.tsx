@@ -16,9 +16,17 @@ export function TransactionList({ transactions }: { transactions: TransactionRes
             <p className="tx-list__description">{tx.description}</p>
             <span className="tx-list__date">{formatDate(tx.dateTime)}</span>
           </div>
-          <span className={`tabular-nums ${tx.type === 'INGRESO' ? 'amount-gain' : 'amount-loss'}`}>
-            {tx.type === 'INGRESO' ? '+' : '−'} {formatCOP(tx.amount)}
-          </span>
+          {tx.type === 'ABONO' || tx.type === 'COBRO' ? (
+            // Pago entre integrantes: va de billetera a billetera y no mueve el fondo, por eso no lleva signo.
+            <span className="tabular-nums tx-list__neutral">
+              {formatCOP(tx.amount)}
+              <span className="tx-list__neutral-note">Pago entre integrantes</span>
+            </span>
+          ) : (
+            <span className={`tabular-nums ${tx.type === 'INGRESO' ? 'amount-gain' : 'amount-loss'}`}>
+              {tx.type === 'INGRESO' ? '+' : '−'} {formatCOP(tx.amount)}
+            </span>
+          )}
         </li>
       ))}
     </ul>

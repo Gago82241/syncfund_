@@ -1,7 +1,11 @@
 package com.syncfund;
 
 import com.syncfund.application.dto.request.DistributeContributionRequest;
+import com.syncfund.application.dto.request.SettleDebtRequest;
+import com.syncfund.application.dto.response.MemberBalanceResponse;
+import com.syncfund.application.dto.response.ProjectBalancesResponse;
 import com.syncfund.application.exception.BusinessException;
+import com.syncfund.application.exception.ForbiddenException;
 import com.syncfund.application.mapper.SharedProjectMapper;
 import com.syncfund.application.service.SharedProjectAppService;
 import com.syncfund.domain.model.PersonalWallet;
@@ -174,7 +178,337 @@ class SharedProjectAppServiceTests {
         assertEquals(30_000, netA + netB + netC); // 120.000 aportados - 90.000 gastados
     }
 
+    @Test
+    void saldoNetoIncluyeLosPagosHechosYRecibidos() {
+        project.setMembers(new ArrayList<>(List.of(userA, user(USER_B), user(USER_C))));
+        givenProjectMovements(ejemploConPagoDeCaroAAna());
+
+        assertEquals(20_000, netBalanceOf(USER_A));
+        assertEquals(-5_000, netBalanceOf(USER_B));
+        assertEquals(0, netBalanceOf(USER_C));
+    }
+
+    // ---- Situación del proyecto ----
+
+    @Test
+    void situacionMuestraATodosLosIntegrantesConSuDesgloseYCuadraConElFondo() {
+        givenThreeNamedMembers();
+        project.setCurrentBalance(15_000);
+        givenProjectMovements(ejemploConPagoDeCaroAAna());
+
+        ProjectBalancesResponse response = service.getBalances(PROJECT_ID);
+
+        assertEquals(PROJECT_ID, response.getProjectId());
+        assertEquals(15_000, response.getFund());
+        assertEquals(15_000, response.getTotalBalances());
+        assertEquals(0, response.getUnassigned());
+        assertEquals(List.of(USER_A, USER_B, USER_C),
+                response.getMembers().stream().map(MemberBalanceResponse::getUserId).toList());
+
+        MemberBalanceResponse ana = response.getMembers().get(0);
+        assertEquals("Ana", ana.getName());
+        assertEquals(90_000, ana.getContributed());
+        assertEquals(35_000, ana.getShareOfExpenses());
+        assertEquals(0, ana.getPaymentsMade());
+        assertEquals(35_000, ana.getPaymentsReceived());
+        assertEquals(20_000, ana.getNetBalance());
+
+        MemberBalanceResponse caro = response.getMembers().get(2);
+        assertEquals("Caro", caro.getName());
+        assertEquals(35_000, caro.getPaymentsMade());
+        assertEquals(0, caro.getNetBalance());
+
+        // Tras el pago de Caro solo queda pendiente Beto: le debe 5.000 a Ana.
+        assertEquals(1, response.getSuggestedPayments().size());
+        assertEquals(USER_B, response.getSuggestedPayments().get(0).getFromUserId());
+        assertEquals(USER_A, response.getSuggestedPayments().get(0).getToUserId());
+        assertEquals(5_000, response.getSuggestedPayments().get(0).getAmount());
+    }
+
+    @Test
+    void situacionRedondeaACentavosYLaSumaSigueIgualAlFondo() {
+        givenThreeNamedMembers();
+        givenProjectMovements(List.of(
+                sharedMovement(Transaction.TransactionType.INGRESO, 100_000, USER_A),
+                sharedMovement(Transaction.TransactionType.GASTO, 100_000, USER_A, USER_B, USER_C)));
+
+        ProjectBalancesResponse response = service.getBalances(PROJECT_ID);
+
+        assertEquals(66_666.67, response.getMembers().get(0).getNetBalance());
+        assertEquals(33_333.33, response.getMembers().get(1).getShareOfExpenses());
+        assertEquals(-33_333.33, response.getMembers().get(1).getNetBalance());
+        assertEquals(0, response.getFund());
+        assertEquals(0, response.getTotalBalances());
+        assertEquals(0, response.getUnassigned());
+    }
+
+    @Test
+    void situacionSeparaLosAportesAntiguosSinAportante() {
+        givenThreeNamedMembers();
+        project.setCurrentBalance(65_000);
+        List<Transaction> movements = new ArrayList<>(ejemploConPagoDeCaroAAna());
+        movements.add(sharedMovement(Transaction.TransactionType.INGRESO, 50_000));
+        givenProjectMovements(movements);
+
+        ProjectBalancesResponse response = service.getBalances(PROJECT_ID);
+
+        assertEquals(65_000, response.getFund());
+        assertEquals(15_000, response.getTotalBalances());
+        assertEquals(50_000, response.getUnassigned());
+    }
+
+    @Test
+    void situacionDeUnProyectoAjenoResponde403() {
+        lenient().when(currentUserProvider.getUserId()).thenReturn(99L);
+
+        ForbiddenException ex = assertThrows(ForbiddenException.class, () -> service.getBalances(PROJECT_ID));
+
+        assertEquals("No perteneces a este proyecto compartido.", ex.getMessage());
+    }
+
+    // ---- Pagar una deuda ----
+
+    @Test
+    void pagoDeCaroAAnaMueveLasBilleterasNoElFondoYGuardaLosCuatroMovimientos() {
+        Pago p = givenEjemploAntesDelPago();
+        IObserver observer = mock(IObserver.class);
+        project.addObserver(observer);
+
+        ProjectBalancesResponse response = service.settleDebt(PROJECT_ID, settle(USER_C, USER_A, 35_000));
+
+        assertEquals(65_000, p.caroWallet().getCurrentBalance());
+        assertEquals(145_000, p.anaWallet().getCurrentBalance());
+        assertEquals(15_000, project.getCurrentBalance());
+        verify(personalWalletRepository).save(p.caroWallet());
+        verify(personalWalletRepository).save(p.anaWallet());
+        verify(sharedProjectRepository, never()).save(any());
+        verify(observer).update(PROJECT_NAME, 35_000, "Pago de Caro a Ana");
+
+        ArgumentCaptor<Transaction> saved = ArgumentCaptor.forClass(Transaction.class);
+        verify(transactionRepository, times(4)).save(saved.capture());
+        List<Transaction> movements = saved.getAllValues();
+
+        Transaction caroGasto = only(movements, Transaction.TransactionType.GASTO);
+        assertEquals(Transaction.OriginWalletType.PERSONAL, caroGasto.getOriginWalletType());
+        assertEquals(WALLET_C, caroGasto.getOriginWalletId());
+        assertEquals("Pago a Ana – «" + PROJECT_NAME + "»", caroGasto.getDescription());
+        assertEquals(35_000, caroGasto.getAmount());
+
+        Transaction anaIngreso = only(movements, Transaction.TransactionType.INGRESO);
+        assertEquals(Transaction.OriginWalletType.PERSONAL, anaIngreso.getOriginWalletType());
+        assertEquals(WALLET_A, anaIngreso.getOriginWalletId());
+        assertEquals("Pago de Caro – «" + PROJECT_NAME + "»", anaIngreso.getDescription());
+
+        Transaction abono = only(movements, Transaction.TransactionType.ABONO);
+        assertEquals(Transaction.OriginWalletType.SHARED, abono.getOriginWalletType());
+        assertEquals(PROJECT_ID, abono.getOriginWalletId());
+        assertEquals(List.of(USER_C), abono.getInvolvedIdsList());
+        assertEquals("Pago de Caro a Ana", abono.getDescription());
+
+        Transaction cobro = only(movements, Transaction.TransactionType.COBRO);
+        assertEquals(Transaction.OriginWalletType.SHARED, cobro.getOriginWalletType());
+        assertEquals(List.of(USER_A), cobro.getInvolvedIdsList());
+        assertEquals("Pago de Caro a Ana", cobro.getDescription());
+
+        assertEquals(20_000, response.getMembers().get(0).getNetBalance());
+        assertEquals(-5_000, response.getMembers().get(1).getNetBalance());
+        assertEquals(0, response.getMembers().get(2).getNetBalance());
+        assertEquals(15_000, response.getTotalBalances());
+    }
+
+    @Test
+    void pagoParcialDejaElRestoPendiente() {
+        givenEjemploAntesDelPago();
+
+        ProjectBalancesResponse response = service.settleDebt(PROJECT_ID, settle(USER_C, USER_A, 10_000));
+
+        assertEquals(45_000, response.getMembers().get(0).getNetBalance());
+        assertEquals(-25_000, response.getMembers().get(2).getNetBalance());
+    }
+
+    @Test
+    void pagoANombreDeOtroResponde403() {
+        givenEjemploAntesDelPago();
+        whenCurrentUser(USER_A);
+
+        assertRejected(ForbiddenException.class, "No puedes registrar un pago a nombre de otro usuario.",
+                settle(USER_C, USER_A, 35_000));
+    }
+
+    @Test
+    void pagoEnUnProyectoAjenoResponde403() {
+        givenEjemploAntesDelPago();
+        whenCurrentUser(99L);
+
+        assertRejected(ForbiddenException.class, "No perteneces a este proyecto compartido.",
+                settle(99L, USER_A, 35_000));
+    }
+
+    @Test
+    void pagoAQuienNoEsIntegranteResponde403() {
+        givenEjemploAntesDelPago();
+
+        assertRejected(ForbiddenException.class, "Solo puedes pagarle a un integrante del proyecto.",
+                settle(USER_C, 99L, 35_000));
+    }
+
+    @Test
+    void pagarseASiMismoResponde422() {
+        givenEjemploAntesDelPago();
+
+        assertRejected(BusinessException.class, "No puedes pagarte a ti mismo.", settle(USER_C, USER_C, 1_000));
+    }
+
+    @Test
+    void pagoDeQuienNoDebeResponde422() {
+        givenEjemploAntesDelPago();
+        whenCurrentUser(USER_A);
+
+        assertRejected(BusinessException.class, "No tienes deudas pendientes en este proyecto.",
+                settle(USER_A, USER_C, 1_000));
+    }
+
+    @Test
+    void pagoMayorQueLaDeudaResponde422() {
+        givenEjemploAntesDelPago();
+        whenCurrentUser(USER_B);
+
+        assertRejected(BusinessException.class, "El monto supera lo que debes ($5.000).",
+                settle(USER_B, USER_A, 10_000));
+    }
+
+    @Test
+    void pagoAQuienNoTieneSaldoAFavorResponde422() {
+        givenEjemploAntesDelPago();
+
+        assertRejected(BusinessException.class, "Beto no tiene saldo a favor en este proyecto.",
+                settle(USER_C, USER_B, 5_000));
+    }
+
+    /** Aportes Ana 45.000 y Beto 75.000, gasto de 105.000 entre los tres: Ana +10.000, Beto +40.000, Caro −35.000. */
+    @Test
+    void pagoMayorQueElSaldoAFavorDeQuienRecibeResponde422() {
+        givenEjemplo(List.of(
+                sharedMovement(Transaction.TransactionType.INGRESO, 45_000, USER_A),
+                sharedMovement(Transaction.TransactionType.INGRESO, 75_000, USER_B),
+                sharedMovement(Transaction.TransactionType.GASTO, 105_000, USER_A, USER_B, USER_C)), 100_000);
+
+        assertRejected(BusinessException.class, "El monto supera el saldo a favor de Ana ($10.000).",
+                settle(USER_C, USER_A, 20_000));
+    }
+
+    @Test
+    void pagoSinSaldoSuficienteEnLaBilleteraResponde422() {
+        givenEjemplo(ejemploAntesDelPago(), 10_000);
+
+        assertRejected(BusinessException.class, "Saldo insuficiente en tu billetera personal para este pago.",
+                settle(USER_C, USER_A, 35_000));
+    }
+
+    @Test
+    void pagoDeUnaDeudaConDecimalesAceptaElMontoRedondeadoYRechazaUnCentavoDeMas() {
+        givenEjemplo(List.of(
+                sharedMovement(Transaction.TransactionType.INGRESO, 100_000, USER_A),
+                sharedMovement(Transaction.TransactionType.GASTO, 100_000, USER_A, USER_B, USER_C)), 100_000);
+
+        assertRejected(BusinessException.class, "El monto supera lo que debes ($33.333,33).",
+                settle(USER_C, USER_A, 33_333.34));
+
+        ProjectBalancesResponse response = service.settleDebt(PROJECT_ID, settle(USER_C, USER_A, 33_333.33));
+        assertEquals(0, response.getMembers().get(2).getNetBalance());
+    }
+
     // ---- Utilidades ----
+
+    private static final Long WALLET_C = 203L;
+
+    private record Pago(PersonalWallet anaWallet, PersonalWallet caroWallet) {
+    }
+
+    private static List<Transaction> ejemploAntesDelPago() {
+        return List.of(
+                sharedMovement(Transaction.TransactionType.INGRESO, 90_000, USER_A),
+                sharedMovement(Transaction.TransactionType.INGRESO, 30_000, USER_B),
+                sharedMovement(Transaction.TransactionType.GASTO, 105_000, USER_A, USER_B, USER_C));
+    }
+
+    /** Ejemplo del plan, Caro es el usuario actual. Billeteras: Ana 110.000 y Caro 100.000. */
+    private Pago givenEjemploAntesDelPago() {
+        return givenEjemplo(ejemploAntesDelPago(), 100_000);
+    }
+
+    private Pago givenEjemplo(List<Transaction> movements, double caroBalance) {
+        givenThreeNamedMembers();
+        project.setCurrentBalance(15_000);
+        givenProjectMovements(movements);
+        PersonalWallet anaWallet = walletOf(project.getMembers().get(0), WALLET_A, 110_000);
+        PersonalWallet caroWallet = walletOf(project.getMembers().get(2), WALLET_C, caroBalance);
+        whenCurrentUser(USER_C);
+        return new Pago(anaWallet, caroWallet);
+    }
+
+    private PersonalWallet walletOf(User owner, Long walletId, double balance) {
+        PersonalWallet wallet = new PersonalWallet();
+        wallet.setWalletId(walletId);
+        wallet.setOwner(owner);
+        wallet.setCurrentBalance(balance);
+        lenient().when(personalWalletRepository.findByOwnerId(owner.getId())).thenReturn(Optional.of(wallet));
+        return wallet;
+    }
+
+    private void whenCurrentUser(Long userId) {
+        lenient().when(currentUserProvider.getUserId()).thenReturn(userId);
+    }
+
+    private void assertRejected(Class<? extends RuntimeException> type, String message, SettleDebtRequest request) {
+        double fund = project.getCurrentBalance();
+        RuntimeException ex = assertThrows(type, () -> service.settleDebt(PROJECT_ID, request));
+        assertEquals(message, ex.getMessage());
+        assertEquals(fund, project.getCurrentBalance());
+        verify(personalWalletRepository, never()).save(any());
+        verify(sharedProjectRepository, never()).save(any());
+        verify(transactionRepository, never()).save(any());
+    }
+
+    private static SettleDebtRequest settle(Long payerId, Long payeeId, double amount) {
+        SettleDebtRequest request = new SettleDebtRequest();
+        request.setPayerId(payerId);
+        request.setPayeeId(payeeId);
+        request.setAmount(amount);
+        return request;
+    }
+
+    private static Transaction only(List<Transaction> movements, Transaction.TransactionType type) {
+        List<Transaction> found = movements.stream().filter(t -> t.getType() == type).toList();
+        assertEquals(1, found.size(), "Se esperaba un solo movimiento " + type);
+        return found.get(0);
+    }
+
+    /** Sección 6 del plan: aportes Ana 90.000 y Beto 30.000, gasto de 105.000 entre los tres, Caro le paga 35.000 a Ana. */
+    private static List<Transaction> ejemploConPagoDeCaroAAna() {
+        return List.of(
+                sharedMovement(Transaction.TransactionType.INGRESO, 90_000, USER_A),
+                sharedMovement(Transaction.TransactionType.INGRESO, 30_000, USER_B),
+                sharedMovement(Transaction.TransactionType.GASTO, 105_000, USER_A, USER_B, USER_C),
+                sharedMovement(Transaction.TransactionType.ABONO, 35_000, USER_C),
+                sharedMovement(Transaction.TransactionType.COBRO, 35_000, USER_A));
+    }
+
+    private void givenThreeNamedMembers() {
+        userA.setName("Ana");
+        project.setMembers(new ArrayList<>(List.of(userA, named(USER_B, "Beto"), named(USER_C, "Caro"))));
+    }
+
+    private void givenProjectMovements(List<Transaction> movements) {
+        lenient().when(transactionRepository.findByOriginWalletIdAndOriginWalletType(
+                PROJECT_ID, Transaction.OriginWalletType.SHARED)).thenReturn(movements);
+    }
+
+    private static User named(Long id, String name) {
+        User user = user(id);
+        user.setName(name);
+        return user;
+    }
 
     private double netBalanceOf(Long userId) {
         lenient().when(currentUserProvider.getUserId()).thenReturn(userId);

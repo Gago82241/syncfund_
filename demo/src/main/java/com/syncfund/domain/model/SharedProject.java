@@ -8,7 +8,9 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * SharedProject (inherits from Wallet) + rol de Sujeto Observable.
@@ -53,6 +55,14 @@ public class SharedProject extends Wallet implements IObservable {
     @Transient
     private List<IObserver> observers = new ArrayList<>();
 
+    /**
+     * debts (atributo -Map debts del diagrama de clases): saldo neto de cada integrante
+     * (positivo: a favor; negativo: debe). No se persiste: lo calcula DebtCalculator.calculateBalances
+     * a partir de los movimientos del proyecto cuando se va a saldar una deuda.
+     */
+    @Transient
+    private Map<Long, Double> debts = new HashMap<>();
+
     /** addMember(userId): incorpora a un nuevo integrante al proyecto (colaborador: User). */
     public void addMember(User user) {
         if (!members.contains(user)) {
@@ -85,6 +95,29 @@ public class SharedProject extends Wallet implements IObservable {
      */
     public void notifyPendingDebt(String message) {
         notifyObservers(0.0, message);
+    }
+
+    /**
+     * settleDebts(payerId, payeeId, amount): un integrante que debe le paga directamente a otro
+     * que tiene saldo a favor. El dinero va de billetera personal a billetera personal, así que el
+     * fondo (currentBalance) no cambia: solo se ajustan los saldos en debts y se notifica a los
+     * integrantes (patrón Observer). Las reglas del pago las valida antes SharedProjectAppService.
+     */
+    public void settleDebts(Long payerId, Long payeeId, double amount) {
+        if (!debts.containsKey(payerId) || !debts.containsKey(payeeId)) {
+            throw new IllegalArgumentException("Quien paga y quien recibe deben ser integrantes del proyecto.");
+        }
+        debts.put(payerId, debts.get(payerId) + amount);
+        debts.put(payeeId, debts.get(payeeId) - amount);
+        notifyObservers(amount, "Pago de " + memberName(payerId) + " a " + memberName(payeeId));
+    }
+
+    private String memberName(Long userId) {
+        return members.stream()
+                .filter(m -> m.getId().equals(userId))
+                .map(User::getName)
+                .findFirst()
+                .orElse("un integrante");
     }
 
     // ---- IObservable ----

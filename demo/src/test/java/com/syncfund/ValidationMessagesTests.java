@@ -122,6 +122,11 @@ class ValidationMessagesTests {
                 arguments("POST", "/api/projects/1/expenses", "{}", "payerId", "El pagador es obligatorio"),
                 arguments("POST", "/api/projects/1/expenses", "{}", "involvedIdsList", "Debes seleccionar al menos un participante"),
                 arguments("POST", "/api/projects/1/expenses", "{}", "description", DESCRIPCION_OBLIGATORIA),
+                // SettleDebtRequest
+                arguments("POST", "/api/projects/1/settlements", "{}", "amount", MONTO_POSITIVO),
+                arguments("POST", "/api/projects/1/settlements", "{\"amount\": -5}", "amount", MONTO_POSITIVO),
+                arguments("POST", "/api/projects/1/settlements", "{}", "payerId", "Quien paga es obligatorio"),
+                arguments("POST", "/api/projects/1/settlements", "{}", "payeeId", "Quien recibe el pago es obligatorio"),
                 // SetSavingsGoalRequest
                 arguments("PUT", "/api/wallets/personal/1/goal", "{\"monthlySavingsGoal\": -1}", "monthlySavingsGoal", "La meta de ahorro no puede ser negativa"),
                 // RegisterUserRequest

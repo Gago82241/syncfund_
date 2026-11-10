@@ -4,7 +4,9 @@ import com.syncfund.application.dto.request.AddMemberRequest;
 import com.syncfund.application.dto.request.CreateSharedProjectRequest;
 import com.syncfund.application.dto.request.DistributeContributionRequest;
 import com.syncfund.application.dto.request.RegisterSelectiveExpenseRequest;
+import com.syncfund.application.dto.request.SettleDebtRequest;
 import com.syncfund.application.dto.response.NetBalanceResponse;
+import com.syncfund.application.dto.response.ProjectBalancesResponse;
 import com.syncfund.application.dto.response.SharedProjectResponse;
 import com.syncfund.application.dto.response.TransactionResponse;
 import com.syncfund.application.service.SharedProjectAppService;
@@ -67,9 +69,25 @@ public class SharedProjectController {
         return projectService.contribute(id, request);
     }
 
-    /** notifyPendingDebt() + DebtCalculator.determineNetBalance(userId, projectId). */
+    /** notifyPendingDebt() + saldo neto del usuario actual (incluye los pagos entre integrantes). */
     @GetMapping("/{id}/debts/{userId}")
     public NetBalanceResponse getNetBalance(@PathVariable Long id, @PathVariable Long userId) {
         return projectService.getNetBalance(id, userId);
+    }
+
+    /** DebtCalculator.calculateBalances(sharedProject): situación de todos los integrantes. */
+    @GetMapping("/{id}/balances")
+    public ProjectBalancesResponse getBalances(@PathVariable Long id) {
+        return projectService.getBalances(id);
+    }
+
+    /**
+     * SharedProject.settleDebts(payerId, payeeId, amount): quien debe le paga a otro integrante con
+     * saldo a favor, de billetera a billetera. Las reglas y la autorización las valida el service.
+     */
+    @PostMapping("/{id}/settlements")
+    public ResponseEntity<ProjectBalancesResponse> settleDebt(@PathVariable Long id,
+                                                              @Valid @RequestBody SettleDebtRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(projectService.settleDebt(id, request));
     }
 }

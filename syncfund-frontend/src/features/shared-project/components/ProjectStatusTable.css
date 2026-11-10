@@ -1,0 +1,217 @@
+/* "Situación del proyecto": un libro mayor de integrantes, separado de los formularios. */
+.status-table {
+  margin-bottom: 2.5rem;
+}
+
+.status-table__title {
+  font-size: 1.125rem;
+  margin-bottom: 0.75rem;
+}
+
+.status-table__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9375rem;
+}
+
+.status-table__table th,
+.status-table__table td {
+  padding: 0.75rem 0.5rem;
+  border-bottom: 1px solid var(--hairline);
+  text-align: left;
+  vertical-align: top;
+}
+
+.status-table__table thead th {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--ink-muted);
+}
+
+.status-table__table .status-table__num {
+  text-align: right;
+}
+
+.status-table__name {
+  font-weight: 500;
+}
+
+.status-table__row--me {
+  background: var(--ink-100);
+}
+
+.status-table__you {
+  font-weight: 400;
+  color: var(--ink-muted);
+}
+
+.status-table__balance {
+  display: block;
+  font-weight: 600;
+}
+
+.status-table__balance--even {
+  color: var(--ink-muted);
+}
+
+.status-table__note {
+  display: block;
+  font-size: 0.8125rem;
+  font-weight: 400;
+  color: var(--ink-faint);
+}
+
+.status-table__action {
+  text-align: right;
+  width: 1%;
+  white-space: nowrap;
+}
+
+.status-table__pay {
+  font: inherit;
+  font-weight: 600;
+  font-size: 0.875rem;
+  padding: 0.4rem 0.9rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--ink-900);
+  background: var(--ink-900);
+  color: var(--paper);
+  cursor: pointer;
+}
+
+.status-table__pay:hover {
+  background: var(--ink-700);
+}
+
+.status-table__row--total th,
+.status-table__row--total td {
+  border-bottom: none;
+  border-top: 2px solid var(--ink-900);
+}
+
+.status-table__row--total + .status-table__row--total th,
+.status-table__row--total + .status-table__row--total td {
+  border-top: 1px solid var(--hairline);
+}
+
+.status-table__fund {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+}
+
+.status-table__form-row td {
+  background: var(--paper);
+}
+
+.status-table__sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.status-table__suggestions {
+  margin-top: 1rem;
+  font-size: 0.9375rem;
+}
+
+.status-table__suggestions-title {
+  font-size: 0.8125rem;
+  color: var(--ink-muted);
+  margin-bottom: 0.25rem;
+}
+
+.status-table__suggestions ul {
+  margin: 0;
+  padding-left: 1.25rem;
+}
+
+/* Formulario de pago dentro de la tabla */
+.settle-form {
+  max-width: 420px;
+  margin-left: auto;
+}
+
+.settle-form__title {
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.settle-form__actions {
+  display: flex;
+  gap: 0.75rem;
+}
+
+/* Móvil: cada integrante se apila como una tarjeta con sus etiquetas. */
+@media (max-width: 640px) {
+  .status-table__table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+  }
+
+  .status-table__table,
+  .status-table__table tbody,
+  .status-table__table tfoot,
+  .status-table__table tr,
+  .status-table__table th,
+  .status-table__table td {
+    display: block;
+    width: 100%;
+  }
+
+  .status-table__table tr {
+    border-bottom: 1px solid var(--hairline);
+    padding: 0.5rem 0;
+  }
+
+  .status-table__table th,
+  .status-table__table td {
+    border: none;
+    padding: 0.25rem 0.5rem;
+  }
+
+  .status-table__table td[data-label] {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+
+  .status-table__table td[data-label]::before {
+    content: attr(data-label);
+    color: var(--ink-muted);
+    font-size: 0.8125rem;
+    text-align: left;
+  }
+
+  .status-table__table td:empty {
+    display: none;
+  }
+
+  .status-table__action {
+    width: 100%;
+    text-align: left;
+  }
+
+  .status-table__pay {
+    width: 100%;
+    padding: 0.6rem;
+  }
+
+  .status-table__row--total {
+    border-top: 2px solid var(--ink-900);
+  }
+
+  .status-table__row--total th,
+  .status-table__row--total td {
+    border-top: none;
+  }
+
+  .settle-form {
+    max-width: none;
+  }
+}

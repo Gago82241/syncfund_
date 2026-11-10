@@ -10,7 +10,14 @@ y saldo neto).
 - **Modelo de fondo:** un aporte sale de la billetera personal de quien aporta (GASTO en su
   billetera + INGRESO en el proyecto, con el aportante en `involvedIdsList`). Los gastos
   compartidos los paga solo el fondo, que nunca queda en negativo (422 si no alcanza).
-  Saldo neto = aportes propios − parte de los gastos en que participó.
+- **Pago entre integrantes** (`POST /api/projects/{id}/settlements`, `SharedProject.settleDebts`):
+  quien debe le paga a quien tiene saldo a favor, de billetera a billetera (GASTO en la de quien
+  paga, INGRESO en la de quien recibe). El fondo no cambia. En el proyecto quedan un `ABONO`
+  (`involvedIdsList = [quien paga]`) y un `COBRO` (`[quien recibe]`), que nunca pasan por
+  `recordTransaction` ni cuentan en `auditWallet`. `POST /api/transactions` solo acepta INGRESO o GASTO.
+- Saldo neto = aportes propios − parte de los gastos en que participó + pagos hechos (ABONO)
+  − pagos recibidos (COBRO). Lo calcula `DebtCalculator.calculateBalances`; la suma de los
+  saldos netos es igual al fondo (salvo INGRESO antiguos sin aportante, que no cuentan para nadie).
 
 Es un proyecto académico de Ingeniería Informática desarrollado por dos
 integrantes; el diseño UML fue entregado y evaluado previamente.
@@ -72,6 +79,9 @@ Antes de dar por terminado un cambio en el backend: `.\mvnw.cmd test` sin fallos
      `docs/base-de-datos/migraciones/`, que se ejecuta antes del despliegue. `ddl-auto=update`
      también corre en producción y no basta: una columna `NOT NULL` nueva deja las filas
      existentes con un valor por defecto, y si la llave foránea falla solo registra una advertencia.
+   - Los enums persistidos (`transactions.type`, `origin_wallet_type`) son `ENUM` nativos de MySQL:
+     un valor nuevo en el enum de Java exige un `ALTER TABLE ... MODIFY` en un script de migración
+     (ver `tipos-pago-entre-integrantes.sql`).
 
 ## Seguridad (no romper)
 - Todas las rutas exigen JWT excepto `/api/auth/**` y las peticiones `OPTIONS` (preflight CORS).

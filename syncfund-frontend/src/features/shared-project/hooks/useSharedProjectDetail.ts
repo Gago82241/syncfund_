@@ -2,18 +2,24 @@ import { useCallback, useEffect, useState } from 'react';
 import { sharedProjectService } from '../services/sharedProjectService';
 import { transactionService } from '../../transactions/services/transactionService';
 import { userService } from '../../users/services/userService';
-import type { NetBalanceResponse, SharedProjectResponse, TransactionResponse, UserResponse } from '../../../types/api';
+import type {
+  NetBalanceResponse,
+  ProjectBalancesResponse,
+  SharedProjectResponse,
+  TransactionResponse,
+  UserResponse,
+} from '../../../types/api';
 
 /**
  * Orquesta todo lo que necesita la pantalla de detalle de un SharedProject:
  * el proyecto, los nombres de sus miembros (el backend solo da memberIds),
- * el saldo neto del usuario actual (DebtCalculator.determineNetBalance) y
- * el historial de movimientos del proyecto.
+ * la situación de todos los integrantes (DebtCalculator.calculateBalances), de la que sale
+ * el saldo neto del usuario actual, y el historial de movimientos del proyecto.
  */
 export function useSharedProjectDetail(projectId: number, currentUserId: number) {
   const [project, setProject] = useState<SharedProjectResponse | null>(null);
   const [members, setMembers] = useState<UserResponse[]>([]);
-  const [netBalance, setNetBalance] = useState<NetBalanceResponse | null>(null);
+  const [balances, setBalances] = useState<ProjectBalancesResponse | null>(null);
   const [transactions, setTransactions] = useState<TransactionResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -38,18 +44,23 @@ export function useSharedProjectDetail(projectId: number, currentUserId: number)
         })
         .then((memberResponses) => {
           setMembers(memberResponses.map((r) => r.data));
-          return sharedProjectService.getNetBalance(projectId, currentUserId);
+          return sharedProjectService.getBalances(projectId);
         })
         .then(({ data: balanceData }) => {
-          setNetBalance(balanceData);
+          setBalances(balanceData);
           return transactionService.getByWallet(projectId, 'SHARED');
         })
         .then(({ data: txData }) => {
-          setTransactions(txData.slice().sort((a, b) => b.dateTime.localeCompare(a.dateTime)));
+          // Un pago deja un ABONO y un COBRO con la misma descripción: basta mostrar el ABONO.
+          setTransactions(
+            txData
+              .filter((tx) => tx.type !== 'COBRO')
+              .sort((a, b) => b.dateTime.localeCompare(a.dateTime)),
+          );
         })
         .catch(() => setError('No se pudo cargar el proyecto compartido.'))
         .finally(() => setLoading(false)),
-    [projectId, currentUserId],
+    [projectId],
   );
 
   const refresh = useCallback(() => {
@@ -62,5 +73,11 @@ export function useSharedProjectDetail(projectId: number, currentUserId: number)
     load();
   }, [load]);
 
-  return { project, members, netBalance, transactions, loading, error, refresh };
+  // Saldo del usuario actual para la tarjeta resumen: el mismo cálculo de la tabla de situación.
+  const myBalance = balances?.members.find((m) => m.userId === currentUserId);
+  const netBalance: NetBalanceResponse | null = myBalance
+    ? { userId: currentUserId, projectId, netBalance: myBalance.netBalance }
+    : null;
+
+  return { project, members, balances, netBalance, transactions, loading, error, refresh };
 }
