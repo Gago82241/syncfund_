@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { categoryService } from '../services/categoryService';
 import { personalWalletService } from '../../personal-wallet/services/personalWalletService';
+import { describeLoadError, type LoadErrorInfo } from '../../../utils/apiError';
 import type { CategoryResponse } from '../../../types/api';
 
 export interface CategoryWithSpend extends CategoryResponse {
@@ -35,23 +36,27 @@ async function fetchCategoriesWithSpend(userId: number): Promise<CategoryWithSpe
  * las medimos contra la billetera personal como caso de uso principal.
  */
 export function useCategories(userId: number) {
-  const [categories, setCategories] = useState<CategoryWithSpend[]>([]);
+  // null hasta la primera carga exitosa: una lista vacía solo significa "no hay categorías".
+  const [categories, setCategories] = useState<CategoryWithSpend[] | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [error, setError] = useState<LoadErrorInfo | null>(null);
 
   // load no marca "cargando": el estado inicial ya lo hace y refresh lo marca antes de recargar.
   const load = useCallback(
     () =>
       fetchCategoriesWithSpend(userId)
-        .then((withSpend) => setCategories(withSpend))
-        .catch(() => setError('No se pudieron cargar las categorías.'))
+        .then((withSpend) => {
+          setCategories(withSpend);
+          setError(null);
+        })
+        .catch((err) => setError(describeLoadError(err, 'tus categorías')))
         .finally(() => setLoading(false)),
     [userId],
   );
 
+  // El error se mantiene mientras se reintenta, para que el botón muestre "Procesando..." sin parpadeos.
   const refresh = useCallback(() => {
     setLoading(true);
-    setError('');
     return load();
   }, [load]);
 

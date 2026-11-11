@@ -1,4 +1,6 @@
 import { AppLayout } from '../components/layout/AppLayout';
+import { LoadError } from '../components/ui/LoadError';
+import { LoadingState } from '../components/ui/LoadingState';
 import { useAuth } from '../context/useAuth';
 import { useCategories } from '../features/categories/hooks/useCategories';
 import { CategoryForm } from '../features/categories/components/CategoryForm';
@@ -7,6 +9,22 @@ import { CategoryList } from '../features/categories/components/CategoryList';
 export function CategoriesPage() {
   const { user } = useAuth();
   const { categories, loading, error, refresh } = useCategories(user!.id);
+
+  function renderCategories() {
+    // Con error no se muestra la lista anterior: podría no estar actualizada.
+    if (error) {
+      return (
+        <LoadError
+          message={error.message}
+          onRetry={error.canRetry ? refresh : undefined}
+          retrying={loading}
+        />
+      );
+    }
+    if (categories === null) return <LoadingState message="Cargando tus categorías…" />;
+    // CategoryList muestra el mensaje de "sin categorías" cuando la lista llega vacía.
+    return <CategoryList categories={categories} />;
+  }
 
   return (
     <AppLayout>
@@ -19,9 +37,7 @@ export function CategoriesPage() {
         <CategoryForm onCreated={refresh} />
       </div>
 
-      {loading && <p style={{ color: 'var(--ink-muted)' }}>Cargando...</p>}
-      {error && <p style={{ color: 'var(--loss-500)' }}>{error}</p>}
-      {!loading && <CategoryList categories={categories} />}
+      {renderCategories()}
     </AppLayout>
   );
 }

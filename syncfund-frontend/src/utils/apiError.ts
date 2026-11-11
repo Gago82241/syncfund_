@@ -27,3 +27,41 @@ export function parseApiError(
   if (Object.keys(fieldErrors).length > 0) return { fieldErrors, formError: '' };
   return { fieldErrors, formError: data?.message || fallback };
 }
+
+export interface LoadErrorInfo {
+  message: string;
+  /** false cuando reintentar no cambia nada (no existe o no hay acceso). */
+  canRetry: boolean;
+}
+
+/** Lo que se cargaba no existe o no es del usuario: reintentar no cambia nada. */
+export function notFoundLoadError(what: string): LoadErrorInfo {
+  return { message: `No encontramos ${what} o no tienes acceso.`, canRetry: false };
+}
+
+/**
+ * Mensaje para una carga de datos que falló, sin detalles técnicos.
+ * `what` nombra lo que se cargaba, ej. "tus proyectos" o "este proyecto compartido".
+ * El 401 no llega a mostrarse: apiClient cierra la sesión y manda al login.
+ */
+export function describeLoadError(err: unknown, what: string): LoadErrorInfo {
+  if (axios.isAxiosError(err)) {
+    const status = err.response?.status;
+    if (status === undefined) {
+      return {
+        message: 'No pudimos conectar con SyncFund. Revisa tu conexión e inténtalo de nuevo.',
+        canRetry: true,
+      };
+    }
+    if (status === 403 || status === 404) {
+      return notFoundLoadError(what);
+    }
+    if (status >= 500) {
+      return {
+        message: `No pudimos cargar ${what} en este momento. Inténtalo de nuevo en unos minutos.`,
+        canRetry: true,
+      };
+    }
+  }
+  return { message: `No pudimos cargar ${what}.`, canRetry: true };
+}
