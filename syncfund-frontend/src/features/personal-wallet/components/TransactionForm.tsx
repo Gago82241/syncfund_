@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { Input } from '../../../components/ui/Input';
 import { Button } from '../../../components/ui/Button';
 import { FormError } from '../../../components/ui/FormError';
@@ -21,13 +21,35 @@ export function TransactionForm({ walletId, onSaved }: Props) {
   const [description, setDescription] = useState('');
   const [categoryId, setCategoryId] = useState('');
   const [categories, setCategories] = useState<CategoryResponse[]>([]);
+  // Si no cargan, el selector no aparece: se avisa para que no parezca que no tienes categorías.
+  const [categoriesFailed, setCategoriesFailed] = useState(false);
+  const [retryingCategories, setRetryingCategories] = useState(false);
   const [loading, setLoading] = useState(false);
   const { fieldErrors, formError, formRef, validate, showApiError, clearField, clearErrors } =
     useFormErrors(['amount', 'description']);
 
+  // loadCategories no marca "reintentando": lo hace retryCategories antes de llamarla.
+  const loadCategories = useCallback(
+    () =>
+      categoryService
+        .getAll()
+        .then(({ data }) => {
+          setCategories(data);
+          setCategoriesFailed(false);
+        })
+        .catch(() => setCategoriesFailed(true))
+        .finally(() => setRetryingCategories(false)),
+    [],
+  );
+
+  function retryCategories() {
+    setRetryingCategories(true);
+    loadCategories();
+  }
+
   useEffect(() => {
-    categoryService.getAll().then(({ data }) => setCategories(data));
-  }, []);
+    loadCategories();
+  }, [loadCategories]);
 
   function handleTypeChange(next: 'INGRESO' | 'GASTO') {
     if (next === type) return;
@@ -128,6 +150,19 @@ export function TransactionForm({ walletId, onSaved }: Props) {
             ))}
           </select>
         </div>
+      )}
+      {type === 'GASTO' && categoriesFailed && (
+        <p className="tx-form__note" role="status">
+          No pudimos cargar tus categorías; puedes guardar el movimiento sin categoría.{' '}
+          <button
+            type="button"
+            className="tx-form__note-retry"
+            onClick={retryCategories}
+            disabled={retryingCategories}
+          >
+            {retryingCategories ? 'Reintentando…' : 'Reintentar'}
+          </button>
+        </p>
       )}
       <FormError message={formError} />
       <Button type="submit" loading={loading}>Guardar</Button>

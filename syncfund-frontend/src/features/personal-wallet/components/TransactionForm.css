@@ -49,3 +49,27 @@
 .tx-form .sf-field__input.tx-form__amount--ingreso:focus {
   box-shadow: 0 0 0 1px var(--gain-500);
 }
+
+/* Aviso suave: la categoría es opcional, así que no se muestra como error del formulario. */
+.tx-form__note {
+  font-size: 0.8125rem;
+  color: var(--ink-muted);
+  margin-bottom: 1rem;
+}
+
+/* Botón con aspecto de enlace, para reintentar sin competir con "Guardar". */
+.tx-form__note-retry {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: inherit;
+  font-weight: 600;
+  color: var(--ink-600);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.tx-form__note-retry:disabled {
+  color: var(--ink-faint);
+  cursor: not-allowed;
+}
