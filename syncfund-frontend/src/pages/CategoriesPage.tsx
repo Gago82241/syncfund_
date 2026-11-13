@@ -9,7 +9,7 @@ import { formatMonthLabel } from '../utils/formatDate';
 
 export function CategoriesPage() {
   const { user } = useAuth();
-  const { categories, month, loading, error, refresh } = useCategories(user!.id);
+  const { categories, month, loading, error, refresh, refreshAfterAction } = useCategories(user!.id);
 
   function renderCategories() {
     // Con error no se muestra la lista anterior: podría no estar actualizada.
@@ -36,7 +36,7 @@ export function CategoriesPage() {
       </p>
 
       <div style={{ marginTop: '2rem' }}>
-        <CategoryForm onCreated={refresh} />
+        <CategoryForm onCreated={refreshAfterAction} />
       </div>
 
       {renderCategories()}

@@ -11,7 +11,7 @@ import { TransactionList } from '../features/transactions/components/Transaction
 
 export function PersonalWalletPage() {
   const { user } = useAuth();
-  const { wallet, transactions, loading, error, refresh } = usePersonalWallet(user!.id);
+  const { wallet, transactions, loading, error, refresh, refreshAfterAction } = usePersonalWallet(user!.id);
 
   return (
     <AppLayout>
@@ -34,7 +34,7 @@ export function PersonalWalletPage() {
           <WalletSummaryCard wallet={wallet} />
 
           <div style={{ marginBottom: '2rem' }}>
-            <TransactionForm walletId={wallet.walletId} onSaved={refresh} />
+            <TransactionForm walletId={wallet.walletId} onSaved={refreshAfterAction} />
           </div>
 
           <div
@@ -50,9 +50,9 @@ export function PersonalWalletPage() {
               key={wallet.monthlySavingsGoal}
               walletId={wallet.walletId}
               currentGoal={wallet.monthlySavingsGoal}
-              onSaved={refresh}
+              onSaved={refreshAfterAction}
             />
-            <CushionForm walletId={wallet.walletId} onSaved={refresh} />
+            <CushionForm walletId={wallet.walletId} onSaved={refreshAfterAction} />
           </div>
 
           <h3 style={{ fontSize: '1.125rem', marginBottom: '0.75rem' }}>Movimientos</h3>

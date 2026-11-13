@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { categoryService } from '../services/categoryService';
 import { personalWalletService } from '../../personal-wallet/services/personalWalletService';
-import { describeLoadError, type LoadErrorInfo } from '../../../utils/apiError';
+import { afterActionLoadError, describeLoadError, type LoadErrorInfo } from '../../../utils/apiError';
 import { currentMonthKey } from '../../../utils/formatDate';
 import type { CategoryResponse } from '../../../types/api';
 
@@ -42,6 +42,9 @@ export function useCategories(userId: number) {
   const [error, setError] = useState<LoadErrorInfo | null>(null);
   // Mes de los datos mostrados ("yyyy-MM"): se guarda con ellos para que el texto y las cifras coincidan.
   const [month, setMonth] = useState<string | null>(null);
+  // true desde que una acción se guardó hasta que una recarga sale bien: si la recarga falla,
+  // el error avisa que la acción sí quedó (afterActionLoadError), también al reintentar.
+  const unconfirmedAction = useRef(false);
 
   // load no marca "cargando": el estado inicial ya lo hace y refresh lo marca antes de recargar.
   const load = useCallback(() => {
@@ -51,8 +54,12 @@ export function useCategories(userId: number) {
         setCategories(withSpend);
         setMonth(monthToLoad);
         setError(null);
+        unconfirmedAction.current = false;
       })
-      .catch((err) => setError(describeLoadError(err, 'tus categorías')))
+      .catch((err) => {
+        const info = describeLoadError(err, 'tus categorías');
+        setError(unconfirmedAction.current ? afterActionLoadError(info) : info);
+      })
       .finally(() => setLoading(false));
   }, [userId]);
 
@@ -62,9 +69,15 @@ export function useCategories(userId: number) {
     return load();
   }, [load]);
 
+  /** Recarga después de una acción que el backend ya aceptó (guardar, crear, pagar…). */
+  const refreshAfterAction = useCallback(() => {
+    unconfirmedAction.current = true;
+    return refresh();
+  }, [refresh]);
+
   useEffect(() => {
     load();
   }, [load]);
 
-  return { categories, month, loading, error, refresh };
+  return { categories, month, loading, error, refresh, refreshAfterAction };
 }
