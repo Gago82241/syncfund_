@@ -46,6 +46,8 @@ export function PersonalWalletPage() {
             }}
           >
             <SavingsGoalForm
+              // El formulario copia la meta al montarse: si la meta cambia, se vuelve a montar con la nueva.
+              key={wallet.monthlySavingsGoal}
               walletId={wallet.walletId}
               currentGoal={wallet.monthlySavingsGoal}
               onSaved={refresh}
