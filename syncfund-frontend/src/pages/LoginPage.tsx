@@ -27,7 +27,8 @@ export function LoginPage() {
     if (!valid) return;
     setLoading(true);
     try {
-      const { data } = await authService.login({ email, password });
+      // El autocompletado a veces deja un espacio al final del correo; la contraseña se envía tal cual.
+      const { data } = await authService.login({ email: email.trim(), password });
       login(data);
       navigate('/dashboard');
     } catch (err) {

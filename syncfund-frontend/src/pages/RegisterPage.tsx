@@ -31,7 +31,9 @@ export function RegisterPage() {
     if (!valid) return;
     setLoading(true);
     try {
-      const { data } = await authService.register({ name, email, password });
+      // Sin espacios al inicio o al final: un espacio en el correo crearía otra variante de la cuenta.
+      // La contraseña se envía tal cual.
+      const { data } = await authService.register({ name: name.trim(), email: email.trim(), password });
       login(data);
       navigate('/dashboard');
     } catch (err) {
