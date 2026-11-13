@@ -1,0 +1,301 @@
+/* Catálogo de desarrollo: misma identidad que la app, solo tokens. */
+
+.catalog {
+  max-width: 64rem;
+  margin: 0 auto;
+  padding: var(--space-xl) var(--space-md) var(--space-2xl);
+}
+
+.catalog__header {
+  margin-bottom: var(--space-xl);
+}
+
+.catalog__title {
+  font-size: var(--text-headline);
+}
+
+.catalog__intro {
+  margin-top: var(--space-xs);
+  color: var(--ink-muted);
+  max-width: 65ch;
+  text-wrap: pretty;
+}
+
+.catalog__index {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs) var(--space-md);
+  list-style: none;
+  margin: var(--space-md) 0 0;
+  padding: 0;
+  font-size: var(--text-small);
+}
+
+.catalog__index a {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--tap-target);
+}
+
+.catalog__section {
+  padding: var(--space-xl) 0;
+  border-top: 1px solid var(--hairline);
+  scroll-margin-top: var(--space-md);
+}
+
+.catalog__section-title {
+  font-size: var(--text-title);
+  margin-bottom: var(--space-xs);
+}
+
+.catalog__section-description {
+  color: var(--ink-muted);
+  font-size: var(--text-small);
+  max-width: 65ch;
+  margin-bottom: var(--space-lg);
+  text-wrap: pretty;
+}
+
+.catalog__subtitle {
+  font-family: var(--font-body);
+  font-size: var(--text-label);
+  font-weight: 600;
+  color: var(--ink-muted);
+  margin: var(--space-lg) 0 var(--space-sm);
+}
+
+.catalog__case {
+  display: grid;
+  gap: var(--space-xs);
+  margin-bottom: var(--space-lg);
+}
+
+.catalog__case-label {
+  font-size: var(--text-label);
+  color: var(--ink-faint);
+}
+
+.catalog__case-body {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--space-sm);
+  min-width: 0;
+}
+
+.catalog__case-body > * {
+  min-width: 0;
+}
+
+/* Fila de casos lado a lado en escritorio. */
+.catalog__grid {
+  display: grid;
+  gap: var(--space-lg);
+}
+
+@media (min-width: 640px) {
+  .catalog__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* --- Colores --- */
+
+.catalog-tokens__table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md);
+}
+
+.catalog-tokens__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-label);
+}
+
+.catalog-tokens__table th,
+.catalog-tokens__table td {
+  padding: var(--space-sm);
+  text-align: left;
+  border-bottom: 1px solid var(--hairline);
+  vertical-align: top;
+}
+
+.catalog-tokens__table thead th {
+  color: var(--ink-muted);
+  font-weight: 500;
+  background: var(--paper);
+}
+
+.catalog-tokens__table tbody th {
+  background: var(--paper);
+  font-weight: 400;
+}
+
+.catalog-tokens__sample {
+  display: block;
+  font-size: var(--text-small);
+  font-weight: 600;
+}
+
+.catalog-tokens__use {
+  display: block;
+  color: var(--ink-muted);
+  font-size: var(--text-label);
+}
+
+.catalog-tokens__ratio {
+  display: block;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.catalog-tokens__ratio--fail {
+  color: var(--loss-700);
+  font-weight: 600;
+}
+
+.catalog-tokens__swatches {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-sm);
+}
+
+.catalog-tokens__swatch {
+  display: flex;
+  gap: var(--space-sm);
+  align-items: flex-start;
+}
+
+.catalog-tokens__swatch .catalog-tokens__ratio {
+  display: inline;
+}
+
+.catalog-tokens__chip {
+  flex: none;
+  width: var(--tap-target);
+  height: var(--tap-target);
+  border-radius: var(--radius-sm);
+}
+
+/* --- Tipografía --- */
+
+.catalog-type__display,
+.catalog-type__headline {
+  font-family: var(--font-display);
+  font-weight: 500;
+  line-height: var(--leading-tight);
+  color: var(--ink-900);
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.catalog-type__display { font-size: var(--text-display); }
+.catalog-type__headline { font-size: var(--text-headline); }
+
+.catalog-type__title {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: var(--text-title);
+  line-height: var(--leading-tight);
+  color: var(--ink-900);
+}
+
+.catalog-type__body { font-size: var(--text-body); max-width: 65ch; }
+.catalog-type__small { font-size: var(--text-small); }
+
+.catalog-type__label {
+  font-size: var(--text-label);
+  font-weight: 600;
+  color: var(--ink-muted);
+}
+
+/* --- Espacios y formas --- */
+
+.catalog-space {
+  list-style: none;
+  margin: 0 0 var(--space-lg);
+  padding: 0;
+  display: grid;
+  gap: var(--space-xs);
+}
+
+.catalog-space__row {
+  display: grid;
+  grid-template-columns: 8rem auto 1fr;
+  gap: var(--space-sm);
+  align-items: center;
+  font-size: var(--text-label);
+}
+
+.catalog-space__bar {
+  height: var(--space-sm);
+  background: var(--ink-600);
+  border-radius: 2px;
+}
+
+.catalog-shapes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-md);
+}
+
+.catalog-shapes__item {
+  padding: var(--space-md);
+  background: var(--paper);
+  border: 1px solid var(--hairline);
+  font-size: var(--text-label);
+  color: var(--ink-muted);
+}
+
+.catalog-shapes__item--sm { border-radius: var(--radius-sm); }
+.catalog-shapes__item--md { border-radius: var(--radius-md); }
+.catalog-shapes__item--lg { border-radius: var(--radius-lg); }
+
+.catalog-shapes__item--float {
+  border-radius: var(--radius-md);
+  border-color: transparent;
+  box-shadow: var(--shadow-float);
+}
+
+/* --- Movimiento --- */
+
+.catalog-motion {
+  display: grid;
+  gap: var(--space-sm);
+  max-width: 24rem;
+}
+
+.catalog-motion__track {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  min-height: var(--tap-target);
+  padding: 0 var(--space-sm);
+  background: var(--paper);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-label);
+}
+
+.catalog-motion__dot {
+  position: absolute;
+  left: var(--space-sm);
+  width: var(--space-md);
+  height: var(--space-md);
+  border-radius: 50%;
+  background: var(--ink-900);
+  transition: transform var(--duration-fast) var(--ease-out);
+}
+
+.catalog-motion__dot--panel {
+  transition-duration: var(--duration-panel);
+}
+
+.catalog-motion__track:hover .catalog-motion__dot,
+.catalog-motion__track:focus-visible .catalog-motion__dot {
+  transform: translateX(10rem);
+}

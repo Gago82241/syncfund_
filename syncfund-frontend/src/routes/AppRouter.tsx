@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { LoginPage } from '../pages/LoginPage';
 import { RegisterPage } from '../pages/RegisterPage';
@@ -9,6 +10,14 @@ import { CategoriesPage } from '../pages/CategoriesPage';
 import { ProtectedRoute } from './ProtectedRoute';
 import { PublicOnlyRoute } from './PublicOnlyRoute';
 import { HomeRedirect } from './HomeRedirect';
+
+/**
+ * Catálogo de componentes, solo en desarrollo. En el build de producción Vite reemplaza
+ * import.meta.env.DEV por false, así que la ruta no existe y su código no se empaqueta.
+ */
+const ComponentCatalogPage = import.meta.env.DEV
+  ? lazy(() => import('../pages/dev/ComponentCatalogPage'))
+  : null;
 
 export function AppRouter() {
   return (
@@ -71,6 +80,16 @@ export function AppRouter() {
             </ProtectedRoute>
           }
         />
+        {ComponentCatalogPage && (
+          <Route
+            path="/dev/componentes"
+            element={
+              <Suspense fallback={null}>
+                <ComponentCatalogPage />
+              </Suspense>
+            }
+          />
+        )}
       </Routes>
     </BrowserRouter>
   );
