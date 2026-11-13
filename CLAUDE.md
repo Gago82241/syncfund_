@@ -23,8 +23,10 @@ y saldo neto).
   − pagos recibidos (COBRO). Lo calcula `DebtCalculator.calculateBalances`; la suma de los
   saldos netos es igual al fondo (salvo INGRESO antiguos sin aportante, que no cuentan para nadie).
 
-Es un proyecto académico de Ingeniería Informática desarrollado por dos
-integrantes; el diseño UML fue entregado y evaluado previamente.
+Es un proyecto académico de Ingeniería Informática; el diseño UML fue entregado y evaluado
+previamente.
+- **Grupo del proyecto:** cuatro integrantes (los de la sección Colaboradores del README).
+- **Desarrollo con Claude Code:** Diego y Juan.
 
 ## Stack
 - **Backend:** Spring Boot 4.1.1, Java 21, Spring Security + JWT, JPA/Hibernate
@@ -188,6 +190,6 @@ Instaladas en el proyecto para el rediseño visual del frontend.
   `feat: agrega validación de monto en MovementRequest`
   `fix: corrige cálculo de deuda con un solo integrante`
   `style: aplica nueva paleta al dashboard`
-- Todo cambio entra por Pull Request revisado por el otro integrante.
+- Todo cambio entra por Pull Request revisado por el otro desarrollador (Diego o Juan).
 - La documentación de diseño (UML, patrones Observer y Arquitectura en Capas, MER) está en el
   README y en `docs/diagramas/`. Consultarla antes de modificar el dominio o la estructura de capas.
