@@ -119,8 +119,8 @@ button {
   font-variant-numeric: tabular-nums;
 }
 
-.amount-gain { color: var(--gain-500); }
-.amount-loss { color: var(--loss-500); }
+.amount-gain { color: var(--gain-700); }
+.amount-loss { color: var(--loss-700); }
 
 /* Oculta un texto a la vista pero lo deja para lectores de pantalla. */
 .visually-hidden {
