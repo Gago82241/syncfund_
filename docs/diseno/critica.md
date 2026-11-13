@@ -1079,3 +1079,215 @@ comprometidas primero.
 4. ¿Se puede agregar una respuesta que traiga todas las categorías con su gasto del mes en una
    sola llamada (un DTO de transporte, permitido por la regla 1), para evitar las 2N+2
    peticiones?
+
+---
+
+## Login
+
+- **Archivo:** `src/pages/LoginPage.tsx` (ruta `/login`), dentro de
+  `src/components/layout/AuthLayout.tsx`, con `Input`, `Button`, `FormError` y `FieldError`.
+- **Fecha:** 2026-11-13 · rama `docs/diagnostico-diseno`.
+- **Evidencia:** código fuente, capturas de página completa en
+  `docs/diseno/capturas-antes/` (`localhost_5173_login.png` y
+  `localhost_5173_login(iPhone 16).png`) y el detector de impeccable.
+- **Modo de la pantalla:** Operate (entrar rápido), con un papel ligero de Persuade para quien
+  llega por primera vez.
+- **Límite de la evidencia:** la captura de escritorio mide unos 663px de ancho, menos que el
+  punto de quiebre de 860px, así que muestra el diseño apilado y no la pantalla dividida. La
+  versión dividida se evaluó solo por código.
+- **Alcance compartido:** los problemas marcados **[AuthLayout]** o **[Input]** afectan también
+  al Registro (y los de `Input`, a todos los formularios de la app).
+
+### Puntaje de heurísticas (Nielsen)
+
+| # | Heurística | Nota | Problema clave |
+|---|---|---|---|
+| 1 | Visibilidad del estado del sistema | 2 | "Procesando..." genérico y botón a media opacidad; sin `aria-busy` y los campos siguen editables. |
+| 2 | Coincidencia con el mundo real | 3 | Español claro, pero "Credenciales inválidas" es jerga y "sincronizados al instante" exagera. |
+| 3 | Control y libertad | 2 | No se puede mostrar la contraseña ni recuperarla; quien ya inició sesión ve el formulario igual. |
+| 4 | Consistencia y estándares | 3 | El `h1` es el eslogan (dentro de un `aside`) y "Inicia sesión" es `h2`; estilos en línea y hex sueltos. |
+| 5 | Prevención de errores | 2 | Sin `autoComplete`, sin mostrar contraseña y con bordes de campo casi invisibles. |
+| 6 | Reconocer antes que recordar | 3 | Etiquetas visibles y persistentes; los gestores de contraseñas quedan a la suerte del navegador. |
+| 7 | Flexibilidad y eficiencia | 2 | En el celular, quien vuelve recorre el panel de marca cada vez. |
+| 8 | Estética y diseño minimalista | 3 | Sobrio y limpio; en el celular, el 41% del alto es material de marca. |
+| 9 | Recuperación de errores | 2 | Buen foco al primer error y `role="alert"`; "Credenciales inválidas" no orienta y no hay salida si se olvidó la contraseña. |
+| 10 | Ayuda y documentación | 1 | No hay "¿Olvidaste tu contraseña?" ni un texto de contacto. |
+| **Total** | | **23/40** | **Aceptable, necesita trabajo.** |
+
+### Veredicto de especificidad
+
+**Revisión de diseño:** propio en el panel de marca, genérico en el formulario. El titular "Dos
+cuentas, un solo saldo real.", Fraunces sobre azul tinta y los dos círculos como metáfora de las
+dos cuentas tienen voz de autor. El formulario es una plantilla de autenticación estándar, y en
+el celular todo se reduce al patrón "banner + formulario" de cualquier landing, con el motivo
+tapando el texto.
+
+**Detector automático:** 0 hallazgos en la página, `AuthLayout` y los componentes de formulario
+(salida `[]`, código 0). El propio detector advirtió que con `.tsx` solo usa reglas por patrón:
+los bordes casi invisibles de los campos no los podía detectar.
+
+**Cuánto aplica la dirección del rediseño:** casi nada. El menú lateral y la barra inferior no
+aplican a las pantallas de acceso, que no deben tener navegación. Las hojas aplican a medias (el
+formulario podría ir en una hoja blanca). Sí aplican las reglas de tokens, las correcciones de
+contraste y los cambios al componente `Input`.
+
+### Impresión general
+
+Un login correcto, con un buen momento de marca que en el celular se vuelve un obstáculo: el
+estudiante que vuelve a registrar un gasto tiene que pasar el eslogan para llegar a "Entrar", y
+luego escribe la contraseña a ciegas en campos que casi no se ven. La mayor oportunidad es
+compactar la marca en el celular y hacer que el ingreso sea rápido y seguro (autocompletado,
+mostrar contraseña, foco visible).
+
+### Lo que funciona
+
+1. **Campos accesibles bien armados.** `label` real, `aria-invalid` y `aria-describedby`
+   (`Input.tsx:25-31`), foco al primer error (`useFormErrors.ts:16-19`), `role="alert"` y
+   mensajes en español iguales a los del backend.
+2. **Medidas correctas para el celular.** Campos a 1rem (iOS no hace zoom), teclado de correo con
+   `type="email"`, campos y botón de unos 44px y botón a todo el ancho.
+3. **Un momento de marca con intención** y una sola acción principal: dos campos, carga cognitiva
+   mínima.
+
+### Problemas prioritarios
+
+#### [P1] [AuthLayout] En el celular, el panel de marca empuja el formulario y el motivo tapa el texto
+
+- **Qué:** por debajo de 860px el panel conserva el titular a 2rem, el párrafo completo y
+  `min-height: 240px` (`AuthLayout.css:60-70`); en el iPhone 16 ocupa unos 351px de 852.
+  - "Entrar" queda hacia los 700–742px, en el borde del área visible con las barras de Safari, y
+    queda oculto con el teclado abierto.
+  - El SVG (`AuthLayout.css:39-45`, 220px fijos) se monta sobre el párrafo: el círculo esmeralda
+    corta "mismo" e "instante", el azul corta "proyectos en un".
+- **Por qué importa:** el uso principal es volver desde el celular a registrar un gasto. Leer el
+  eslogan en cada visita es fricción pura; la persuasión solo cuenta en la primera visita.
+- **Corrección:** por debajo de 860px, una franja compacta de 120–160px (marca y titular a unos
+  1.5rem), el párrafo oculto o debajo del formulario, el motivo más chico y sin cruzar el texto,
+  y `min-height: 100dvh` en vez de `100vh`. Objetivo: "Entrar" visible sin desplazar en un
+  teléfono de 667px de alto.
+- **Comando sugerido:** `/impeccable layout`, luego `/impeccable adapt`.
+- **¿Lo resuelve la dirección del rediseño?** **No.** La dirección es para la app autenticada y
+  DESIGN.md solo dice que el panel "se apila".
+
+#### [P1] El ingreso no apoya a los gestores de contraseñas ni al teclado táctil
+
+- **Qué:** los campos no tienen `autoComplete="email"` ni `autoComplete="current-password"`
+  (`LoginPage.tsx:47-71`; no hay ningún `autoComplete` en todo `src`), y no hay botón para
+  mostrar u ocultar la contraseña.
+- **Por qué importa:** escribir la contraseña a ciegas en un teclado táctil es la causa más común
+  de "Credenciales inválidas"; sin los atributos, el autollenado y el guardado dependen de cada
+  navegador.
+- **Corrección:** agregar los atributos (`Input` ya los reenvía) y un botón "Mostrar / Ocultar"
+  dentro del campo, de unos 44px, con `aria-pressed` y texto visible, como opción de `Input` o
+  un `PasswordInput` propio del frontend (lo usaría también el Registro).
+- **Comando sugerido:** `/impeccable harden`.
+- **¿Lo resuelve la dirección del rediseño?** **No.**
+
+#### [P1] [Input] Bordes de campo casi invisibles y foco débil
+
+- **Qué:**
+  - El borde `hairline` (#DEDAD0) sobre blanco da 1,4:1 (`Input.css:18`); WCAG 1.4.11 pide 3:1
+    para identificar el control. En las dos capturas los campos casi se funden con el fondo.
+  - `.sf-field__input:focus { outline: none }` (`Input.css:24-27`) anula el anillo de foco global
+    (`globals.css:80-83`); el único indicador es el cambio de 1px del borde a azul acero.
+  - Con error, el estado enfocado es igual al no enfocado (`Input.css:34-38`): cuando el foco
+    salta al primer error, el usuario de teclado no ve dónde quedó.
+- **Por qué importa:** WCAG 2.1 AA es compromiso del producto, y este componente lo usan todos los
+  formularios de la app (billetera, proyectos, categorías, registro).
+- **Corrección:** un token nuevo `--field-border` de al menos 3:1 sobre blanco en `globals.css` y
+  `theme.ts` (`ink-faint` da 3,5:1 sobre blanco); anillo de foco visible con `:focus-visible`,
+  también en estado de error.
+- **Comando sugerido:** `/impeccable harden`, luego `/impeccable audit` sobre los demás
+  formularios.
+- **¿Lo resuelve la dirección del rediseño?** **En parte.** El rediseño tocará los componentes,
+  pero no menciona este problema; si no se pide de forma explícita, se arrastra.
+
+#### [P2] Los estados de envío y error no orientan
+
+- **Qué:**
+  - Al enviar, el botón cambia a "Procesando..." y queda desactivado (`Button.tsx:14,17`): pierde
+    el foco y el lector de pantalla no anuncia nada; el formulario no tiene `aria-busy`.
+  - El backend responde 422 "Credenciales inválidas" y se muestra tal cual, sin decir qué hacer.
+  - Sin conexión: "No se pudo conectar con el servidor." (`LoginPage.tsx:34`), distinto del texto
+    del resto de la app ("No pudimos conectar con SyncFund…", `apiError.ts:52`).
+- **Por qué importa:** es el momento de más ansiedad ("¿perdí acceso a mi plata?"), y con un
+  backend que puede tardar en arrancar, una espera sin explicación parece un cuelgue.
+- **Corrección:** "Entrando…" con `aria-busy` en el formulario; mostrar el 422 como "Correo o
+  contraseña incorrectos. Revisa los dos e inténtalo de nuevo." (conserva la decisión de no
+  distinguir los dos casos); unificar el texto de conexión; mientras no exista recuperación de
+  contraseña, decir con honestidad qué hacer si se olvidó.
+- **Comando sugerido:** `/impeccable clarify`.
+- **¿Lo resuelve la dirección del rediseño?** **No.**
+
+#### [P2] [AuthLayout] El texto promete más de lo real y el motivo choca con DESIGN.md
+
+- **Qué:**
+  - "sincronizados al instante" (`AuthLayout.tsx:19`) contradice PRODUCT.md (los datos se
+    actualizan por consulta periódica, no en tiempo real) y el principio "certeza sobre cada
+    peso".
+  - El círculo esmeralda del motivo es `gain-500` como adorno; la Money-Only Color Rule de
+    DESIGN.md lo prohíbe, mientras la sección Shapes del mismo documento lo describe como el
+    único motivo gráfico. DESIGN.md se contradice.
+  - Los hex sueltos (`#C7D2DF` en `AuthLayout.css:35` y los trazos del SVG) ya estaban
+    identificados al documentar el sistema.
+- **Por qué importa:** es la primera promesa que lee quien llega; si después ve saldos que tardan
+  en actualizarse, la promesa se rompe. Y la contradicción del documento hará que el rediseño
+  aplique la regla de forma inconsistente.
+- **Corrección:** cambiar el texto (por ejemplo, "…en un mismo lugar, con el saldo de cada uno
+  siempre a la vista"); decidir en equipo si el motivo es una excepción documentada a la regla o
+  si el esmeralda pasa a un tono de tinta; en los dos casos, trazos con variables y un token para
+  el texto secundario sobre azul tinta.
+- **Comando sugerido:** `/impeccable clarify`, luego `/impeccable polish`.
+- **¿Lo resuelve la dirección del rediseño?** **No.**
+
+### Qué resuelve la dirección del rediseño
+
+| Problema | Menú lateral · barra inferior · hojas |
+|---|---|
+| [P1] Panel de marca empuja el formulario en el celular | No (la dirección no aplica a las pantallas de acceso) |
+| [P1] Sin autocompletado ni mostrar contraseña | No |
+| [P1] Bordes invisibles y foco débil en `Input` | En parte (si se exige al rehacer los componentes) |
+| [P2] Estados de envío y error | No |
+| [P2] Texto de marca y contradicción de DESIGN.md | No |
+
+### Problemas ya documentados que también aparecen aquí
+
+- **Accesibilidad estructural** ([P2] del Resumen): `lang="en"`, título "syncfund-frontend" en vez
+  de "Iniciar sesión · SyncFund", sin enlace para saltar (aquí pesa menos, pero el panel de marca
+  va primero).
+- **Brechas de contraste** (DESIGN.md): `ink-faint` en el placeholder "nombre@correo.com".
+- **Hex sueltos en `AuthLayout`**: identificados al documentar el sistema visual.
+- La navegación móvil rota del Resumen **no** aplica: las pantallas de acceso no tienen cabecera.
+
+### Señales de alerta por persona
+
+- **Usuario distraído en el celular:** en la mayoría de teléfonos tiene que desplazarse para
+  llegar a "Entrar"; con el teclado abierto no ve el botón; escribe la contraseña sin poder verla
+  y "Credenciales inválidas" no le dice qué revisar.
+- **Primera vez:** el titular comunica bien la propuesta; "Regístrate" es un enlace pequeño al
+  final.
+- **Usuario de lector de pantalla o teclado:** el primer `h1` que oye es el eslogan dentro de un
+  `aside`; al enviar, el foco se pierde porque el botón se desactiva; en estado de error, el foco
+  no se ve. El orden de tabulación sí es correcto (Correo → Contraseña → Entrar → Regístrate).
+- **Usuario de gestor de contraseñas:** sin atributos de autocompletado, llenar y guardar depende
+  del navegador.
+
+### Observaciones menores
+
+- Estilos en línea en `LoginPage.tsx:43` y `:75`; conviene una clase con tokens compartida con
+  el Registro.
+- El enlace "Regístrate" mide unos 20px de alto: cumple AA, pero conviene ampliar el área táctil.
+- Quien ya inició sesión y entra a `/login` ve el formulario, y `/` siempre lleva a `/login`
+  (`AppRouter.tsx:15`): debería ir a `/dashboard` si hay sesión.
+- El placeholder del correo sobra: basta la etiqueta.
+- Falta una captura de escritorio real (1280px o más) para evaluar la pantalla dividida.
+
+### Preguntas para el equipo
+
+1. ¿Habrá recuperación de contraseña? Si no, ¿qué se le dice a quien la olvidó?
+2. En el celular, ¿se acepta reducir el panel de marca a una franja compacta, o incluso mostrarlo
+   solo en el Registro y dejar el login enfocado en entrar rápido?
+3. ¿El círculo esmeralda del motivo es una excepción deliberada a la Money-Only Color Rule, o pasa
+   a un tono de tinta? DESIGN.md hoy dice las dos cosas y hay que corregirlo.
+4. ¿Se aprueba crear un `PasswordInput` (mostrar u ocultar) y un token `--field-border` de al
+   menos 3:1? Los dos afectan también al Registro y a los demás formularios.
