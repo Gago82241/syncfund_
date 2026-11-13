@@ -8,14 +8,15 @@ import { TransactionForm } from '../features/personal-wallet/components/Transact
 import { SavingsGoalForm } from '../features/personal-wallet/components/SavingsGoalForm';
 import { CushionForm } from '../features/personal-wallet/components/CushionForm';
 import { TransactionList } from '../features/transactions/components/TransactionList';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 
 export function PersonalWalletPage() {
   const { user } = useAuth();
   const { wallet, transactions, loading, error, refresh, refreshAfterAction } = usePersonalWallet(user!.id);
+  useDocumentTitle('Billetera personal · SyncFund');
 
   return (
     <AppLayout>
-      <title>Billetera personal · SyncFund</title>
       <h2>Billetera personal</h2>
 
       {/* Con error no se muestran los datos anteriores: podrían no estar actualizados. */}

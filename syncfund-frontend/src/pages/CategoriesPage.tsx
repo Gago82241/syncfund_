@@ -6,10 +6,12 @@ import { useCategories } from '../features/categories/hooks/useCategories';
 import { CategoryForm } from '../features/categories/components/CategoryForm';
 import { CategoryList } from '../features/categories/components/CategoryList';
 import { formatMonthLabel } from '../utils/formatDate';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 
 export function CategoriesPage() {
   const { user } = useAuth();
   const { categories, month, loading, error, refresh, refreshAfterAction } = useCategories(user!.id);
+  useDocumentTitle('Categorías · SyncFund');
 
   function renderCategories() {
     // Con error no se muestra la lista anterior: podría no estar actualizada.
@@ -29,7 +31,6 @@ export function CategoriesPage() {
 
   return (
     <AppLayout>
-      <title>Categorías · SyncFund</title>
       <h2>Categorías</h2>
       <p style={{ color: 'var(--ink-muted)', marginTop: '0.5rem' }}>
         {/* Se nombra el mes consultado; antes de la primera carga todavía no se sabe. */}

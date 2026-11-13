@@ -8,10 +8,12 @@ import { authService } from '../features/auth/services/authService';
 import { useAuth } from '../context/useAuth';
 import { useFormErrors } from '../hooks/useFormErrors';
 import { minLength, newEmail, required } from '../utils/validation';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 
 export function RegisterPage() {
   const navigate = useNavigate();
   const { login } = useAuth();
+  useDocumentTitle('Crea tu cuenta · SyncFund');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -46,7 +48,6 @@ export function RegisterPage() {
 
   return (
     <AuthLayout>
-      <title>Crea tu cuenta · SyncFund</title>
       <h2>Crea tu cuenta</h2>
       <p style={{ color: 'var(--ink-muted)', marginTop: '0.5rem', marginBottom: '2rem' }}>
         Te creamos tu billetera personal automáticamente.

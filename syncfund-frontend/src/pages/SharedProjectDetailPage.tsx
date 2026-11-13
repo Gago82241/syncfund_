@@ -12,6 +12,7 @@ import { AddMemberForm } from '../features/shared-project/components/AddMemberFo
 import { ExpenseForm } from '../features/shared-project/components/ExpenseForm';
 import { ContributionForm } from '../features/shared-project/components/ContributionForm';
 import { TransactionList } from '../features/transactions/components/TransactionList';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 
 export function SharedProjectDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -33,11 +34,10 @@ export function SharedProjectDetailPage() {
   // Un pago cambia la billetera personal: se vuelve a montar el formulario de aporte para que
   // muestre y valide el saldo disponible actualizado.
   const [paymentsMade, setPaymentsMade] = useState(0);
+  useDocumentTitle(project ? `${project.name} · SyncFund` : 'Proyecto compartido · SyncFund');
 
   return (
     <AppLayout>
-      {/* React 19 lleva el <title> al <head>; su contenido debe ser un solo texto. */}
-      <title>{project ? `${project.name} · SyncFund` : 'Proyecto compartido · SyncFund'}</title>
       {/* Con error no se muestran los datos anteriores: podrían no estar actualizados. */}
       {error && (
         <LoadError

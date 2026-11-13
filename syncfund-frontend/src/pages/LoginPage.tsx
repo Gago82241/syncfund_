@@ -8,10 +8,12 @@ import { authService } from '../features/auth/services/authService';
 import { useAuth } from '../context/useAuth';
 import { useFormErrors } from '../hooks/useFormErrors';
 import { email as validateEmail, required } from '../utils/validation';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 
 export function LoginPage() {
   const navigate = useNavigate();
   const { login } = useAuth();
+  useDocumentTitle('Inicia sesión · SyncFund');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -41,7 +43,6 @@ export function LoginPage() {
 
   return (
     <AuthLayout>
-      <title>Inicia sesión · SyncFund</title>
       <h2>Inicia sesión</h2>
       <p style={{ color: 'var(--ink-muted)', marginTop: '0.5rem', marginBottom: '2rem' }}>
         Entra para ver el saldo de tus billeteras y proyectos.
