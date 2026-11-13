@@ -10,6 +10,128 @@ y el detector automático de impeccable (B). Las rutas de código son relativas 
 
 ---
 
+## Resumen ejecutivo para la reunión
+
+Síntesis de las 7 críticas de abajo (2026-11-13). El detalle y la evidencia de cada punto están
+en la sección de cada página.
+
+### 1. Puntajes
+
+| Pantalla | Puntaje | P0 | P1 | P2 | P3 |
+|---|---|---|---|---|---|
+| Resumen | 18/40 | 1 | 3 | 1 | 0 |
+| Billetera personal | 20/40 | 0 | 4 | 1 | 0 |
+| Categorías | 20/40 | 0 | 3 | 2 | 0 |
+| Proyectos compartidos | 23/40 | 0 | 2 | 2 | 1 |
+| Login | 23/40 | 0 | 3 | 2 | 0 |
+| Registro | 23/40 | 0 | 3 | 1 | 1 |
+| Detalle del proyecto | 24/40 | 0 | 4 | 1 | 0 |
+
+Ninguna pantalla llega a 25/40. La base técnica es buena en todas: estados de carga y error
+honestos, validación igual a la del backend y formularios con etiquetas accesibles.
+
+### 2. Problemas que se repiten
+
+| Prioridad | Problema | Páginas afectadas |
+|---|---|---|
+| P0 | Navegación móvil rota: la cabecera desborda, el navegador aleja el zoom y no se marca la página activa | Resumen, Billetera, Proyectos, Detalle, Categorías |
+| P1 | Cifras sin etiqueta o que no son del usuario ("tu saldo" con fondos ajenos, fondo sin nombre, dos cifras protagonistas) | Resumen, Billetera, Proyectos, Detalle |
+| P1 | Montos `type="number"` "sin puntos": "50.000" puede quedar en $50 | Billetera, Detalle, Categorías |
+| P1 | Cuadrículas fijas de dos columnas que desbordan en el celular | Billetera, Detalle |
+| P1 | Formularios siempre abiertos antes de la información que se consulta a diario | Billetera, Proyectos, Detalle, Categorías |
+| P1 | Campos casi invisibles (borde 1,4:1) y foco que no se ve en `Input` | Todas las que tienen formularios |
+| P1 | Filas que se rompen con datos reales (signo separado del monto, nombres largos) | Billetera, Detalle, Proyectos, Categorías |
+| P2 | Guardar sin confirmación ni anuncio para lector de pantalla | Billetera, Proyectos, Detalle, Categorías |
+| P2 | Estados vacíos y primer uso sin guía | Resumen, Billetera, Proyectos, Detalle, Categorías, Registro |
+| P2 | Accesibilidad estructural: `lang="en"`, título genérico, sin `h1`, sin enlace para saltar | Todas |
+| P2 | Contraste insuficiente de `gain-500`, `loss-500` e `ink-faint` en texto | Todas |
+
+### 3. Qué resuelve la nueva estructura (menú lateral, barra inferior, hojas)
+
+- **Lo resuelve:** la navegación móvil (con página activa y "Cerrar sesión" en un menú de
+  cuenta), los formularios que desplazan a las listas (pasan a paneles u hojas inferiores) y la
+  cuadrícula de gasto y aporte del Detalle.
+- **Lo resuelve en parte:** la jerarquía por tareas del Detalle y del Resumen (da el lugar, pero
+  "tu situación + acción" hay que diseñarlo), los estados vacíos (da la hoja, no el texto), las
+  confirmaciones (da un momento de cierre, falta definir el éxito y el foco) y la accesibilidad
+  (regiones, enlace para saltar y `aria-current`, pero no idioma, título ni encabezados).
+- **No lo resuelve:** el significado de las cifras, los campos de monto, las filas frágiles, el
+  contraste, la barra de presupuesto, los errores de la sección 4 y casi nada de Login y
+  Registro, que no tienen navegación.
+
+### 4. Errores reales que no son de diseño
+
+Se pueden corregir antes del rediseño o en paralelo.
+
+**Solo frontend:**
+- **Categorías calcula el mes en UTC** (`useCategories.ts:16`): desde las 7:00 p. m. del último día
+  del mes muestra $0 en todas las categorías.
+- **Umbral de "en paz" distinto** en el Detalle: la tarjeta usa `=== 0` y la tabla, medio centavo;
+  un saldo de -0,003 sale como "Debes $ 0" y como "Al día" a la vez.
+- **Cambiar entre Gasto e Ingreso borra lo escrito**, y el formulario de la meta no se actualiza si
+  la meta cambia.
+- **Si la recarga falla tras pagar o aportar**, la página entera se reemplaza por el error y el
+  usuario no sabe si la operación quedó.
+- Plural fijo ("1 integrantes"); nombre y correo del registro sin recortar espacios; `/login` y
+  `/register` no redirigen a quien ya inició sesión y `/` siempre lleva a `/login`.
+- `lang="en"` y título fijo en `index.html`.
+
+**Requieren backend o decisión del equipo:**
+- **Sin límites de longitud** en el registro: las columnas son de 100 y 150 caracteres, pero el
+  DTO no tiene `@Size(max)` y la contraseña no tiene máximo (BCrypt usa 72 bytes): probable error
+  500. El nombre del proyecto tampoco tiene límite.
+- **El colchón mueve saldo sin crear movimiento**: el saldo baja y el libro no lo explica.
+- **`getGeneralSummary()` suma los fondos completos** de los proyectos y la pantalla lo llama
+  "tu saldo general".
+- **Correo duplicado**: el 422 no trae `errors.email` y el mensaje sale lejos del campo.
+- **Categorías hace 2N+2 peticiones** por carga y falla entera si una falla.
+
+### 5. Decisiones que debe tomar el equipo
+
+**Cifras y significado** (lo más importante):
+1. **Propuesta pendiente de confirmar:** la cifra del Resumen es billetera + saldos netos por
+   proyecto, con desglose, calculada en el frontend sin cambiar el dominio.
+2. **Propuesta pendiente de confirmar:** el Resumen responde "¿cuánto tengo?"; si el usuario debe,
+   un aviso destacado justo debajo con a quién, cuánto y "Pagar"; si le deben, en la hoja de
+   proyectos; si está en paz, "Estás al día en todos tus proyectos".
+3. En el Detalle, ¿la cifra protagonista es "tu situación" y el fondo pasa a secundaria?
+4. En la lista de proyectos, ¿qué cifra lleva cada fila? ¿La respuesta de la lista trae el saldo
+   neto del usuario (campo nuevo en el DTO) o se pide proyecto por proyecto?
+5. En la Billetera, ¿la cifra es "Disponible" o "Total"? ¿Los movimientos del colchón deben
+   aparecer en el libro (toca el dominio)?
+
+**Estructura y flujo:**
+6. ¿Cuál es la tarea número uno del Detalle en el celular? ¿La barra inferior lleva un botón
+   central "Registrar"?
+7. ¿Meta, colchón, "Integrantes" y "Agregar integrante" pasan a paneles u hojas aparte (por
+   ejemplo, "Ajustes del proyecto")?
+8. ¿Qué pasa después de crear un proyecto (ir al Detalle) y después de registrarse (primer paso
+   guiado)? ¿Qué ve alguien con $0 y sin proyectos?
+9. ¿En qué orden van proyectos y categorías (deudas o excesos primero)? ¿Se muestra el rol de
+   administrador?
+10. ¿El historial muestra quién aportó y entre quiénes se dividió cada gasto, y el pago tiene un
+    paso de revisión?
+
+**Cambios de backend o contrato** (regla 1 de CLAUDE.md):
+11. ¿Se aprueba `@Size(max)` en `RegisterUserRequest` y en el nombre del proyecto?
+12. ¿El diseño UML permite editar y eliminar categorías? Hoy un límite mal escrito es permanente.
+13. Correo duplicado: ¿`errors.email` en el 422 o se resuelve solo en el frontend?
+14. ¿Una respuesta agregada de categorías con su gasto del mes? ¿El progreso de la meta se calcula
+    en el frontend o en el backend?
+
+**Sistema visual:**
+15. ¿El círculo esmeralda del login es una excepción a la Money-Only Color Rule o pasa a tinta?
+    DESIGN.md hoy se contradice.
+16. ¿Se aprueban un estado "cerca del límite" en ámbar con un tono oscuro para texto, un token
+    `--field-border` de al menos 3:1 y un `PasswordInput`? ¿Qué significa un límite de 0?
+
+**Acceso:**
+17. ¿Habrá recuperación de contraseña? ¿"Mostrar contraseña" o "Confirmar contraseña"?
+18. En el celular, ¿el panel de marca se reduce a una franja o se muestra solo en el Registro?
+19. ¿Hace falta un aviso de tratamiento de datos (Ley 1581 de 2012)?
+
+---
+
 ## Resumen
 
 - **Archivo:** `src/pages/DashboardPage.tsx` (ruta `/dashboard`), dentro de
