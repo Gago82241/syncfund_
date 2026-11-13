@@ -1,0 +1,445 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-13T19:02:56.656Z",
+  "title": "Design System: SyncFund",
+  "extensions": {
+    "colorMeta": {
+      "ink-900": {
+        "role": "primary",
+        "displayName": "Azul Tinta",
+        "canonical": "oklch(28.3% 0.069 258)",
+        "tonalRamp": [
+          "#090B10",
+          "#1B2535",
+          "#30435F",
+          "#496288",
+          "#6984AC",
+          "#91A6C8",
+          "#BDCADF",
+          "#EAEFF6"
+        ]
+      },
+      "ink-700": {
+        "role": "primary",
+        "displayName": "Azul Tinta Medio",
+        "canonical": "oklch(34.7% 0.073 256)",
+        "tonalRamp": [
+          "#080B10",
+          "#1A2636",
+          "#2D4361",
+          "#46628A",
+          "#6684AE",
+          "#8EA7CA",
+          "#BBCBE0",
+          "#EAEFF6"
+        ]
+      },
+      "ink-600": {
+        "role": "primary",
+        "displayName": "Azul Acero",
+        "canonical": "oklch(47.1% 0.089 246)",
+        "tonalRamp": [
+          "#070C11",
+          "#132738",
+          "#1F4565",
+          "#326591",
+          "#5487B5",
+          "#81AACF",
+          "#B4CCE3",
+          "#E8F0F7"
+        ]
+      },
+      "ink-100": {
+        "role": "primary",
+        "displayName": "Azul Neblina",
+        "canonical": "oklch(93.5% 0.011 252)",
+        "tonalRamp": [
+          "#0B0B0C",
+          "#232528",
+          "#3F4247",
+          "#5D6268",
+          "#7E8389",
+          "#A1A5AB",
+          "#C7C9CD",
+          "#EEEEEF"
+        ]
+      },
+      "gain-500": {
+        "role": "secondary",
+        "displayName": "Esmeralda Apagado",
+        "canonical": "oklch(62.9% 0.111 168)",
+        "tonalRamp": [
+          "#050D0A",
+          "#012D21",
+          "#00503A",
+          "#007556",
+          "#259777",
+          "#69B79B",
+          "#A9D5C3",
+          "#E4F2EC"
+        ]
+      },
+      "gain-100": {
+        "role": "secondary",
+        "displayName": "Esmeralda Claro",
+        "canonical": "oklch(94.9% 0.021 170)",
+        "tonalRamp": [
+          "#0A0C0B",
+          "#202724",
+          "#394541",
+          "#56655F",
+          "#768780",
+          "#9BA9A3",
+          "#C3CBC8",
+          "#ECEFEE"
+        ]
+      },
+      "loss-500": {
+        "role": "tertiary",
+        "displayName": "Terracota Quemado",
+        "canonical": "oklch(60.2% 0.140 35)",
+        "tonalRamp": [
+          "#130806",
+          "#3F170D",
+          "#712512",
+          "#A13B22",
+          "#C85E44",
+          "#E28B75",
+          "#F1BBAC",
+          "#FCEAE5"
+        ]
+      },
+      "loss-700": {
+        "role": "tertiary",
+        "displayName": "Terracota Oscuro",
+        "canonical": "oklch(51.8% 0.136 34)",
+        "tonalRamp": [
+          "#130806",
+          "#3F170E",
+          "#702715",
+          "#9F3D25",
+          "#C66047",
+          "#E08C76",
+          "#F0BBAD",
+          "#FCEAE5"
+        ]
+      },
+      "loss-100": {
+        "role": "tertiary",
+        "displayName": "Terracota Claro",
+        "canonical": "oklch(93.7% 0.020 40)",
+        "tonalRamp": [
+          "#0C0B0A",
+          "#292422",
+          "#4A3F3C",
+          "#6C5E59",
+          "#8E7F79",
+          "#AFA29D",
+          "#CFC7C4",
+          "#F0EEED"
+        ]
+      },
+      "warn-500": {
+        "role": "tertiary",
+        "displayName": "Ámbar",
+        "canonical": "oklch(70.6% 0.137 83)",
+        "tonalRamp": [
+          "#0F0A03",
+          "#342100",
+          "#5D3A00",
+          "#865700",
+          "#A97900",
+          "#C69F4E",
+          "#DEC69A",
+          "#F5EEDF"
+        ]
+      },
+      "ledger-50": {
+        "role": "neutral",
+        "displayName": "Papel de Libro Mayor",
+        "canonical": "oklch(96.7% 0.007 88)",
+        "tonalRamp": [
+          "#0B0B0B",
+          "#262523",
+          "#43423F",
+          "#63615D",
+          "#84827E",
+          "#A6A5A1",
+          "#CAC9C7",
+          "#EFEEEE"
+        ]
+      },
+      "ledger-100": {
+        "role": "neutral",
+        "displayName": "Papel Envejecido",
+        "canonical": "oklch(93.7% 0.014 88)",
+        "tonalRamp": [
+          "#0B0B0A",
+          "#262521",
+          "#44423B",
+          "#646158",
+          "#868279",
+          "#A8A59D",
+          "#CBC9C4",
+          "#EFEEED"
+        ]
+      },
+      "paper": {
+        "role": "neutral",
+        "displayName": "Papel Blanco",
+        "canonical": "oklch(100.0% 0.000 89)",
+        "tonalRamp": [
+          "#0B0B0B",
+          "#252525",
+          "#424242",
+          "#616161",
+          "#828282",
+          "#A5A5A5",
+          "#C9C9C9",
+          "#EEEEEE"
+        ]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Tinta Negra Cálida",
+        "canonical": "oklch(22.6% 0.004 106)",
+        "tonalRamp": [
+          "#0B0B0B",
+          "#252524",
+          "#424240",
+          "#61615F",
+          "#828280",
+          "#A5A5A3",
+          "#C9C9C8",
+          "#EEEEEE"
+        ]
+      },
+      "ink-muted": {
+        "role": "neutral",
+        "displayName": "Tinta Gris",
+        "canonical": "oklch(46.7% 0.010 99)",
+        "tonalRamp": [
+          "#0B0B0A",
+          "#252523",
+          "#43423E",
+          "#62615B",
+          "#84827C",
+          "#A6A5A0",
+          "#CAC9C6",
+          "#EFEEED"
+        ]
+      },
+      "ink-faint": {
+        "role": "neutral",
+        "displayName": "Tinta Tenue",
+        "canonical": "oklch(63.3% 0.012 95)",
+        "tonalRamp": [
+          "#0B0B0A",
+          "#262522",
+          "#43423C",
+          "#63615A",
+          "#84827A",
+          "#A7A59E",
+          "#CAC9C5",
+          "#EFEEED"
+        ]
+      },
+      "hairline": {
+        "role": "neutral",
+        "displayName": "Línea de Renglón",
+        "canonical": "oklch(88.9% 0.014 88)",
+        "tonalRamp": [
+          "#0B0B0A",
+          "#262521",
+          "#44423B",
+          "#646158",
+          "#868279",
+          "#A8A59D",
+          "#CBC9C4",
+          "#EFEEED"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "La cifra protagonista de cada pantalla y el titular del panel de marca."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Cifras de segundo nivel: fondo y saldo neto de un proyecto."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Títulos de sección y de formularios."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Texto e interfaz; filas de lista y tabla a 0.9375rem."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Etiquetas de campo, encabezados de tabla, notas, fechas y metadatos."
+      }
+    },
+    "shadows": [],
+    "motion": [
+      {
+        "name": "ease-state",
+        "value": "0.15s ease",
+        "purpose": "Cambio de fondo y borde en botones y chips."
+      },
+      {
+        "name": "ease-progress",
+        "value": "0.2s ease",
+        "purpose": "Avance del ancho de la barra de presupuesto."
+      },
+      {
+        "name": "reduced-motion",
+        "value": "0.01ms",
+        "purpose": "Con prefers-reduced-motion, animaciones y transiciones se anulan."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "sm",
+        "value": "480px"
+      },
+      {
+        "name": "md",
+        "value": "640px"
+      },
+      {
+        "name": "lg",
+        "value": "860px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Botón principal",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Acción principal de un formulario o pantalla.",
+      "html": "<button class=\"ds-btn-primary\">Guardar movimiento</button>",
+      "css": ".ds-btn-primary { font-family: var(--font-body); font-size: 0.9375rem; font-weight: 600; padding: 0.75rem 1.25rem; border-radius: var(--radius-sm); border: 1px solid transparent; background: var(--ink-900); color: var(--paper); cursor: pointer; transition: background-color 0.15s ease, border-color 0.15s ease; } .ds-btn-primary:hover { background: var(--ink-700); } .ds-btn-primary:focus-visible { outline: 2px solid var(--ink-600); outline-offset: 2px; }"
+    },
+    {
+      "name": "Botón fantasma",
+      "kind": "button",
+      "refersTo": "button-ghost",
+      "description": "Acción secundaria: cancelar, reintentar.",
+      "html": "<button class=\"ds-btn-ghost\">Cancelar</button>",
+      "css": ".ds-btn-ghost { font-family: var(--font-body); font-size: 0.9375rem; font-weight: 600; padding: 0.75rem 1.25rem; border-radius: var(--radius-sm); border: 1px solid var(--hairline); background: transparent; color: var(--ink-900); cursor: pointer; transition: border-color 0.15s ease; } .ds-btn-ghost:hover { border-color: var(--ink-600); } .ds-btn-ghost:focus-visible { outline: 2px solid var(--ink-600); outline-offset: 2px; }"
+    },
+    {
+      "name": "Botón de peligro",
+      "kind": "button",
+      "refersTo": "button-danger",
+      "description": "Confirmar una acción destructiva (eliminar integrante, salir).",
+      "html": "<button class=\"ds-btn-danger\">Eliminar del proyecto</button>",
+      "css": ".ds-btn-danger { font-family: var(--font-body); font-size: 0.9375rem; font-weight: 600; padding: 0.75rem 1.25rem; border-radius: var(--radius-sm); border: 1px solid transparent; background: var(--loss-700); color: var(--paper); cursor: pointer; transition: border-color 0.15s ease; } .ds-btn-danger:hover { border-color: var(--ink); } .ds-btn-danger:focus-visible { outline: 2px solid var(--ink-600); outline-offset: 2px; }"
+    },
+    {
+      "name": "Campo de texto",
+      "kind": "input",
+      "refersTo": "input-field",
+      "description": "Campo con etiqueta encima y error debajo.",
+      "html": "<label class=\"ds-field\"><span class=\"ds-field__label\">Monto</span><input class=\"ds-field__input\" placeholder=\"$0\" /></label>",
+      "css": ".ds-field { display: flex; flex-direction: column; gap: 0.375rem; font-family: var(--font-body); } .ds-field__label { font-size: 0.8125rem; font-weight: 600; color: var(--ink-muted); } .ds-field__input { font: inherit; font-size: 1rem; padding: 0.7rem 0.85rem; border: 1px solid var(--hairline); border-radius: var(--radius-sm); background: var(--paper); color: var(--ink); } .ds-field__input::placeholder { color: var(--ink-faint); } .ds-field__input:focus { border-color: var(--ink-600); outline: none; }"
+    },
+    {
+      "name": "Chip de participante",
+      "kind": "chip",
+      "refersTo": "chip",
+      "description": "Selección de quién participa en un gasto compartido.",
+      "html": "<span class=\"ds-chips\"><button class=\"ds-chip ds-chip--selected\" aria-pressed=\"true\"><span class=\"ds-chip__check\">✓</span>Ana</button><button class=\"ds-chip\" aria-pressed=\"false\"><span class=\"ds-chip__check\">✓</span>Juan</button></span>",
+      "css": ".ds-chips { display: flex; flex-wrap: wrap; gap: 0.5rem; } .ds-chip { display: inline-flex; align-items: center; gap: 0.375rem; padding: 0.45rem 0.85rem 0.45rem 0.65rem; border: 1px solid var(--hairline); border-radius: var(--radius-lg); background: var(--paper); color: var(--ink); font-family: var(--font-body); font-size: 0.9375rem; cursor: pointer; transition: background-color 0.15s ease, border-color 0.15s ease; } .ds-chip:hover { border-color: var(--ink-600); } .ds-chip:focus-visible { outline: 2px solid var(--ink-600); outline-offset: 2px; } .ds-chip__check { font-weight: 700; color: var(--ink-900); visibility: hidden; } .ds-chip--selected { background: var(--ink-100); border-color: var(--ink-600); } .ds-chip--selected .ds-chip__check { visibility: visible; }"
+    },
+    {
+      "name": "Navegación",
+      "kind": "nav",
+      "refersTo": null,
+      "description": "Cabecera de la app con marca, enlaces y usuario.",
+      "html": "<header class=\"ds-nav\"><a class=\"ds-nav__mark\" href=\"#\">SyncFund</a><nav class=\"ds-nav__links\"><a href=\"#\">Resumen</a><a href=\"#\">Billetera</a><a href=\"#\">Proyectos</a><a href=\"#\">Categorías</a></nav><span class=\"ds-nav__user\">Diego <button>Salir</button></span></header>",
+      "css": ".ds-nav { display: flex; align-items: center; gap: 2.5rem; padding: 1.25rem 2rem; border-bottom: 1px solid var(--hairline); background: var(--paper); font-family: var(--font-body); } .ds-nav__mark { font-family: var(--font-display); font-size: 1.125rem; font-weight: 500; color: var(--ink-900); text-decoration: none; } .ds-nav__links { display: flex; gap: 1.5rem; flex: 1; } .ds-nav__links a { font-size: 0.9375rem; color: var(--ink-muted); text-decoration: none; } .ds-nav__links a:hover { color: var(--ink-900); } .ds-nav__links a:focus-visible { outline: 2px solid var(--ink-600); outline-offset: 2px; } .ds-nav__user { display: flex; align-items: center; gap: 1rem; font-size: 0.875rem; color: var(--ink-muted); } .ds-nav__user button { background: none; border: none; color: var(--ink-600); cursor: pointer; font: inherit; }"
+    },
+    {
+      "name": "Hoja",
+      "kind": "card",
+      "refersTo": "sheet",
+      "description": "Panel de papel blanco sobre el fondo cálido (formularios, secciones).",
+      "html": "<section class=\"ds-sheet\"><h3 class=\"ds-sheet__title\">Nuevo movimiento</h3><p class=\"ds-sheet__text\">Registra un ingreso o un gasto en tu billetera.</p></section>",
+      "css": ".ds-sheet { border: 1px solid var(--hairline); border-radius: var(--radius-md); padding: 1.5rem; background: var(--paper); } .ds-sheet__title { font-family: var(--font-display); font-weight: 500; font-size: 1.125rem; color: var(--ink-900); margin: 0 0 1rem; } .ds-sheet__text { font-family: var(--font-body); color: var(--ink-muted); margin: 0; }"
+    },
+    {
+      "name": "Tabla de situación",
+      "kind": "custom",
+      "refersTo": null,
+      "description": "Libro mayor de integrantes: aportes, parte de los gastos y saldo; totales bajo filete de 2px.",
+      "html": "<table class=\"ds-ledger\"><thead><tr><th>Integrante</th><th class=\"ds-ledger__num\">Aportes</th><th class=\"ds-ledger__num\">Saldo</th></tr></thead><tbody><tr class=\"ds-ledger__me\"><td>Diego (tú)</td><td class=\"ds-ledger__num\">$120.000</td><td class=\"ds-ledger__num ds-ledger__gain\">+$20.000</td></tr><tr><td>Juan</td><td class=\"ds-ledger__num\">$80.000</td><td class=\"ds-ledger__num ds-ledger__loss\">−$20.000</td></tr></tbody><tfoot><tr><th>Fondo</th><td></td><td class=\"ds-ledger__num ds-ledger__fund\">$200.000</td></tr></tfoot></table>",
+      "css": ".ds-ledger { width: 100%; border-collapse: collapse; font-family: var(--font-body); font-size: 0.9375rem; font-variant-numeric: tabular-nums; color: var(--ink); } .ds-ledger th, .ds-ledger td { padding: 0.75rem 0.5rem; border-bottom: 1px solid var(--hairline); text-align: left; } .ds-ledger thead th { font-size: 0.8125rem; font-weight: 500; color: var(--ink-muted); } .ds-ledger .ds-ledger__num { text-align: right; } .ds-ledger__me { background: var(--ink-100); } .ds-ledger__gain { color: var(--gain-500); font-weight: 600; } .ds-ledger__loss { color: var(--loss-500); font-weight: 600; } .ds-ledger tfoot th, .ds-ledger tfoot td { border-bottom: none; border-top: 2px solid var(--ink-900); } .ds-ledger__fund { font-family: var(--font-display); font-size: 1.25rem; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "El Libro Mayor Vivo",
+    "overview": "SyncFund se ve como un libro contable bien llevado que se actualiza solo. La página es papel cálido, la estructura está escrita en azul tinta y el dinero se lee en filas separadas por líneas finas, con las cifras alineadas en columna como en un libro mayor real. No es un tablero de control: no hay cuadrículas de tarjetas de indicadores ni gráficos de adorno. Cada pantalla tiene una sola cifra protagonista; en el Resumen puede acompañarla una fila breve de indicadores, y el resto se organiza en renglones.\n\nLa identidad son el papel, la tinta, los renglones y las cifras; no el ancho ni la estructura de la página. La interfaz es sobria y de densidad media, con mucho aire vertical y jerarquía construida con tipografía más que con cajas. Hoy todo vive en una sola columna de 640px; el rediseño la reemplazará por una estructura más amplia (menú lateral en escritorio, barra de navegación inferior en móvil y páginas organizadas en hojas). Fraunces pone la voz de autor en títulos y cifras; Figtree hace el trabajo silencioso de la interfaz. El color nunca decora: el azul tinta es estructura y acción, el esmeralda es dinero a favor, la terracota es dinero en contra o error.\n\nLo que se rechaza: la estética fintech de neón (gradientes, fondos oscuros brillantes, glassmorphism, brillos), el dashboard genérico (tarjetas con sombra, gráficos sin dato útil, números enormes repetidos en cada tarjeta) y el blanco puro como fondo de página.",
+    "keyCharacteristics": [
+      "Papel cálido de fondo; blanco solo en superficies puntuales (\"hojas\", campos, formularios).",
+      "Filas tipo libro mayor con línea fina; cifras con números tabulares.",
+      "Una sola cifra protagonista por pantalla, en Fraunces.",
+      "Plano por defecto: profundidad con línea, tono y borde, no con sombra.",
+      "Componentes firmes y táctiles, con respuesta clara al toque."
+    ],
+    "rules": [
+      {
+        "name": "The Money-Only Color Rule",
+        "section": "colors",
+        "body": "El esmeralda y la terracota significan dinero a favor y en contra (y error, en terracota). Nunca se usan como adorno, ilustración o identidad de sección."
+      },
+      {
+        "name": "The Paper Ground Rule",
+        "section": "colors",
+        "body": "El fondo de la página es siempre ledger-50. El blanco (paper) solo aparece en superficies que el usuario lee o llena: hojas, campos, formularios, cabecera."
+      },
+      {
+        "name": "The Not-Only-Color Rule",
+        "section": "colors",
+        "body": "Ingreso/gasto y deuda nunca se comunican solo con color: van con signo, etiqueta o texto (\"te deben\", \"debes\", \"en paz\")."
+      },
+      {
+        "name": "The Tabular Figures Rule",
+        "section": "typography",
+        "body": "Todo monto lleva números tabulares (`tabular-nums`) y, en tablas, se alinea a la derecha. Las cifras se leen en columna, como en un libro contable."
+      },
+      {
+        "name": "The One Hero Figure Rule",
+        "section": "typography",
+        "body": "Una sola cifra en Display por pantalla. Las demás cifras van en Headline o en el tamaño de la fila."
+      },
+      {
+        "name": "The Flat-By-Default Rule",
+        "section": "elevation",
+        "body": "Las superficies son planas. Solo los elementos que flotan sobre el contenido (modales, menús desplegables, paneles laterales y hojas inferiores en móvil, donde se abrirán los formularios) pueden llevar una sombra suave, y solo una. El valor se define cuando exista el primer elemento flotante; ninguna tarjeta ni hoja de página lleva sombra."
+      }
+    ],
+    "dos": [
+      "Do poner el fondo de página en ledger-50 y reservar paper para hojas, campos, formularios y la cabecera.",
+      "Do escribir todo monto con `formatCOP` y números tabulares, alineado a la derecha en tablas.",
+      "Do dejar una sola cifra en Display (2.75rem, Fraunces) por pantalla.",
+      "Do separar filas con línea de renglón de 1px y marcar totales con filete de 2px en azul tinta.",
+      "Do acompañar el color semántico con signo o texto (\"te deben\", \"debes\", \"en paz\").",
+      "Do usar loss-700 para cualquier texto de error o botón de peligro.",
+      "Do agregar cualquier color, tamaño o espacio nuevo como token en `globals.css` y `theme.ts`.",
+      "Do organizar páginas en hojas blancas con línea fina y, en el Resumen, una fila breve de indicadores."
+    ],
+    "donts": [
+      "Don't usar gradientes, fondos oscuros brillantes, glassmorphism, brillos ni sombras de resplandor (estética fintech de neón).",
+      "Don't armar cuadrículas de tarjetas con sombra, gráficos decorativos sin dato útil ni números enormes repetidos en cada tarjeta.",
+      "Don't usar esmeralda o terracota como adorno o identidad de sección.",
+      "Don't poner blanco puro como fondo de página.",
+      "Don't escribir valores hex sueltos en componentes.",
+      "Don't poner sombra en tarjetas ni en hojas de página; solo la llevan los elementos flotantes (modales, menús, paneles laterales y hojas inferiores en móvil)."
+    ]
+  }
+}
