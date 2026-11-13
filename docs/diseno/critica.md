@@ -878,3 +878,204 @@ paneles.
 4. ¿Se acepta que el historial muestre quién aportó y entre quiénes se dividió cada gasto a partir
    de `involvedIdsList` (solo frontend), y que el pago tenga un paso de revisión y un aviso de
    éxito?
+
+---
+
+## Categorías
+
+- **Archivo:** `src/pages/CategoriesPage.tsx` (ruta `/categories`), con `CategoryForm` y
+  `CategoryList`.
+- **Fecha:** 2026-11-13 · rama `docs/diagnostico-diseno`.
+- **Evidencia:** código fuente, capturas de página completa en
+  `docs/diseno/capturas-antes/` (`localhost_5173_categories.png` y
+  `localhost_5173_categories(iPhone 16).png`) y el detector de impeccable.
+- **Modo de la pantalla:** Operate.
+
+### Puntaje de heurísticas (Nielsen)
+
+| # | Heurística | Nota | Problema clave |
+|---|---|---|---|
+| 1 | Visibilidad del estado del sistema | 2 | "Este mes" no dice qué mes, y el mes se calcula en UTC. Crear una categoría no confirma nada. |
+| 2 | Coincidencia con el mundo real | 2 | El campo "sin puntos" choca con cómo se escriben cifras en Colombia (300.000); "$0 / $2.000.000" no dice "te quedan $X". |
+| 3 | Control y libertad | 1 | No se puede editar ni eliminar una categoría: un límite mal escrito queda para siempre. |
+| 4 | Consistencia y estándares | 3 | Usa bien `Input`, `Button`, `LoadError` y `LoadingState`; la barra pasa de azul a terracota sin el estado intermedio en ámbar que el sistema reserva. |
+| 5 | Prevención de errores | 2 | Acepta un límite de 0 sin explicar qué significa; la instrucción del formato vive en el placeholder. |
+| 6 | Reconocer antes que recordar | 2 | No muestra porcentaje ni lo que queda disponible. |
+| 7 | Flexibilidad y eficiencia | 1 | Sin orden por "más cerca del límite", sin filtro y sin acceso a los movimientos de la categoría. |
+| 8 | Estética y diseño minimalista | 3 | Sobria y limpia, pero crear pesa más que consultar. |
+| 9 | Recuperación de errores | 2 | `LoadError` bien resuelto; "Presupuesto excedido este mes" no dice por cuánto ni qué hacer. |
+| 10 | Ayuda y documentación | 2 | El subtítulo aclara que solo cuenta la billetera personal; no explica qué pasa al superar el límite. |
+| **Total** | | **20/40** | **Aceptable con fallas importantes** (límite inferior). |
+
+### Veredicto de especificidad
+
+**Revisión de diseño:** genérica, con las bases del sistema (Fraunces en el título, papel cálido,
+números tabulares, fila con línea fina). La página es "formulario arriba, lista abajo", sin cifra
+protagonista (cuánto se ha gastado este mes frente al presupuesto total) y sin el nombre del mes.
+La barra de presupuesto, que debería ser la firma de la pantalla, es su pieza más débil, y el
+ámbar `warn-500` reservado para las alertas de presupuesto no se usa.
+
+**Detector automático:** 0 hallazgos en la página, `CategoryForm` y `CategoryList` (salida `[]`,
+código 0). Mismas limitaciones que en el Resumen: el contraste de la barra no se pudo evaluar
+automáticamente.
+
+### Impresión general
+
+La pantalla responde a medias "¿cómo voy este mes?": muestra gastado y límite, pero obliga a
+restar, no avisa antes de pasarse y, la noche del último día del mes, muestra $0 en todo. Además
+no deja corregir un límite mal escrito. La mayor oportunidad es convertir la barra en un
+indicador claro de tres estados (con texto) bajo una cifra del mes, con las categorías más
+comprometidas primero.
+
+### Lo que funciona
+
+1. **Estados de carga bien pensados.** `categories === null` distingue "cargando" de "vacío" y
+   con error no se muestra una lista vieja (`CategoriesPage.tsx:14-26`).
+2. **Formulario accesible en lo básico.** Etiquetas asociadas, `aria-invalid`,
+   `aria-describedby`, errores en `loss-700` (cumple AA) y validación previa en español
+   (`CategoryForm.tsx:18-24`).
+3. **Honestidad sobre qué se mide.** `formatCOP` y números tabulares en las cifras, filas con
+   línea fina y un subtítulo que aclara "en tu billetera personal".
+
+### Problemas prioritarios
+
+#### [P1] La barra de presupuesto no se ve, depende solo del color y no tiene semántica
+
+- **Qué:**
+  - El carril `ledger-100` sobre el fondo `ledger-50` da cerca de 1,1:1: en las capturas, una
+    categoría en $0 parece una línea en blanco.
+  - El relleno mide 6px (`CategoryList.css:35-39`) y es un `div` sin `role="progressbar"` ni
+    valores accesibles (`CategoryList.tsx:22-30`).
+  - Solo hay dos estados, azul o terracota: no hay aviso de "cerca del límite".
+  - La barra se corta en 100% (`CategoryList.tsx:13`): "excedido por $1.000" se ve igual que
+    "excedido por $1.000.000".
+  - La alerta va en `loss-500` a 12px (`CategoryList.css:47-52`), 3,8:1: no cumple AA para texto
+    pequeño.
+- **Por qué importa:** es la única visualización de la página y la razón de que existan los
+  límites. Incumple WCAG 1.4.11 (contraste de elementos no textuales) y 1.3.1, y un lector de
+  pantalla oye "Compras de Bitcoin $0 / $2.000.000" sin porcentaje ni estado.
+- **Corrección:**
+  - Carril con borde `hairline` o un tono que llegue a 3:1, y altura de 8 a 10px.
+  - `role="progressbar"` con valores y un texto accesible ("$1.250.000 de $2.000.000, 62%").
+  - Tres estados con texto, no solo color: "Te quedan $X" en tinta; "Cerca del límite" desde un
+    umbral (por ejemplo, 80%) en ámbar, con un tono oscuro nuevo para texto que cumpla AA; y
+    "Excedido por $X" en `loss-700`.
+- **Comando sugerido:** `/impeccable colorize`, luego `/impeccable harden`.
+- **¿Lo resuelve la dirección del rediseño?** **No.**
+
+#### [P1] El mes se calcula en UTC y nunca se nombra
+
+- **Qué:** `new Date().toISOString().slice(0, 7)` (`useCategories.ts:16`) usa UTC. En Colombia
+  (UTC−5), desde las 7:00 p. m. del último día del mes la página consulta el mes siguiente y
+  muestra $0 en todas las categorías. La interfaz solo dice "Gasto de este mes"
+  (`CategoriesPage.tsx:33`), sin decir cuál.
+- **Por qué importa:** es un error de certeza en una app cuyo principio es "certeza sobre cada
+  peso". El estudiante que revisa su presupuesto la noche del 30 ve que "no ha gastado nada", y
+  sin el nombre del mes no puede notar el error.
+- **Corrección:** calcular el mes con la fecha local y escribirlo en la cabecera ("Noviembre
+  2026"); más adelante, permitir consultar meses anteriores.
+- **Comando sugerido:** `/impeccable harden`, luego `/impeccable clarify`.
+- **¿Lo resuelve la dirección del rediseño?** **No.**
+
+#### [P1] No se pueden corregir ni eliminar categorías
+
+- **Qué:** la interfaz solo permite crear y `categoryService.ts` solo tiene crear y consultar; las
+  filas no son interactivas.
+- **Por qué importa:** un límite mal escrito no se puede arreglar, y con un campo "sin puntos" es
+  fácil escribir 300 en vez de 300.000. También impide ajustar el presupuesto cada mes.
+- **Corrección:** abrir la edición de nombre y límite desde la fila, en panel u hoja inferior. Si
+  el diseño UML y el backend no lo contemplan, proponerlo al equipo (regla 1 de CLAUDE.md).
+  Mientras tanto, confirmar el límite antes de crear ("Límite: $300 al mes. ¿Correcto?").
+- **Comando sugerido:** `/impeccable shape`.
+- **¿Lo resuelve la dirección del rediseño?** **En parte.** El panel u hoja da el lugar para
+  editar; falta la capacidad en el backend.
+
+#### [P2] Sin cifra protagonista ni orden en la lista
+
+- **Qué:** no hay un total del mes ni una cifra destacada, contra la regla de una sola cifra
+  protagonista, y la lista sigue el orden del backend, sin criterio visible. El formulario
+  siempre abierto encima de la lista es el mismo problema de Proyectos compartidos (ver allí).
+- **Por qué importa:** la respuesta a "¿cómo voy este mes?" no está a la vista; con 15 categorías
+  o más, el usuario tiene que recorrerlas todas para encontrar las que se pasaron.
+- **Corrección:** cabecera de la hoja con la cifra en Fraunces ("Gastado en noviembre: $X de $Y
+  presupuestado") y la lista ordenada por porcentaje de uso (primero las excedidas y las cercanas
+  al límite).
+- **Comando sugerido:** `/impeccable layout`, luego `/impeccable distill`.
+- **¿Lo resuelve la dirección del rediseño?** **En parte.** El formulario en panel sí; la cifra
+  del mes y el orden, no.
+
+#### [P2] Casos límite sin definir
+
+- **Qué:**
+  - Se acepta un límite de 0 y entonces el porcentaje es 0 (`CategoryList.tsx:13`): si el backend
+    marca la categoría como excedida, aparece "Presupuesto excedido" con la barra vacía.
+  - La cabecera de la fila usa `space-between` sin `gap` ni `min-width: 0`
+    (`CategoryList.css:16-20`): un nombre largo se pega a la cifra o la parte en dos líneas.
+  - El estado vacío usa `ink-faint` y no orienta ("Crea tu primera categoría para ponerle tope
+    a…").
+  - El campo del límite tiene el mismo problema de montos del Detalle del proyecto (ver allí).
+- **Por qué importa:** la configuración falla en silencio y, sin edición, el error es
+  permanente.
+- **Corrección:** definir qué significa un límite de 0 ("sin límite" o "nada permitido") y
+  mostrarlo así; `gap` y `white-space: nowrap` en las cifras; estado vacío con guía en
+  `ink-muted`; confirmación de éxito con `role="status"`.
+- **Comando sugerido:** `/impeccable harden`, luego `/impeccable clarify`.
+- **¿Lo resuelve la dirección del rediseño?** **No.**
+
+### Qué resuelve la dirección del rediseño
+
+| Problema | Menú lateral · barra inferior · hojas |
+|---|---|
+| [P1] Barra invisible y sin semántica | No |
+| [P1] Mes en UTC y sin nombre | No |
+| [P1] Sin edición ni eliminación | En parte (da el lugar, falta el backend) |
+| [P2] Sin cifra protagonista ni orden | En parte (el formulario sí; la cifra y el orden no) |
+| [P2] Casos límite sin definir | No |
+
+### Problemas ya documentados que también aparecen aquí
+
+- **Navegación móvil rota** ([P0] del Resumen): desborde horizontal y página alejada en la
+  captura del iPhone.
+- **Accesibilidad estructural** ([P2] del Resumen): empieza en `h2` (`CategoriesPage.tsx:31`),
+  `lang="en"`, título genérico, sin enlace para saltar.
+- **Brechas de contraste** (DESIGN.md): `ink-faint` en el límite "/ $2.000.000", el estado vacío
+  y los placeholders; `loss-500` en la alerta; `warn-500` sin usar.
+- **Formulario que desplaza a la lista** ([P1] de Proyectos compartidos).
+- **Montos que aceptan errores** ([P1] del Detalle del proyecto).
+- **Guardar sin confirmación** ([P2] de la Billetera).
+
+### Señales de alerta por persona
+
+- **Usuario distraído en el celular:** tiene que pasar todo el formulario para ver su situación;
+  no ve un total ni el mes, y la barra no se distingue.
+- **Primera vez:** no sabe qué es el "límite mensual" ni qué pasa al superarlo; si se equivoca en
+  el límite, no puede corregirlo; el estado vacío no le dice qué hacer.
+- **Usuario de lector de pantalla o teclado:** la barra no tiene semántica ni porcentaje; la
+  alerta de exceso no es una región que se anuncie; crear una categoría no anuncia el éxito.
+- **Estudiante** (persona de PRODUCT.md): quiere saber "¿cuánto me queda para salidas hasta fin
+  de mes?"; la página le da "gastado / límite" y le toca restar, no hay aviso antes de pasarse y
+  la noche del 30 ve $0 en todo.
+
+### Observaciones menores
+
+- Cada carga hace 2N+2 peticiones (billetera, categorías y dos por categoría,
+  `useCategories.ts:12-30`), y si una falla, falla toda la página. Con muchas categorías y datos
+  móviles es lento; lo ideal sería una respuesta que traiga todo junto.
+- El exceso se consulta al backend por categoría, pero el porcentaje se calcula en el cliente:
+  las dos fuentes pueden discrepar (el caso del límite 0).
+- Estilos en línea con espaciados sueltos (`CategoriesPage.tsx:32,36`, `CategoryForm.tsx:40-41`).
+- La transición de ancho de la barra no se anula con `prefers-reduced-motion` en
+  `CategoryList.css` (la regla global de `globals.css` sí la reduce, así que el efecto real es
+  menor).
+
+### Preguntas para el equipo
+
+1. ¿El diseño UML de Category permite editar o eliminar (nombre y límite mensual)? Si no, ¿se
+   propone, dado que hoy un error de digitación es permanente?
+2. ¿Qué significa un límite de 0: "sin presupuesto" o "no gastar nada"? ¿Qué debe responder el
+   backend en ese caso?
+3. ¿Se usa el ámbar para un estado "cerca del límite" (por ejemplo, desde el 80%)? ¿Se crea un
+   tono oscuro de ámbar para texto que cumpla AA?
+4. ¿Se puede agregar una respuesta que traiga todas las categorías con su gasto del mes en una
+   sola llamada (un DTO de transporte, permitido por la regla 1), para evitar las 2N+2
+   peticiones?
