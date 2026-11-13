@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { sharedProjectService } from '../services/sharedProjectService';
 import { transactionService } from '../../transactions/services/transactionService';
 import { userService } from '../../users/services/userService';
-import { describeLoadError, notFoundLoadError, type LoadErrorInfo } from '../../../utils/apiError';
+import { afterActionLoadError, describeLoadError, notFoundLoadError, type LoadErrorInfo } from '../../../utils/apiError';
 import type {
   NetBalanceResponse,
   ProjectBalancesResponse,
@@ -47,6 +47,9 @@ export function useSharedProjectDetail(projectId: number, currentUserId: number)
   // Número de la última carga pedida. Solo esa puede escribir el estado: una respuesta que llega
   // tarde (de otro proyecto, o de una recarga anterior del mismo) se descarta.
   const latestRequest = useRef(0);
+  // true desde que una acción se guardó hasta que una recarga sale bien: si la recarga falla,
+  // el error avisa que la acción sí quedó (afterActionLoadError), también al reintentar.
+  const unconfirmedAction = useRef(false);
 
   // La ruta reutiliza esta pantalla al cambiar de proyecto: se borran los datos del anterior
   // para no mostrarlos mientras carga el nuevo, y se vuelve a marcar "cargando".
@@ -74,10 +77,12 @@ export function useSharedProjectDetail(projectId: number, currentUserId: number)
         setBalances(data.balances);
         setTransactions(data.transactions);
         setError(null);
+        unconfirmedAction.current = false;
       })
       .catch((err) => {
         if (!isLatest()) return;
-        setError(err === INVALID_ID ? notFoundLoadError(WHAT) : describeLoadError(err, WHAT));
+        const info = err === INVALID_ID ? notFoundLoadError(WHAT) : describeLoadError(err, WHAT);
+        setError(unconfirmedAction.current ? afterActionLoadError(info) : info);
       })
       .finally(() => {
         if (isLatest()) setLoading(false);
@@ -90,11 +95,19 @@ export function useSharedProjectDetail(projectId: number, currentUserId: number)
     return load();
   }, [load]);
 
+  /** Recarga después de una acción que el backend ya aceptó (guardar, crear, pagar…). */
+  const refreshAfterAction = useCallback(() => {
+    unconfirmedAction.current = true;
+    return refresh();
+  }, [refresh]);
+
   useEffect(() => {
     load();
     // Al cambiar de proyecto o salir de la pantalla, la carga en curso queda obsoleta.
     return () => {
       latestRequest.current += 1;
+      // Una acción del proyecto anterior no se anuncia en el siguiente.
+      unconfirmedAction.current = false;
     };
   }, [load]);
 
@@ -104,5 +117,5 @@ export function useSharedProjectDetail(projectId: number, currentUserId: number)
     ? { userId: currentUserId, projectId, netBalance: myBalance.netBalance }
     : null;
 
-  return { project, members, balances, netBalance, transactions, loading, error, refresh };
+  return { project, members, balances, netBalance, transactions, loading, error, refresh, refreshAfterAction };
 }

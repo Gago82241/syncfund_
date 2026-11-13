@@ -40,6 +40,15 @@ export function notFoundLoadError(what: string): LoadErrorInfo {
 }
 
 /**
+ * Error de la recarga que sigue a una acción que el backend ya aceptó (guardar, pagar, aportar…).
+ * La página no muestra datos viejos, pero deja claro que la acción sí quedó, para que el usuario
+ * no la repita.
+ */
+export function afterActionLoadError(info: LoadErrorInfo): LoadErrorInfo {
+  return { ...info, message: `Tu cambio se guardó. ${info.message}` };
+}
+
+/**
  * Mensaje para una carga de datos que falló, sin detalles técnicos.
  * `what` nombra lo que se cargaba, ej. "tus proyectos" o "este proyecto compartido".
  * El 401 no llega a mostrarse: apiClient cierra la sesión y manda al login.

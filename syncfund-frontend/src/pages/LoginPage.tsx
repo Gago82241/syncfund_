@@ -8,10 +8,12 @@ import { authService } from '../features/auth/services/authService';
 import { useAuth } from '../context/useAuth';
 import { useFormErrors } from '../hooks/useFormErrors';
 import { email as validateEmail, required } from '../utils/validation';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 
 export function LoginPage() {
   const navigate = useNavigate();
   const { login } = useAuth();
+  useDocumentTitle('Inicia sesión · SyncFund');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -27,9 +29,11 @@ export function LoginPage() {
     if (!valid) return;
     setLoading(true);
     try {
-      const { data } = await authService.login({ email, password });
+      // El autocompletado a veces deja un espacio al final del correo; la contraseña se envía tal cual.
+      const { data } = await authService.login({ email: email.trim(), password });
       login(data);
-      navigate('/dashboard');
+      // replace: con "Atrás" no se vuelve al formulario de login estando dentro.
+      navigate('/dashboard', { replace: true });
     } catch (err) {
       showApiError(err, 'No se pudo conectar con el servidor.');
     } finally {

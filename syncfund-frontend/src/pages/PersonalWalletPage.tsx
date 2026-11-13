@@ -8,10 +8,12 @@ import { TransactionForm } from '../features/personal-wallet/components/Transact
 import { SavingsGoalForm } from '../features/personal-wallet/components/SavingsGoalForm';
 import { CushionForm } from '../features/personal-wallet/components/CushionForm';
 import { TransactionList } from '../features/transactions/components/TransactionList';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 
 export function PersonalWalletPage() {
   const { user } = useAuth();
-  const { wallet, transactions, loading, error, refresh } = usePersonalWallet(user!.id);
+  const { wallet, transactions, loading, error, refresh, refreshAfterAction } = usePersonalWallet(user!.id);
+  useDocumentTitle('Billetera personal · SyncFund');
 
   return (
     <AppLayout>
@@ -34,7 +36,7 @@ export function PersonalWalletPage() {
           <WalletSummaryCard wallet={wallet} />
 
           <div style={{ marginBottom: '2rem' }}>
-            <TransactionForm walletId={wallet.walletId} onSaved={refresh} />
+            <TransactionForm walletId={wallet.walletId} onSaved={refreshAfterAction} />
           </div>
 
           <div
@@ -46,11 +48,13 @@ export function PersonalWalletPage() {
             }}
           >
             <SavingsGoalForm
+              // El formulario copia la meta al montarse: si la meta cambia, se vuelve a montar con la nueva.
+              key={wallet.monthlySavingsGoal}
               walletId={wallet.walletId}
               currentGoal={wallet.monthlySavingsGoal}
-              onSaved={refresh}
+              onSaved={refreshAfterAction}
             />
-            <CushionForm walletId={wallet.walletId} onSaved={refresh} />
+            <CushionForm walletId={wallet.walletId} onSaved={refreshAfterAction} />
           </div>
 
           <h3 style={{ fontSize: '1.125rem', marginBottom: '0.75rem' }}>Movimientos</h3>

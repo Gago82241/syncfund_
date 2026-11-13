@@ -1,6 +1,7 @@
 import { Fragment, useState } from 'react';
 import { formatCOP } from '../../../styles/theme';
 import type { MemberBalance, ProjectBalancesResponse } from '../../../types/api';
+import { HALF_CENT } from '../balance';
 import { SettleDebtForm } from './SettleDebtForm';
 import './ProjectStatusTable.css';
 
@@ -10,9 +11,6 @@ interface Props {
   balances: ProjectBalancesResponse;
   onPaid: () => void;
 }
-
-/** Menos de medio centavo se considera "al día" (las partes de un gasto entre 3 no son exactas). */
-const HALF_CENT = 0.005;
 
 /** El saldo siempre lleva texto, no solo color: "A favor", "Debe" o "Al día". */
 function BalanceLabel({ value }: { value: number }) {

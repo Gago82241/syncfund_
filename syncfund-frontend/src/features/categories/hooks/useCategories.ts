@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { categoryService } from '../services/categoryService';
 import { personalWalletService } from '../../personal-wallet/services/personalWalletService';
-import { describeLoadError, type LoadErrorInfo } from '../../../utils/apiError';
+import { afterActionLoadError, describeLoadError, type LoadErrorInfo } from '../../../utils/apiError';
+import { currentMonthKey } from '../../../utils/formatDate';
 import type { CategoryResponse } from '../../../types/api';
 
 export interface CategoryWithSpend extends CategoryResponse {
@@ -9,11 +10,10 @@ export interface CategoryWithSpend extends CategoryResponse {
   overLimit: boolean;
 }
 
-async function fetchCategoriesWithSpend(userId: number): Promise<CategoryWithSpend[]> {
+/** `month` es "yyyy-MM" en la hora local (currentMonthKey). */
+async function fetchCategoriesWithSpend(userId: number, month: string): Promise<CategoryWithSpend[]> {
   const { data: wallet } = await personalWalletService.getByUser(userId);
   const { data: rawCategories } = await categoryService.getAll();
-
-  const month = new Date().toISOString().slice(0, 7); // "yyyy-MM"
 
   return Promise.all(
     rawCategories.map(async (cat) => {
@@ -40,19 +40,28 @@ export function useCategories(userId: number) {
   const [categories, setCategories] = useState<CategoryWithSpend[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<LoadErrorInfo | null>(null);
+  // Mes de los datos mostrados ("yyyy-MM"): se guarda con ellos para que el texto y las cifras coincidan.
+  const [month, setMonth] = useState<string | null>(null);
+  // true desde que una acción se guardó hasta que una recarga sale bien: si la recarga falla,
+  // el error avisa que la acción sí quedó (afterActionLoadError), también al reintentar.
+  const unconfirmedAction = useRef(false);
 
   // load no marca "cargando": el estado inicial ya lo hace y refresh lo marca antes de recargar.
-  const load = useCallback(
-    () =>
-      fetchCategoriesWithSpend(userId)
-        .then((withSpend) => {
-          setCategories(withSpend);
-          setError(null);
-        })
-        .catch((err) => setError(describeLoadError(err, 'tus categorías')))
-        .finally(() => setLoading(false)),
-    [userId],
-  );
+  const load = useCallback(() => {
+    const monthToLoad = currentMonthKey();
+    return fetchCategoriesWithSpend(userId, monthToLoad)
+      .then((withSpend) => {
+        setCategories(withSpend);
+        setMonth(monthToLoad);
+        setError(null);
+        unconfirmedAction.current = false;
+      })
+      .catch((err) => {
+        const info = describeLoadError(err, 'tus categorías');
+        setError(unconfirmedAction.current ? afterActionLoadError(info) : info);
+      })
+      .finally(() => setLoading(false));
+  }, [userId]);
 
   // El error se mantiene mientras se reintenta, para que el botón muestre "Procesando..." sin parpadeos.
   const refresh = useCallback(() => {
@@ -60,9 +69,15 @@ export function useCategories(userId: number) {
     return load();
   }, [load]);
 
+  /** Recarga después de una acción que el backend ya aceptó (guardar, crear, pagar…). */
+  const refreshAfterAction = useCallback(() => {
+    unconfirmedAction.current = true;
+    return refresh();
+  }, [refresh]);
+
   useEffect(() => {
     load();
   }, [load]);
 
-  return { categories, loading, error, refresh };
+  return { categories, month, loading, error, refresh, refreshAfterAction };
 }

@@ -5,10 +5,12 @@ import { useAuth } from '../context/useAuth';
 import { useSharedProjects } from '../features/shared-project/hooks/useSharedProjects';
 import { ProjectCard } from '../features/shared-project/components/ProjectCard';
 import { CreateProjectForm } from '../features/shared-project/components/CreateProjectForm';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 
 export function SharedProjectsPage() {
   const { user } = useAuth();
-  const { projects, loading, error, refresh } = useSharedProjects(user!.id);
+  const { projects, loading, error, refresh, refreshAfterAction } = useSharedProjects(user!.id);
+  useDocumentTitle('Proyectos compartidos · SyncFund');
 
   function renderProjects() {
     // Con error no se muestra la lista anterior: podría no estar actualizada.
@@ -32,7 +34,7 @@ export function SharedProjectsPage() {
     <AppLayout>
       <h2>Proyectos compartidos</h2>
       <div style={{ marginTop: '2rem' }}>
-        <CreateProjectForm adminId={user!.id} onCreated={refresh} />
+        <CreateProjectForm adminId={user!.id} onCreated={refreshAfterAction} />
       </div>
 
       <h3 style={{ fontSize: '1.125rem', marginBottom: '0.5rem' }}>Tus proyectos</h3>

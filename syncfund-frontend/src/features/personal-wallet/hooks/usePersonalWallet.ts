@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { personalWalletService } from '../services/personalWalletService';
 import { transactionService } from '../../transactions/services/transactionService';
-import { describeLoadError, type LoadErrorInfo } from '../../../utils/apiError';
+import { afterActionLoadError, describeLoadError, type LoadErrorInfo } from '../../../utils/apiError';
 import type { PersonalWalletResponse, TransactionResponse } from '../../../types/api';
 
 async function fetchWalletWithTransactions(userId: number) {
@@ -24,6 +24,9 @@ export function usePersonalWallet(userId: number) {
   const [transactions, setTransactions] = useState<TransactionResponse[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<LoadErrorInfo | null>(null);
+  // true desde que una acción se guardó hasta que una recarga sale bien: si la recarga falla,
+  // el error avisa que la acción sí quedó (afterActionLoadError), también al reintentar.
+  const unconfirmedAction = useRef(false);
 
   // load no marca "cargando": el estado inicial ya lo hace y refresh lo marca antes de recargar.
   const load = useCallback(
@@ -33,8 +36,12 @@ export function usePersonalWallet(userId: number) {
           setWallet(data.wallet);
           setTransactions(data.transactions);
           setError(null);
+          unconfirmedAction.current = false;
         })
-        .catch((err) => setError(describeLoadError(err, 'tu billetera personal')))
+        .catch((err) => {
+          const info = describeLoadError(err, 'tu billetera personal');
+          setError(unconfirmedAction.current ? afterActionLoadError(info) : info);
+        })
         .finally(() => setLoading(false)),
     [userId],
   );
@@ -45,9 +52,15 @@ export function usePersonalWallet(userId: number) {
     return load();
   }, [load]);
 
+  /** Recarga después de una acción que el backend ya aceptó (guardar, crear, pagar…). */
+  const refreshAfterAction = useCallback(() => {
+    unconfirmedAction.current = true;
+    return refresh();
+  }, [refresh]);
+
   useEffect(() => {
     load();
   }, [load]);
 
-  return { wallet, transactions, loading, error, refresh };
+  return { wallet, transactions, loading, error, refresh, refreshAfterAction };
 }

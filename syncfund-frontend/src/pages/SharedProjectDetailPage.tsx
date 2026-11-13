@@ -12,6 +12,7 @@ import { AddMemberForm } from '../features/shared-project/components/AddMemberFo
 import { ExpenseForm } from '../features/shared-project/components/ExpenseForm';
 import { ContributionForm } from '../features/shared-project/components/ContributionForm';
 import { TransactionList } from '../features/transactions/components/TransactionList';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 
 export function SharedProjectDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -19,11 +20,21 @@ export function SharedProjectDetailPage() {
   const navigate = useNavigate();
   const projectId = Number(id);
 
-  const { project, members, balances, netBalance, transactions, loading, error, refresh } =
-    useSharedProjectDetail(projectId, user!.id);
+  const {
+    project,
+    members,
+    balances,
+    netBalance,
+    transactions,
+    loading,
+    error,
+    refresh,
+    refreshAfterAction,
+  } = useSharedProjectDetail(projectId, user!.id);
   // Un pago cambia la billetera personal: se vuelve a montar el formulario de aporte para que
   // muestre y valide el saldo disponible actualizado.
   const [paymentsMade, setPaymentsMade] = useState(0);
+  useDocumentTitle(project ? `${project.name} · SyncFund` : 'Proyecto compartido · SyncFund');
 
   return (
     <AppLayout>
@@ -56,7 +67,7 @@ export function SharedProjectDetailPage() {
             balances={balances}
             onPaid={() => {
               setPaymentsMade((n) => n + 1);
-              refresh();
+              refreshAfterAction();
             }}
           />
 
@@ -66,13 +77,13 @@ export function SharedProjectDetailPage() {
               payerId={user!.id}
               members={members}
               fundBalance={project.currentBalance}
-              onSaved={refresh}
+              onSaved={refreshAfterAction}
             />
             <ContributionForm
               key={paymentsMade}
               projectId={projectId}
               contributorId={user!.id}
-              onSaved={refresh}
+              onSaved={refreshAfterAction}
             />
           </div>
 
@@ -85,12 +96,12 @@ export function SharedProjectDetailPage() {
                 members={members}
                 adminId={project.adminId}
                 currentUserId={user!.id}
-                onRemoved={refresh}
+                onRemoved={refreshAfterAction}
                 // Quien sale ya no puede ver el proyecto: vuelve a la lista de sus proyectos.
                 onLeft={() => navigate('/projects', { replace: true })}
               />
             </div>
-            <AddMemberForm projectId={projectId} onSaved={refresh} />
+            <AddMemberForm projectId={projectId} onSaved={refreshAfterAction} />
           </div>
 
           <h3 style={{ fontSize: '1.125rem', marginBottom: '0.75rem' }}>Movimientos del proyecto</h3>

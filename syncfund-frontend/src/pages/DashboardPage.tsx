@@ -4,16 +4,19 @@ import { LoadingState } from '../components/ui/LoadingState';
 import { useAuth } from '../context/useAuth';
 import { useGeneralSummary } from '../features/users/hooks/useGeneralSummary';
 import { formatCOP } from '../styles/theme';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 
 export function DashboardPage() {
   const { user } = useAuth();
   const { summary, loading, error, refresh } = useGeneralSummary(user?.id);
+  useDocumentTitle('Resumen · SyncFund');
 
   if (!user) return null;
 
   return (
     <AppLayout>
-      <h2>Hola, {user.name.split(' ')[0]}</h2>
+      {/* Primer nombre, aunque el nombre guardado empiece con espacios o tenga varios seguidos. */}
+      <h2>Hola, {user.name.trim().split(/\s+/)[0]}</h2>
       <p style={{ color: 'var(--ink-muted)', marginTop: '0.5rem' }}>
         Este es tu saldo general en SyncFund.
       </p>

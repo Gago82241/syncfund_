@@ -8,10 +8,12 @@ import { authService } from '../features/auth/services/authService';
 import { useAuth } from '../context/useAuth';
 import { useFormErrors } from '../hooks/useFormErrors';
 import { minLength, newEmail, required } from '../utils/validation';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 
 export function RegisterPage() {
   const navigate = useNavigate();
   const { login } = useAuth();
+  useDocumentTitle('Crea tu cuenta · SyncFund');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -31,9 +33,12 @@ export function RegisterPage() {
     if (!valid) return;
     setLoading(true);
     try {
-      const { data } = await authService.register({ name, email, password });
+      // Sin espacios al inicio o al final: un espacio en el correo crearía otra variante de la cuenta.
+      // La contraseña se envía tal cual.
+      const { data } = await authService.register({ name: name.trim(), email: email.trim(), password });
       login(data);
-      navigate('/dashboard');
+      // replace: con "Atrás" no se vuelve al formulario de registro estando dentro.
+      navigate('/dashboard', { replace: true });
     } catch (err) {
       showApiError(err, 'No se pudo conectar con el servidor.');
     } finally {

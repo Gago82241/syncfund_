@@ -68,8 +68,9 @@ Se pueden corregir antes del rediseño o en paralelo.
   del mes muestra $0 en todas las categorías.
 - **Umbral de "en paz" distinto** en el Detalle: la tarjeta usa `=== 0` y la tabla, medio centavo;
   un saldo de -0,003 sale como "Debes $ 0" y como "Al día" a la vez.
-- **Cambiar entre Gasto e Ingreso borra lo escrito**, y el formulario de la meta no se actualiza si
-  la meta cambia.
+- **El formulario de la meta no se actualiza** si la meta cambia. (Que cambiar entre Gasto e
+  Ingreso reinicie monto y descripción fue una decisión del equipo, no un error: queda como
+  pregunta en la sección 5.)
 - **Si la recarga falla tras pagar o aportar**, la página entera se reemplaza por el error y el
   usuario no sabe si la operación quedó.
 - Plural fijo ("1 integrantes"); nombre y correo del registro sin recortar espacios; `/login` y
@@ -128,6 +129,11 @@ Se pueden corregir antes del rediseño o en paralelo.
 **Acceso:**
 17. ¿Habrá recuperación de contraseña? ¿"Mostrar contraseña" o "Confirmar contraseña"?
 18. En el celular, ¿el panel de marca se reduce a una franja o se muestra solo en el Registro?
+
+**Formularios:**
+19. Al cambiar entre Gasto e Ingreso, el formulario reinicia monto y descripción (decisión del
+    equipo en una rama anterior). La crítica de la Billetera propone conservarlos para no
+    obligar a escribir de nuevo. ¿Se mantiene la decisión o se revisa en el rediseño?
 19. ¿Hace falta un aviso de tratamiento de datos (Ley 1581 de 2012)?
 
 ---
