@@ -1291,3 +1291,198 @@ mostrar contraseña, foco visible).
    a un tono de tinta? DESIGN.md hoy dice las dos cosas y hay que corregirlo.
 4. ¿Se aprueba crear un `PasswordInput` (mostrar u ocultar) y un token `--field-border` de al
    menos 3:1? Los dos afectan también al Registro y a los demás formularios.
+
+---
+
+## Registro
+
+- **Archivo:** `src/pages/RegisterPage.tsx` (ruta `/register`), dentro de `AuthLayout`, con los
+  mismos componentes de formulario que el Login.
+- **Fecha:** 2026-11-13 · rama `docs/diagnostico-diseno`.
+- **Evidencia:** código fuente (incluida la validación del backend en
+  `demo/src/main/java/com/syncfund/application/dto/request/RegisterUserRequest.java`), capturas
+  de página completa en `docs/diseno/capturas-antes/` (`localhost_5173_register.png` y
+  `localhost_5173_register(iPhone 16).png`) y el detector de impeccable.
+- **Modo de la pantalla:** Operate (crear la cuenta), con papel de primera impresión.
+- **Alcance:** lo que es de `AuthLayout` o de los componentes de formulario ya se analizó en el
+  Login; aquí solo se referencia.
+
+### Puntaje de heurísticas (Nielsen)
+
+| # | Heurística | Nota | Problema clave |
+|---|---|---|---|
+| 1 | Visibilidad del estado del sistema | 3 | Carga en el botón y errores por campo con foco al primero; tras crear la cuenta, salta a `/dashboard` sin ninguna confirmación. |
+| 2 | Coincidencia con el mundo real | 3 | Español claro y tuteo; "billetera personal" aparece sin explicar. |
+| 3 | Control y libertad | 3 | Enlace al login presente; no se puede mostrar la contraseña para revisarla. |
+| 4 | Consistencia y estándares | 2 | Sin `autoComplete`; la regla de contraseña vive solo en el placeholder; estilos en línea. |
+| 5 | Prevención de errores | 2 | Sin mostrar contraseña ni confirmación; la regla desaparece al escribir; sin límites de longitud coherentes con la base de datos. |
+| 6 | Reconocer antes que recordar | 2 | "Mínimo 6 caracteres" deja de verse con la primera letra (`RegisterPage.tsx:80`). |
+| 7 | Flexibilidad y eficiencia | 1 | Sin `autoComplete="new-password"`, los gestores no proponen ni guardan una contraseña de forma fiable; nombre y correo se escriben a mano. |
+| 8 | Estética y diseño minimalista | 3 | Limpio y sobrio, acorde con el libro mayor. |
+| 9 | Recuperación de errores | 2 | El correo duplicado (422) aparece como error general, lejos del campo Correo, y no ofrece iniciar sesión. |
+| 10 | Ayuda y documentación | 2 | Nada sobre qué pasa después ni sobre el tratamiento de datos. |
+| **Total** | | **23/40** | **Aceptable, funcional con fricción** (parte baja del rango típico). |
+
+### Veredicto de especificidad
+
+**Revisión de diseño:** genérica. Lo único propio de SyncFund es una frase: "Te creamos tu
+billetera personal automáticamente." (`RegisterPage.tsx:47-49`). El resto es el formulario
+estándar de nombre, correo, contraseña, botón y enlace al login, sobre el mismo `AuthLayout`. Es
+coherente con el sistema visual, pero no cuenta nada del producto (billetera y proyectos
+compartidos) ni prepara el primer paso.
+
+**Detector automático:** 0 hallazgos en la página, `AuthLayout` y los componentes de formulario
+(salida `[]`, código 0). Mismas limitaciones que en el Resumen.
+
+**Cuánto aplica la dirección del rediseño:** como en el Login, casi nada; lo que sí aplica es la
+parte que afecta al Resumen, donde debería caer el primer paso de una cuenta nueva.
+
+### Impresión general
+
+El registro hace lo esencial bien: valida igual que el backend, inicia sesión al terminar y crea
+la billetera sola. Falla en los dos extremos del recorrido: al crear la contraseña (sin apoyo del
+gestor, con la regla escondida) y justo después de crear la cuenta, cuando el usuario aterriza en
+un Resumen vacío sin bienvenida ni siguiente paso. La mayor oportunidad es aprovechar ese momento
+de máxima intención para guiar el primer movimiento o el primer proyecto.
+
+### Lo que funciona
+
+1. **La validación del frontend replica la del backend.** Mismos mensajes en español: obligatorio,
+   formato de correo y mínimo 6 caracteres (`utils/validation.ts:20-28` frente a
+   `RegisterUserRequest.java:11-19`); los 400 del backend se asignan a cada campo.
+2. **Errores accesibles.** Validación propia con `noValidate`, foco al primer campo con error,
+   `aria-invalid` y `aria-describedby`; el error de un campo se borra al escribir.
+3. **El registro deja la sesión iniciada.** No hay que volver a escribir las credenciales, y el
+   subtítulo anticipa el beneficio (la billetera se crea sola).
+
+### Problemas prioritarios
+
+#### [P1] La contraseña nueva no tiene apoyo y su regla se esconde
+
+- **Qué:** ningún campo declara `autoComplete` (`name`, `email`, `new-password`), la regla
+  "Mínimo 6 caracteres" está solo en el placeholder (`RegisterPage.tsx:80`) y no hay mostrar
+  contraseña ni confirmación. La falta general de autocompletado y de "mostrar contraseña" es la
+  misma del Login (ver allí); lo propio del registro es `new-password` y la regla.
+- **Por qué importa:** sin `new-password`, iOS y Android no sugieren una contraseña fuerte ni
+  ofrecen guardarla, y como no hay recuperación de contraseña, una clave débil u olvidada deja al
+  usuario fuera. La regla desaparece al teclear y un lector de pantalla no la anuncia, porque no
+  está en `aria-describedby`.
+- **Corrección:** `autoComplete="name"`, `autoComplete="email"` (con `inputMode="email"`,
+  `autoCapitalize="none"` y `spellCheck={false}`) y `autoComplete="new-password"`; mover la regla a
+  la ayuda del campo (`hint`, que `Input` ya enlaza en `aria-describedby`); preferir "Mostrar"
+  dentro del campo antes que un segundo campo de confirmación, que alarga el formulario en el
+  celular.
+- **Comando sugerido:** `/impeccable harden`, luego `/impeccable clarify`.
+- **¿Lo resuelve la dirección del rediseño?** **No.**
+
+#### [P1] Sin límites de longitud en ninguna capa
+
+- **Qué:** la base de datos limita el nombre a 100 caracteres y el correo a 150
+  (`User.java:32-35`), pero `RegisterUserRequest` no tiene `@Size(max = …)` y la contraseña no
+  tiene máximo, aunque BCrypt solo usa 72 bytes. El frontend tampoco pone `maxLength`.
+- **Por qué importa:** un nombre o correo largo, o una frase-contraseña pegada desde un gestor,
+  probablemente termina en un 500 genérico en lugar de un 400 por campo. Rompe la regla del
+  proyecto de validar con DTO y mostrar un mensaje claro: es un hueco del contrato, no estético.
+- **Corrección:** `@Size(max = 100)` en el nombre, `@Size(max = 150)` en el correo y
+  `@Size(max = 72)` en la contraseña, con mensajes en español (cambio en un DTO de transporte,
+  permitido por la regla 1 de CLAUDE.md; no cambia el esquema), y los mismos límites con
+  `maxLength` y validadores en el frontend.
+- **Comando sugerido:** `/impeccable harden`.
+- **¿Lo resuelve la dirección del rediseño?** **No.**
+
+#### [P1] "Correo ya registrado" aparece lejos del campo y sin salida
+
+- **Qué:** el backend responde 422 solo con `message`, sin `errors.email`
+  (`UserAppService.java:53-54`), así que el mensaje va al error general, encima del botón y lejos
+  del campo Correo. El foco no se mueve y no se ofrece "¿Quieres iniciar sesión?".
+- **Por qué importa:** es un caso muy probable entre estudiantes que se registran dos veces o no
+  recuerdan si ya tienen cuenta. Revelar que el correo existe es un riesgo ya aceptado (README),
+  así que usarlo para guiar no lo empeora.
+- **Corrección:** detectar ese 422 en `RegisterPage` y mostrar el error bajo el campo Correo con
+  un enlace "Inicia sesión con este correo" que precargue `/login`. También podría devolverlo el
+  backend como `errors.email`, pero eso cambia el contrato del 422 y es tema del equipo.
+- **Comando sugerido:** `/impeccable clarify`.
+- **¿Lo resuelve la dirección del rediseño?** **No.**
+
+#### [P2] Tras crear la cuenta no hay bienvenida ni primer paso
+
+- **Qué:** `navigate('/dashboard')` sin `replace` y sin ningún estado de "cuenta creada"
+  (`RegisterPage.tsx:36`); el usuario cae en un Resumen con la billetera en $0. Además, `/register`
+  no redirige a quien ya inició sesión (`AppRouter.tsx:17`): con "Atrás" vuelve al formulario
+  estando dentro.
+- **Por qué importa:** es el momento de mayor intención del usuario nuevo, y su primer contacto
+  con la app es una pantalla vacía. Coincide con el estado de $0 sin siguiente paso señalado en el
+  Resumen.
+- **Corrección:** `navigate('/dashboard', { replace: true })` con una señal de bienvenida; un
+  bloque de primeros pasos en el Resumen para cuentas nuevas (registrar el primer ingreso, fijar
+  la meta, crear o unirse a un proyecto); proteger `/register` y `/login` cuando ya hay sesión.
+- **Comando sugerido:** `/impeccable onboard`.
+- **¿Lo resuelve la dirección del rediseño?** **En parte.** El rediseño del Resumen da el lugar
+  del primer paso; el disparador y el `replace` son propios del registro.
+
+#### [P3] El subtítulo dice poco y usa estilos en línea
+
+- **Qué:** "Te creamos tu billetera personal automáticamente." no dice qué es la billetera ni que
+  hay proyectos compartidos; margen y color van en línea (`RegisterPage.tsx:47`, `:93`), y el
+  margen de 2rem empuja el formulario más abajo en el celular.
+- **Por qué importa:** es el único texto propio de la página y el que le da especificidad.
+- **Corrección:** reescribir la frase orientada al beneficio y moverla a una clase con tokens de
+  espaciado.
+- **Comando sugerido:** `/impeccable clarify`, luego `/impeccable polish`.
+- **¿Lo resuelve la dirección del rediseño?** **No.**
+
+### Qué resuelve la dirección del rediseño
+
+| Problema | Menú lateral · barra inferior · hojas |
+|---|---|
+| [P1] Contraseña nueva sin apoyo | No |
+| [P1] Sin límites de longitud | No |
+| [P1] Correo duplicado sin salida | No |
+| [P2] Sin bienvenida ni primer paso | En parte (el Resumen rediseñado da el lugar) |
+| [P3] Subtítulo y estilos en línea | No |
+
+### Problemas ya documentados que también aparecen aquí
+
+- **Del Login (compartidos por `AuthLayout` y los componentes de formulario):**
+  - El panel de marca empuja el formulario en el celular: aquí el `h2` aparece a mitad de pantalla
+    y "Crear cuenta" queda cerca del borde del primer pliegue; con el teclado abierto, el botón
+    queda oculto.
+  - Bordes de campo casi invisibles y foco débil en `Input`.
+  - Sin autocompletado ni "mostrar contraseña".
+  - Estados de envío ("Procesando...") y el texto "sincronizados al instante" del panel.
+  - Hex sueltos en `AuthLayout`.
+- **Del Resumen:** `lang="en"`, título genérico, sin enlace para saltar; `ink-faint` en los
+  placeholders.
+
+### Señales de alerta por persona
+
+- **Usuario distraído en el celular:** la regla de contraseña desaparece al teclear; sin "Mostrar",
+  un error de tipeo lo deja fuera de su cuenta; escribe el correo a mano.
+- **Primera vez:** no sabe qué es "billetera personal" ni qué viene después; aterriza en un Resumen
+  vacío sin guía; no hay aviso de tratamiento de datos.
+- **Usuario de lector de pantalla o teclado:** los errores por campo están bien; la regla de
+  contraseña no está en la descripción accesible; el error de correo duplicado no mueve el foco ni
+  queda asociado al campo.
+- **Usuario de gestor de contraseñas:** sin `new-password` no genera clave ni ofrece guardarla de
+  forma fiable, y puede confundir el formulario con uno de login; una clave generada de más de 72
+  bytes puede dar un 500 o quedar truncada.
+
+### Observaciones menores
+
+- Nombre y correo se envían sin recortar espacios (`RegisterPage.tsx:34`): un espacio al final del
+  correo podría fallar en el backend o crear una variante del mismo correo.
+- La etiqueta "Correo" podría ser "Correo electrónico" para mayor claridad en lectores de pantalla.
+- `minLength={6}` en el campo es redundante con `noValidate`, aunque inofensivo.
+- El enlace "Inicia sesión" es pequeño en el celular; mismo caso que "Regístrate" en el Login.
+- No hay texto de términos ni de tratamiento de datos.
+
+### Preguntas para el equipo
+
+1. ¿Se aprueba agregar `@Size(max = …)` en `RegisterUserRequest`? Es un DTO de transporte y no
+   cambia el esquema.
+2. Para el correo duplicado, ¿el backend devuelve `errors.email` en el 422 (cambio de contrato) o
+   se resuelve solo en el frontend?
+3. ¿"Mostrar contraseña" o un campo "Confirmar contraseña"? En el celular se recomienda lo primero.
+4. ¿El registro debe llevar a un primer paso guiado (primer movimiento, meta o unirse a un
+   proyecto)? ¿Hace falta un aviso de tratamiento de datos (Ley 1581 de 2012), aunque sea un
+   proyecto académico?
