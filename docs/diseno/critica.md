@@ -452,3 +452,194 @@ de tu meta") y que registrar un movimiento sea una acción que se abre, no un bl
 3. ¿La cifra principal debe ser "Disponible" o "Total (disponible + colchón)"?
 4. ¿El progreso mensual de la meta se calcula en el frontend o debe venir del backend para no
    duplicar lógica de negocio?
+
+---
+
+## Proyectos compartidos
+
+- **Archivo:** `src/pages/SharedProjectsPage.tsx` (ruta `/projects`, la lista), con
+  `ProjectCard` y `CreateProjectForm`.
+- **Fecha:** 2026-11-13 · rama `docs/diagnostico-diseno`.
+- **Evidencia:** código fuente, capturas de página completa en
+  `docs/diseno/capturas-antes/` (`localhost_5173_projects.png` y
+  `localhost_5173_projects(iPhone 16).png`) y el detector de impeccable.
+- **Modo de la pantalla:** Operate.
+
+### Puntaje de heurísticas (Nielsen)
+
+| # | Heurística | Nota | Problema clave |
+|---|---|---|---|
+| 1 | Visibilidad del estado del sistema | 2 | Crear un proyecto no confirma nada: los campos se vacían y el proyecto aparece en una posición que no se controla. Carga y error, bien. |
+| 2 | Coincidencia con el mundo real | 2 | El monto sin etiqueta se lee como "mi plata" o "lo que debo"; en realidad es el fondo común (en el Detalle sí se llama "Fondo del proyecto"). |
+| 3 | Control y libertad | 3 | Crear no tiene confirmación y no se puede deshacer, pero el costo es bajo. |
+| 4 | Consistencia y estándares | 2 | El mismo dato se llama "fondo" en el Detalle y no tiene nombre aquí; dos `h3` hermanos con tamaños distintos; estilos en línea. |
+| 5 | Prevención de errores | 3 | Valida el nombre obligatorio; no hay límite de longitud en ninguna capa y es fácil crear proyectos con el mismo nombre. |
+| 6 | Reconocer antes que recordar | 2 | La fila no dice si el usuario administra el proyecto ni cuál es su situación: hay que entrar a cada uno. |
+| 7 | Flexibilidad y eficiencia | 2 | Sin orden, búsqueda ni agrupación; el usuario frecuente pasa por el formulario cada vez. |
+| 8 | Estética y diseño minimalista | 3 | Limpia y sobria; el problema es de prioridad: el formulario domina. |
+| 9 | Recuperación de errores | 3 | `LoadError` con reintento y `role="alert"`; los errores del formulario pasan por `useFormErrors`. |
+| 10 | Ayuda y documentación | 1 | El estado vacío es una línea gris que no explica qué es un proyecto ni el fondo. |
+| **Total** | | **23/40** | **Aceptable con fallas notorias**: funciona, pero no comunica lo que importa. |
+
+### Veredicto de especificidad
+
+**Revisión de diseño:** buena base tipográfica (Fraunces en el título, filas con línea fina,
+números tabulares), pero la estructura es la de un CRUD genérico: formulario arriba, lista abajo
+(`SharedProjectsPage.tsx:33-39`). La fila no dice de quién es el dinero, qué rol tiene el usuario
+ni cómo está en el proyecto. Si "$ 90.000" se cambiara por "12 tareas", la pantalla serviría para
+un gestor de tareas.
+
+**Detector automático:** 0 hallazgos en la página, `ProjectCard` y `CreateProjectForm` (salida
+`[]`, código 0). Mismas limitaciones que en el Resumen: solo reglas por patrón sobre el código.
+
+### Impresión general
+
+Correcta, sobria y de bajo valor. El estudiante entra a esta lista para saber en cuál de sus
+grupos debe, le deben o está en paz, y la fila le da otra cifra: el fondo común, sin etiqueta.
+Además, el formulario para crear, que se usa pocas veces, ocupa el lugar más visible. La mayor
+oportunidad es que cada fila sea un renglón de su situación personal y que crear sea una acción
+que se abre.
+
+### Lo que funciona
+
+1. **Estados de datos bien pensados.** `projects === null` separa "no cargó" de "lista vacía"
+   (`useSharedProjects.ts:8-12`) y con error no se muestra la lista anterior.
+2. **Filas con forma de libro mayor.** Línea fina en lugar de tarjetas con sombra, números
+   tabulares y COP en `es-CO`. Cada fila es un solo enlace (`ProjectCard.tsx:8`): toda el área
+   es tocable, mide unos 80px de alto y tiene foco visible.
+3. **Formulario accesible.** Etiquetas asociadas, `aria-invalid` y `aria-describedby`; ejemplos
+   locales en los campos ("Viaje a Cartagena").
+
+### Problemas prioritarios
+
+#### [P1] La cifra de cada fila es ambigua y no es la que el usuario necesita
+
+- **Qué:** cada fila muestra `formatCOP(project.currentBalance)` sin etiqueta
+  (`ProjectCard.tsx:13`). Es el fondo común, no la situación del usuario. La respuesta de la
+  lista (`SharedProjectResponse`, `types/api.ts`) ni siquiera trae el saldo neto del usuario; ese
+  dato solo existe en `GET /api/projects/{id}/balances`, proyecto por proyecto.
+- **Por qué importa:** contradice "certeza sobre cada peso" y "lo personal y lo compartido,
+  juntos" (PRODUCT.md). Quien ve "$ 90.000" puede creer que tiene o que debe 90 mil, y saber si
+  debe obliga a abrir cada proyecto.
+- **Corrección:**
+  - Inmediata (solo frontend): etiquetar "Fondo $ 90.000".
+  - Objetivo: una segunda línea con la situación personal ("Estás en paz" / "Te deben $12.000" /
+    "Debes $8.000"), siempre con texto además del color. Requiere que la respuesta de la lista
+    traiga el saldo neto del usuario (un campo en el DTO de respuesta, permitido por la regla 1 de
+    CLAUDE.md) o pedir los saldos por proyecto.
+- **Comando sugerido:** `/impeccable clarify`, luego `/impeccable shape`.
+- **¿Lo resuelve la dirección del rediseño?** **No.** Cambia el contenedor, no el dato.
+
+#### [P1] El formulario para crear desplaza a la lista, que es la tarea principal
+
+- **Qué:** el formulario va primero y siempre abierto (`SharedProjectsPage.tsx:34-36`). En la
+  captura móvil ocupa casi toda la primera pantalla y la lista empieza en la mitad inferior; sin
+  el zoom que provoca la cabecera rota, quedaría debajo del pliegue.
+- **Por qué importa:** un proyecto se crea pocas veces y se consulta a diario; el usuario que
+  vuelve paga ese costo cada vez.
+- **Corrección:** la lista primero y un botón "Nuevo proyecto" que abra el formulario en panel
+  lateral (escritorio) u hoja inferior (móvil). Con la lista vacía, crear pasa a ser lo principal.
+- **Comando sugerido:** `/impeccable layout`, luego `/impeccable distill`.
+- **¿Lo resuelve la dirección del rediseño?** **Sí.** DESIGN.md ya define abrir los formularios
+  en panel u hoja; basta con aplicarlo aquí.
+
+#### [P2] Estado vacío y primer uso pobres
+
+- **Qué:** con la lista vacía solo aparece una línea en `ink-faint` con estilo en línea
+  (`SharedProjectsPage.tsx:26`), sin explicación ni acción.
+- **Por qué importa:** el usuario nuevo no sabe qué es un proyecto, que el administrador agrega
+  integrantes por correo ni que aportar descuenta de su billetera. Tampoco sabe que, si lo van a
+  agregar, no necesita crear uno.
+- **Corrección:** estado vacío en una hoja, con una frase sobre el modelo del fondo ("Un proyecto
+  junta los aportes de cada integrante en un fondo común que paga los gastos del grupo") y dos
+  caminos: "Crear proyecto" y "Si alguien te agrega por correo, aparecerá aquí". Texto en
+  `ink-muted` o más oscuro.
+- **Comando sugerido:** `/impeccable onboard`, luego `/impeccable clarify`.
+- **¿Lo resuelve la dirección del rediseño?** **En parte.** La hoja da el contenedor; el texto
+  hay que escribirlo.
+
+#### [P2] La fila no resiste casos límite y comunica poco
+
+- **Qué:**
+  - `.project-card` es una fila flexible sin `gap` ni `min-width: 0`, y el nombre no tiene corte
+    de línea seguro (`ProjectCard.css:1-19`): un nombre largo se pega o se monta sobre el monto.
+  - El plural está fijo: un proyecto recién creado dice "1 integrantes" (`ProjectCard.tsx:11`).
+  - No se indica el rol (administrador) ni hay señal de que la fila es un enlace (sin flecha ni
+    cambio al pasar el cursor).
+  - Un lector de pantalla oye "Viaje 3 integrantes $ 90.000", sin saber que la cifra es el
+    fondo.
+  - Sin orden definido: con 15 proyectos o más la lista pierde jerarquía.
+- **Por qué importa:** la fila es la unidad de esta pantalla; si falla con datos reales, como el
+  "Viaje a CANCUN" en mayúsculas de la captura, se pierde la sensación de libro bien llevado.
+- **Corrección:** `gap`, `min-width: 0` y `overflow-wrap: anywhere` en el nombre; plural
+  correcto; "Administras" en los metadatos; flecha sutil y fondo `ledger-100` al pasar el cursor o
+  tocar; texto accesible "Fondo: $ 90.000"; orden fijo (deudas pendientes primero o actividad
+  reciente); límite de longitud del nombre en el DTO y en el campo.
+- **Comando sugerido:** `/impeccable harden`, luego `/impeccable polish`.
+- **¿Lo resuelve la dirección del rediseño?** **No.**
+
+#### [P3] Crear un proyecto no confirma ni da continuidad
+
+- **Qué:** al terminar, el formulario se vacía y la lista se recarga
+  (`CreateProjectForm.tsx:28-30`). No hay mensaje ni lleva al proyecto nuevo, aunque el paso
+  siguiente lógico es agregar integrantes. Es el mismo patrón de "guardar sin confirmación" de la
+  Billetera.
+- **Por qué importa:** el usuario no sabe si funcionó y el flujo "crear → agregar integrantes →
+  aportar" se corta.
+- **Corrección:** al crear, cerrar el panel e ir a `/projects/{id}`, o resaltar la fila nueva con
+  "Proyecto creado. Ahora agrega a los integrantes".
+- **Comando sugerido:** `/impeccable clarify` (y `/impeccable animate` para la entrada de la fila).
+- **¿Lo resuelve la dirección del rediseño?** **En parte.** El panel da un momento de cierre;
+  falta decidir qué pasa después.
+
+### Qué resuelve la dirección del rediseño
+
+| Problema | Menú lateral · barra inferior · hojas |
+|---|---|
+| [P1] Cifra ambigua en cada fila | No |
+| [P1] Formulario desplaza a la lista | Sí (formulario en panel u hoja inferior) |
+| [P2] Estado vacío pobre | En parte (da la hoja, no el texto) |
+| [P2] Fila frágil y poco informativa | No |
+| [P3] Crear sin confirmación | En parte |
+
+### Problemas ya documentados que también aparecen aquí
+
+- **Navegación móvil rota** ([P0] del Resumen): en la captura del iPhone el contenido ocupa solo
+  la parte izquierda de una página alejada.
+- **Accesibilidad estructural** ([P2] del Resumen): empieza en `h2`
+  (`SharedProjectsPage.tsx:33`), `lang="en"`, título genérico, sin enlace para saltar.
+- **Brechas de contraste** (DESIGN.md): `ink-faint` en "3 integrantes" y en el estado vacío.
+- **Guardar sin confirmación** ([P2] de la Billetera): se repite al crear un proyecto.
+
+### Señales de alerta por persona
+
+- **Usuario distraído en el celular:** lee "$ 90.000" sin etiqueta y cree que es su saldo o su
+  deuda; para llegar a la lista pasa por el formulario.
+- **Primera vez:** ve un formulario sin contexto y una línea gris; no sabe qué es un fondo, que
+  aportar descuenta de su billetera ni que puede esperar a que lo agreguen.
+- **Usuario de lector de pantalla o teclado:** cada enlace anuncia "Nombre N integrantes $ X" sin
+  decir que X es el fondo; los dos `h3` tienen el mismo nivel y pesos distintos. A favor: un solo
+  enlace por fila, en orden lógico y con foco visible.
+- **Estudiante con varios grupos** (apartamento, viaje, parche; persona de PRODUCT.md): quiere
+  saber en cuál debe antes de cobrarle a alguien; hoy abre proyecto por proyecto, sin orden, rol
+  ni estado que lo guíe.
+
+### Observaciones menores
+
+- La descripción que se pide al crear ("Descripción (opcional)") nunca se muestra en la lista.
+- El monto va en Figtree a 1.125rem; podría tener más intención sin competir con la cifra
+  protagonista del Detalle.
+- El botón "Crear proyecto" a todo el ancho refuerza que el formulario domine la página.
+- Estilos en línea en `SharedProjectsPage.tsx:26,34,38` y en `CreateProjectForm.tsx`.
+
+### Preguntas para el equipo
+
+1. ¿Puede la lista de proyectos traer el saldo neto del usuario en cada uno (un campo en el DTO
+   de respuesta, calculado con `DebtCalculator`)? ¿O se piden los saldos por proyecto, sabiendo
+   que en móvil son N peticiones?
+2. ¿Qué cifra lleva cada fila: el fondo, la situación del usuario o las dos? Si en móvil solo cabe
+   una, ¿cuál responde mejor a "certeza sobre cada peso"?
+3. Al crear un proyecto, ¿se lleva al usuario directo al Detalle para agregar integrantes, o se
+   queda en la lista con una confirmación?
+4. ¿En qué orden van los proyectos: deudas pendientes primero, actividad reciente o alfabético?
+   ¿Se muestra en la fila que el usuario es administrador?
