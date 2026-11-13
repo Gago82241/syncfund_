@@ -14,13 +14,14 @@ interface Props {
 /** PersonalWallet.manageCushion(amount, type). */
 export function CushionForm({ walletId, onSaved }: Props) {
   const [amount, setAmount] = useState('');
-  const [loading, setLoading] = useState(false);
+  // Acción en curso: solo su botón dice "Procesando..."; mientras tanto los dos quedan deshabilitados.
+  const [pending, setPending] = useState<'APARTAR' | 'LIBERAR' | null>(null);
   const { fieldErrors, formError, formRef, validate, showApiError, clearField } =
     useFormErrors(['amount']);
 
   async function handleAction(type: 'APARTAR' | 'LIBERAR') {
     if (!validate({ amount: wholeAmount(amount) })) return;
-    setLoading(true);
+    setPending(type);
     try {
       await personalWalletService.manageCushion(walletId, { amount: Number(amount), type });
       setAmount('');
@@ -28,7 +29,7 @@ export function CushionForm({ walletId, onSaved }: Props) {
     } catch (err) {
       showApiError(err, 'No se pudo completar la operación.');
     } finally {
-      setLoading(false);
+      setPending(null);
     }
   }
 
@@ -51,10 +52,22 @@ export function CushionForm({ walletId, onSaved }: Props) {
       />
       <FormError message={formError} />
       <div style={{ display: 'flex', gap: '0.75rem' }}>
-        <Button type="button" variant="ghost" loading={loading} onClick={() => handleAction('APARTAR')}>
+        <Button
+          type="button"
+          variant="ghost"
+          loading={pending === 'APARTAR'}
+          disabled={pending !== null}
+          onClick={() => handleAction('APARTAR')}
+        >
           Apartar
         </Button>
-        <Button type="button" variant="ghost" loading={loading} onClick={() => handleAction('LIBERAR')}>
+        <Button
+          type="button"
+          variant="ghost"
+          loading={pending === 'LIBERAR'}
+          disabled={pending !== null}
+          onClick={() => handleAction('LIBERAR')}
+        >
           Liberar
         </Button>
       </div>

@@ -14,7 +14,8 @@ export function DashboardPage() {
   return (
     <AppLayout>
       <title>Resumen · SyncFund</title>
-      <h2>Hola, {user.name.split(' ')[0]}</h2>
+      {/* Primer nombre, aunque el nombre guardado empiece con espacios o tenga varios seguidos. */}
+      <h2>Hola, {user.name.trim().split(/\s+/)[0]}</h2>
       <p style={{ color: 'var(--ink-muted)', marginTop: '0.5rem' }}>
         Este es tu saldo general en SyncFund.
       </p>
