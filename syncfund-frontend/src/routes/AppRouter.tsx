@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { LoginPage } from '../pages/LoginPage';
 import { RegisterPage } from '../pages/RegisterPage';
 import { DashboardPage } from '../pages/DashboardPage';
@@ -7,14 +7,30 @@ import { SharedProjectsPage } from '../pages/SharedProjectsPage';
 import { SharedProjectDetailPage } from '../pages/SharedProjectDetailPage';
 import { CategoriesPage } from '../pages/CategoriesPage';
 import { ProtectedRoute } from './ProtectedRoute';
+import { PublicOnlyRoute } from './PublicOnlyRoute';
+import { HomeRedirect } from './HomeRedirect';
 
 export function AppRouter() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<Navigate to="/login" replace />} />
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/register" element={<RegisterPage />} />
+        <Route path="/" element={<HomeRedirect />} />
+        <Route
+          path="/login"
+          element={
+            <PublicOnlyRoute>
+              <LoginPage />
+            </PublicOnlyRoute>
+          }
+        />
+        <Route
+          path="/register"
+          element={
+            <PublicOnlyRoute>
+              <RegisterPage />
+            </PublicOnlyRoute>
+          }
+        />
         <Route
           path="/dashboard"
           element={

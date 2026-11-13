@@ -30,7 +30,8 @@ export function LoginPage() {
       // El autocompletado a veces deja un espacio al final del correo; la contraseña se envía tal cual.
       const { data } = await authService.login({ email: email.trim(), password });
       login(data);
-      navigate('/dashboard');
+      // replace: con "Atrás" no se vuelve al formulario de login estando dentro.
+      navigate('/dashboard', { replace: true });
     } catch (err) {
       showApiError(err, 'No se pudo conectar con el servidor.');
     } finally {

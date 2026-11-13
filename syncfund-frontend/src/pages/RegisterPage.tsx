@@ -35,7 +35,8 @@ export function RegisterPage() {
       // La contraseña se envía tal cual.
       const { data } = await authService.register({ name: name.trim(), email: email.trim(), password });
       login(data);
-      navigate('/dashboard');
+      // replace: con "Atrás" no se vuelve al formulario de registro estando dentro.
+      navigate('/dashboard', { replace: true });
     } catch (err) {
       showApiError(err, 'No se pudo conectar con el servidor.');
     } finally {
