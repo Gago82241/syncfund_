@@ -15,6 +15,7 @@ export function PersonalWalletPage() {
 
   return (
     <AppLayout>
+      <title>Billetera personal · SyncFund</title>
       <h2>Billetera personal</h2>
 
       {/* Con error no se muestran los datos anteriores: podrían no estar actualizados. */}

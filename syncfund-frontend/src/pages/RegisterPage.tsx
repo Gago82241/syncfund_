@@ -46,6 +46,7 @@ export function RegisterPage() {
 
   return (
     <AuthLayout>
+      <title>Crea tu cuenta · SyncFund</title>
       <h2>Crea tu cuenta</h2>
       <p style={{ color: 'var(--ink-muted)', marginTop: '0.5rem', marginBottom: '2rem' }}>
         Te creamos tu billetera personal automáticamente.

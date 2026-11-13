@@ -29,6 +29,7 @@ export function CategoriesPage() {
 
   return (
     <AppLayout>
+      <title>Categorías · SyncFund</title>
       <h2>Categorías</h2>
       <p style={{ color: 'var(--ink-muted)', marginTop: '0.5rem' }}>
         {/* Se nombra el mes consultado; antes de la primera carga todavía no se sabe. */}

@@ -30,6 +30,7 @@ export function SharedProjectsPage() {
 
   return (
     <AppLayout>
+      <title>Proyectos compartidos · SyncFund</title>
       <h2>Proyectos compartidos</h2>
       <div style={{ marginTop: '2rem' }}>
         <CreateProjectForm adminId={user!.id} onCreated={refreshAfterAction} />

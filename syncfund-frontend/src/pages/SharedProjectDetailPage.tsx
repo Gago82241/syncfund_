@@ -36,6 +36,8 @@ export function SharedProjectDetailPage() {
 
   return (
     <AppLayout>
+      {/* React 19 lleva el <title> al <head>; su contenido debe ser un solo texto. */}
+      <title>{project ? `${project.name} · SyncFund` : 'Proyecto compartido · SyncFund'}</title>
       {/* Con error no se muestran los datos anteriores: podrían no estar actualizados. */}
       {error && (
         <LoadError

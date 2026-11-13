@@ -41,6 +41,7 @@ export function LoginPage() {
 
   return (
     <AuthLayout>
+      <title>Inicia sesión · SyncFund</title>
       <h2>Inicia sesión</h2>
       <p style={{ color: 'var(--ink-muted)', marginTop: '0.5rem', marginBottom: '2rem' }}>
         Entra para ver el saldo de tus billeteras y proyectos.
