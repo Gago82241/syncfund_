@@ -248,3 +248,207 @@ la cifra aparece:
 | Debe dinero en algún proyecto | Justo debajo de la cifra, un aviso destacado: a quién le debe, cuánto y un acceso directo a "Pagar". |
 | Le deben dinero | Se indica en la hoja de proyectos, no en el aviso. |
 | Está en paz en todos | Una línea discreta: "Estás al día en todos tus proyectos". |
+
+---
+
+## Billetera personal
+
+- **Archivo:** `src/pages/PersonalWalletPage.tsx` (ruta `/wallet`), con `WalletSummaryCard`,
+  `TransactionForm`, `SavingsGoalForm`, `CushionForm` y `TransactionList`.
+- **Fecha:** 2026-11-13 · rama `docs/diagnostico-diseno`.
+- **Evidencia:** código fuente, capturas de página completa en
+  `docs/diseno/capturas-antes/` (`localhost_5173_wallet.png` y
+  `localhost_5173_wallet(iPhone 16).png`) y el detector de impeccable.
+- **Modo de la pantalla:** Operate.
+
+### Puntaje de heurísticas (Nielsen)
+
+| # | Heurística | Nota | Problema clave |
+|---|---|---|---|
+| 1 | Visibilidad del estado del sistema | 2 | Guardar un movimiento, la meta o el colchón no da ninguna confirmación: solo cambian las cifras en silencio. |
+| 2 | Coincidencia con el mundo real | 3 | Lenguaje local (COP, "colchón"), pero "Apartar / Liberar" no dice de dónde a dónde va la plata. |
+| 3 | Control y libertad | 1 | No se puede editar ni eliminar un movimiento; cambiar entre Gasto e Ingreso borra lo escrito (`TransactionForm.tsx:54-61`). |
+| 4 | Consistencia y estándares | 2 | El monto vacío en modo Gasto tiene el mismo borde terracota que un campo con error; estilos en línea en la página y en `CushionForm`. |
+| 5 | Prevención de errores | 2 | Montos `type="number"` "sin puntos", sin formato de miles ni vista previa: 50000 y 500000 se confunden. Apartar y Liberar no muestran el disponible. |
+| 6 | Reconocer antes que recordar | 2 | Meta y colchón no muestran saldo actual ni máximo; las filas no muestran la categoría. |
+| 7 | Flexibilidad y eficiencia | 2 | Sin `inputMode`, filtros ni agrupación por mes; el formulario ocupa siempre la primera pantalla. |
+| 8 | Estética y diseño minimalista | 2 | Tres formularios compiten con el libro; en móvil el historial empieza cerca de los 1000px. |
+| 9 | Recuperación de errores | 3 | `LoadError`, `FormError` y el reintento de categorías bien resueltos; mensajes del backend claros. |
+| 10 | Ayuda y documentación | 1 | Nada explica qué es el colchón ni la meta; el estado vacío no orienta. |
+| **Total** | | **20/40** | **Aceptable con fallas importantes** (límite inferior). |
+
+### Veredicto de especificidad
+
+**Revisión de diseño:** tiene rasgos propios (cifra en Fraunces, filas de libro mayor con línea
+fina, números tabulares, signo "+ / −" explícito), pero la composición es la de un CRUD genérico:
+cifra, formulario grande en caja, dos mini-formularios y lista plana. Nada de la pantalla expresa
+"certeza sobre cada peso": la cifra principal no dice qué representa, la meta es un número sin
+progreso y el colchón mueve plata sin dejar rastro en el libro.
+
+**Detector automático:** 0 hallazgos en la página y sus 5 componentes (salida `[]`, código 0).
+Como en el Resumen, solo corrieron las reglas por patrón sobre el código; contraste y texto
+diminuto no se evaluaron y no hubo superposición en el navegador.
+
+### Impresión general
+
+La billetera es la pantalla de uso diario (registrar un gasto en el momento) y hoy está
+organizada al revés: primero formularios, después el libro. Los estados de carga y error son
+honestos, pero la pantalla no explica su propia cifra. La mayor oportunidad es que el saldo, la
+meta y el colchón se lean como un solo estado de cuenta ("disponible", "apartado", "llevas $X
+de tu meta") y que registrar un movimiento sea una acción que se abre, no un bloque fijo.
+
+### Lo que funciona
+
+1. **Estados honestos.** Con error no se muestran datos viejos, y billetera y movimientos se
+   cargan juntos para que un fallo no parezca "sin movimientos" (`PersonalWalletPage.tsx:20-30`,
+   `usePersonalWallet.ts:18-24`). El fallo de categorías es un aviso suave con "Reintentar".
+2. **Filas de libro mayor.** Línea fina, números tabulares y signo explícito (signo menos real,
+   no guion), sin depender solo del color; los pagos entre integrantes van en neutro y sin signo.
+3. **Formularios accesibles en lo básico.** Etiquetas asociadas, `aria-invalid`,
+   `aria-describedby`, foco al primer error (`useFormErrors`) y `role="alert"` en `FormError`.
+
+### Problemas prioritarios
+
+#### [P1] La meta y el colchón desbordan la pantalla en móvil
+
+- **Qué:** `PersonalWalletPage.tsx:40-47` define en línea `gridTemplateColumns: '1fr 1fr'` sin
+  punto de quiebre. En la captura del iPhone ese bloque llega a unos 445px mientras el resto del
+  contenido termina en unos 358px; el botón "Liberar" también sobresale y cada campo queda en
+  unos 190px.
+- **Por qué importa:** es una segunda fuente de desborde horizontal, independiente de la
+  cabecera: arreglar `AppLayout` no la elimina.
+- **Corrección:** pasar a una clase CSS con una columna por defecto y dos desde unos 640px; o
+  mejor, que meta y colchón sean acciones que se abren en panel u hoja (ver preguntas).
+- **Comando sugerido:** `/impeccable adapt`, luego `/impeccable layout`.
+- **¿Lo resuelve la dirección del rediseño?** **En parte.** Si meta y colchón pasan a paneles u
+  hojas inferiores, sí; si se quedan en la página, la cuadrícula sigue rota.
+
+#### [P1] El colchón mueve plata sin dejar rastro y la cifra principal no dice qué es
+
+- **Qué:** "Apartar" resta del saldo y suma al colchón
+  (`demo/src/main/java/com/syncfund/domain/model/PersonalWallet.java:59-71`), pero no crea
+  ninguna fila en Movimientos. La cifra principal (`WalletSummaryCard.tsx:9-10`) solo lleva como
+  etiqueta el nombre de la billetera ("Ahorros personales"), no "Disponible". En la captura el
+  saldo es $123.000 y el historial visible no suma esa cifra.
+- **Por qué importa:** rompe "certeza sobre cada peso": quien aparta $50.000 ve bajar su saldo y
+  no encuentra la razón en el libro.
+- **Corrección:** etiquetar la cifra como "Disponible", con "Total = disponible + colchón"
+  debajo; en el formulario del colchón, mostrar los límites con el `hint` que ya soporta `Input`
+  ("Disponible para apartar: $X · Apartado: $Y"). Que los movimientos del colchón aparezcan en el
+  libro requiere decisión del equipo, porque hoy no son transacciones (regla 1 de CLAUDE.md).
+- **Comando sugerido:** `/impeccable clarify`.
+- **¿Lo resuelve la dirección del rediseño?** **No.** Es información y dominio, no estructura.
+
+#### [P1] La meta de ahorro es un número muerto
+
+- **Qué:** `WalletSummaryCard.tsx:13-16` muestra "Meta de ahorro mensual $ 0" sin compararla con
+  nada: ni progreso del mes ni invitación a definirla.
+- **Por qué importa:** para el estudiante, la meta es el gancho emocional de la pantalla y hoy no
+  le dice si va bien o mal. Con meta en $0, el usuario nuevo ve "$ 0" dos veces.
+- **Corrección:** mostrar el progreso del mes ("Llevas $X de $Y este mes") con una barra plana;
+  sin meta, una invitación a definirla. Decidir si el cálculo va en el frontend o en el backend
+  (regla 2 de CLAUDE.md: la lógica de negocio vive en los services).
+- **Comando sugerido:** `/impeccable onboard`, luego `/impeccable clarify`.
+- **¿Lo resuelve la dirección del rediseño?** **No.**
+
+#### [P1] Las filas del libro se rompen con datos reales
+
+- **Qué:** `.tx-list__row` (`TransactionList.css:7-13`) no tiene `gap`, ni `min-width: 0` en la
+  descripción, ni `white-space: nowrap` en el monto.
+  - En la captura móvil, el "+" queda en una línea y "$ 10.000" en la siguiente (filas "Pago de
+    PruebaC – «Prueba eliminar»" y "…«Viaje a CANCUN»").
+  - "Pago de Prueba B – «Prueba fondo»+ $ 23.500" queda pegado al monto.
+  - No hay paginación ni agrupación por mes, el año se repite en cada fecha y no se muestra la
+    categoría, aunque el formulario la pide.
+- **Por qué importa:** el monto es lo que el usuario vino a verificar; un signo separado de su
+  cifra crea ambigüedad justo donde no puede haberla. El mismo componente se usa en el Detalle
+  del proyecto.
+- **Corrección:** `gap` en la fila, `min-width: 0` y `overflow-wrap: anywhere` en la
+  descripción, `white-space: nowrap` y `flex-shrink: 0` en el monto; agrupar por mes, mostrar la
+  categoría como dato secundario y paginar o "Ver más" pasadas unas 30 filas.
+- **Comando sugerido:** `/impeccable harden`, luego `/impeccable layout`.
+- **¿Lo resuelve la dirección del rediseño?** **En parte.** La hoja le da marco, pero no corrige
+  el CSS de la fila.
+
+#### [P2] El formulario de movimiento da señales confusas y no confirma nada
+
+- **Qué:**
+  - En modo Gasto, el monto vacío ya tiene borde terracota (`TransactionForm.css:37-38`): en las
+    dos capturas parece un campo con error antes de escribir.
+  - El selector Gasto/Ingreso son dos botones sin `aria-pressed` (`TransactionForm.tsx:95-108`):
+    un lector de pantalla no sabe cuál está activo.
+  - Cambiar de tipo borra monto y descripción (`TransactionForm.tsx:57-58`).
+  - Al guardar no hay mensaje de éxito ni anuncio `role="status"`.
+  - El monto no lleva `inputMode="numeric"` y la instrucción "(sin puntos)" vive en el
+    placeholder, que desaparece al escribir.
+  - En el colchón, Apartar y Liberar comparten estado de carga: ambos dicen "Procesando..."
+    (`CushionForm.tsx:54-58`).
+- **Por qué importa:** registrar un gasto es la tarea más frecuente. El borde rojo da falsa
+  alarma y la falta de confirmación lleva a registrar dos veces.
+- **Corrección:** marcar el tipo en el selector, no con el borde; `aria-pressed`; conservar lo
+  escrito al cambiar de tipo; aviso de éxito con `role="status"` ("Gasto de $2.000
+  registrado"); vista previa formateada bajo el campo ("= $ 50.000"); `inputMode="numeric"`;
+  estado de carga por botón.
+- **Comando sugerido:** `/impeccable clarify`, luego `/impeccable harden`.
+- **¿Lo resuelve la dirección del rediseño?** **En parte.** El panel u hoja inferior da un
+  momento claro de "guardar y cerrar", pero el selector, el borde y la vista previa siguen
+  pendientes.
+
+### Qué resuelve la dirección del rediseño
+
+| Problema | Menú lateral · barra inferior · hojas |
+|---|---|
+| [P1] Meta y colchón desbordan en móvil | En parte (sí, si pasan a paneles u hojas inferiores) |
+| [P1] Colchón sin rastro y cifra sin etiqueta | No |
+| [P1] Meta sin progreso | No |
+| [P1] Filas del libro se rompen | En parte (da el marco, no el CSS) |
+| [P2] Formulario confuso y sin confirmación | En parte |
+
+### Problemas ya documentados que también aparecen aquí
+
+- **Navegación móvil rota** ([P0] del Resumen): se ve en la captura del iPhone, con la cabecera
+  cortada y el zoom alejado.
+- **Accesibilidad estructural** ([P2] del Resumen): la página empieza en `h2`
+  (`PersonalWalletPage.tsx:18`), `lang="en"`, título genérico y sin enlace para saltar.
+- **Brechas de contraste** (DESIGN.md): `gain-500` en los ingresos, `loss-500` en gastos y en el
+  borde del monto, `ink-faint` en fechas, estado vacío y placeholders.
+
+### Señales de alerta por persona
+
+- **Usuario distraído en el celular:**
+  - Tiene que bajar más de una pantalla de formulario para ver su historial.
+  - El bloque de meta y colchón desborda.
+  - Apartar y Liberar son contiguos, del mismo estilo y sin confirmación: un toque errado mueve
+    plata.
+- **Primera vez:**
+  - Ve "$ 0 / $ 0", tres formularios sin explicación y "Todavía no hay movimientos
+    registrados." sin un siguiente paso.
+  - No sabe qué es el colchón ni para qué sirve la meta.
+- **Usuario de lector de pantalla o teclado:**
+  - El selector de tipo no anuncia su estado y guardar no se anuncia.
+  - Tras guardar, el foco queda en el botón sin contexto.
+  - El signo "+" o "−" separado por un espacio puede leerse mal; conviene un texto oculto
+    "Ingreso de" / "Gasto de".
+- **Estudiante que comparte arriendo** (persona de PRODUCT.md):
+  - Los aportes y pagos de proyectos aparecen mezclados con sus gastos propios ("Aporte a «Viaje
+    a CANCUN»" − $90.000) sin marca de proyecto, contra el principio 2 de PRODUCT.md.
+  - No puede responder "¿cuánto gasté este mes?".
+
+### Observaciones menores
+
+- "Ahorros personales" bajo el título parece un subtítulo, no la etiqueta de la cifra.
+- En la meta, la etiqueta "Monto (COP)" repite lo que ya dice el título.
+- `SavingsGoalForm` inicializa con `useState(String(currentGoal))` (`SavingsGoalForm.tsx:17`): si
+  la meta cambia por fuera, el campo no se actualiza; y el 0 precargado obliga a borrarlo.
+- Las fechas repiten el año en cada fila ("11 de nov de 2026"), innecesario en el año en curso.
+- `Button` dice "Procesando..." con tres puntos y `LoadingState` usa "…".
+
+### Preguntas para el equipo
+
+1. ¿La meta y el colchón son acciones (paneles laterales u hojas inferiores invocadas desde el
+   resumen) o bloques fijos de la página? Esto decide gran parte de la composición.
+2. ¿Los movimientos del colchón deben aparecer en el libro? Hoy no generan transacción;
+   cambiarlo puede tocar el dominio y el esquema.
+3. ¿La cifra principal debe ser "Disponible" o "Total (disponible + colchón)"?
+4. ¿El progreso mensual de la meta se calcula en el frontend o debe venir del backend para no
+   duplicar lógica de negocio?
