@@ -643,3 +643,238 @@ que se abre.
    queda en la lista con una confirmación?
 4. ¿En qué orden van los proyectos: deudas pendientes primero, actividad reciente o alfabético?
    ¿Se muestra en la fila que el usuario es administrador?
+
+---
+
+## Detalle del proyecto
+
+- **Archivo:** `src/pages/SharedProjectDetailPage.tsx` (ruta `/projects/:id`), con
+  `ProjectSummaryCard`, `ProjectStatusTable`, `SettleDebtForm`, `MembersList`,
+  `RemoveMemberConfirm`, `AddMemberForm`, `ExpenseForm`, `ParticipantChips`, `ContributionForm` y
+  `TransactionList`.
+- **Fecha:** 2026-11-13 · rama `docs/diagnostico-diseno`.
+- **Evidencia:** código fuente, capturas de página completa del proyecto 40 en
+  `docs/diseno/capturas-antes/` (`localhost_5173_projects_40.png` y
+  `localhost_5173_projects_40(iPhone 16).png`) y el detector de impeccable.
+- **Modo de la pantalla:** Operate. Es la pantalla más compleja de la app.
+
+### Puntaje de heurísticas (Nielsen)
+
+| # | Heurística | Nota | Problema clave |
+|---|---|---|---|
+| 1 | Visibilidad del estado del sistema | 2 | Pagar, aportar o registrar un gasto no da confirmación: el formulario se limpia o se cierra y la tabla se recarga en silencio. |
+| 2 | Coincidencia con el mundo real | 3 | Buen lenguaje ("Te deben", "Al día", "Pago entre integrantes"), pero el historial repite "Aporte al fondo" sin decir quién aportó. |
+| 3 | Control y libertad | 2 | "Pagar" mueve dinero real de billetera a billetera sin paso de revisión ni forma de deshacer. Eliminar o salir sí tiene confirmación. |
+| 4 | Consistencia y estándares | 2 | La tarjeta de resumen usa `=== 0` y la tabla, medio centavo; "En paz y salvo" convive con "Al día"; dos cifras protagonistas. |
+| 5 | Prevención de errores | 2 | Montos `type="number"` con "(sin puntos)" en el placeholder; "Eliminar" aparece junto a integrantes que deben. |
+| 6 | Reconocer antes que recordar | 3 | Buenas ayudas con el disponible y vista previa de la división; el historial no dice quién participó en cada gasto. |
+| 7 | Flexibilidad y eficiencia | 2 | Sin acción rápida para registrar un gasto: en el celular hay que bajar más allá de la tabla. Historial sin filtro ni agrupación. |
+| 8 | Estética y diseño minimalista | 2 | Cuatro formularios abiertos a la vez, dos cifras en Display y todas las secciones con el mismo peso. |
+| 9 | Recuperación de errores | 3 | Mensajes claros en español; pero si la recarga falla tras una acción exitosa, la página entera se reemplaza por el error. |
+| 10 | Ayuda y documentación | 3 | Buenas ayudas en contexto; la regla "solo se elimina a quien está al día" aparece después de pulsar el botón. |
+| **Total** | | **24/40** | **Aceptable**: honesta con las cifras, con problemas reales de jerarquía, confirmación y uso en el celular. |
+
+### Veredicto de especificidad
+
+**Revisión de diseño:** en el contenido es la pantalla más propia de SyncFund. La tabla
+"Situación del proyecto" es un libro mayor de verdad: cifras tabulares, filete de 2px antes de
+"Fondo disponible" y la nota "Igual a la suma de los saldos de todos los integrantes". Los saldos
+llevan texto además de color ("A favor / Debe / Al día"), los pagos entre integrantes van neutros
+y el gasto muestra la división ("≈ $X cada uno"). En la composición es genérica: todo apilado en
+una columna con el mismo peso, como un panel de administración, no como "mi situación en este
+grupo".
+
+**Detector automático:** 0 hallazgos en la página y sus 9 componentes (salida `[]`, código 0).
+Mismas limitaciones que en el Resumen.
+
+### Impresión general
+
+La lógica del dinero está muy bien contada; la página, no. El usuario viene a una de cuatro
+cosas (ver si debe, registrar un gasto, aportar, pagar) y encuentra dos cifras grandes, una tabla,
+cuatro formularios abiertos e integrantes con el mismo peso, en una página de unos 2.000px en
+escritorio y de unos 7.400px en el celular. La mayor oportunidad es ordenarla por tareas: "tu
+situación" como cifra protagonista, la acción que corresponde justo debajo y los formularios en
+paneles.
+
+### Lo que funciona
+
+1. **El modelo de dinero está bien representado.** La tabla cuadra con el fondo; las notas
+   "Recibió / Pagó $X" explican cada saldo; los abonos van neutros y los cobros se filtran para no
+   duplicarse (`useSharedProjectDetail.ts:24-27`). Es "certeza sobre cada peso" en la práctica.
+2. **Accesibilidad de base pensada.** Chips que son casillas reales con `role="group"`
+   (`ParticipantChips.tsx`); tabla con `th scope` que en el celular se convierte en tarjetas con
+   etiquetas (`ProjectStatusTable.css:147-216`); la confirmación de eliminar pone el foco en
+   "Cancelar"; protección contra doble clic al pagar y eliminar.
+3. **El sistema calcula y el usuario confirma.** El monto del pago viene sugerido y se valida
+   contra lo que debe, el saldo a favor del otro y su billetera (`SettleDebtForm.tsx:51-55`); el
+   gasto se valida contra el fondo antes de llegar al 422 del backend.
+
+### Problemas prioritarios
+
+#### [P1] Las cuadrículas de dos columnas no se apilan en el celular
+
+- **Qué:** `SharedProjectDetailPage.tsx:63` y `:79` usan `gridTemplateColumns: '1fr 1fr'` en
+  línea, sin punto de quiebre. En la captura del iPhone:
+  - "Registrar gasto" y "Aportar" quedan lado a lado en columnas de unos 160px.
+  - Los nombres de "Integrantes" se parten letra por letra ("Pru / eb / a A / (tú / )"), por el
+    `overflow-wrap: anywhere` de `MembersList.css:26`.
+  - El placeholder del correo se corta ("Correo con el que se reg").
+  - Los chips y el botón "Registrar gasto" quedan comprimidos.
+- **Por qué importa:** registrar un gasto en el momento es el uso principal en el celular, y un
+  nombre ilegible en la lista donde se elimina gente es un riesgo real de equivocarse de persona.
+  Es el mismo patrón que la meta y el colchón de la Billetera, y no depende de la cabecera.
+- **Corrección:** clases CSS con una columna por defecto y dos desde unos 720px; quitar los
+  estilos en línea y usar tokens de espaciado.
+- **Comando sugerido:** `/impeccable adapt`, luego `/impeccable layout`.
+- **¿Lo resuelve la dirección del rediseño?** **En parte.** Los formularios en hojas inferiores
+  eliminan la cuadrícula de gasto y aporte; la de Integrantes y Agregar sigue necesitando apilarse.
+
+#### [P1] La página no está ordenada por tareas
+
+- **Qué:**
+  - Orden actual: dos cifras grandes, tabla, gasto + aporte, integrantes + agregar, historial
+    (`SharedProjectDetailPage.tsx:44-97`).
+  - Dos cifras en Display del mismo tamaño ("$2.000" de fondo y "$2.000" de te deben,
+    `ProjectSummaryCard.css:14-19`), contra la regla de una sola cifra protagonista.
+  - "Pagar" solo existe como botón dentro de una fila de la tabla: quien debe no ve una
+    invitación a pagar junto a su "Debes $X".
+  - "Agregar integrante", tarea ocasional del administrador, pesa lo mismo que registrar un gasto.
+- **Por qué importa:** el usuario tiene que revisar cuatro formularios y más de cuatro puntos de
+  acción antes de entender su situación, y "quedar al día con un solo pago" (el objetivo del
+  producto) no tiene un camino visible.
+- **Corrección:** una cifra protagonista "Tu situación" ("Debes $X a B" / "Te deben $X") con el
+  fondo como cifra secundaria; justo debajo la acción que corresponde ("Pagar $X a B" si debe) y
+  "Registrar gasto" y "Aportar" como botones que abren paneles; luego la tabla y el historial;
+  "Integrantes" al final o en una hoja propia, con "Agregar" solo para el administrador. Es el
+  mismo criterio que el equipo propuso para el Resumen.
+- **Comando sugerido:** `/impeccable layout`, luego `/impeccable distill`.
+- **¿Lo resuelve la dirección del rediseño?** **En gran parte.** Los paneles y hojas inferiores
+  sacan los formularios de la página; la jerarquía "tu situación + acción" y la cifra única hay
+  que diseñarlas a propósito.
+
+#### [P1] Los montos aceptan errores que cuestan dinero
+
+- **Qué:** aporte, gasto y pago usan `type="number"` con "(sin puntos)" en el placeholder
+  (`ContributionForm.tsx:61-64`, `ExpenseForm.tsx:100-103`, `SettleDebtForm.tsx:77-80`). Quien
+  escribe "50.000" puede terminar con $50 o con un error de "obligatorio" que confunde. El aporte
+  no muestra el monto formateado antes de confirmar. Es el mismo patrón de la Billetera, aquí con
+  más riesgo.
+- **Por qué importa:** aportar $50 cuando se querían $50.000 descuenta dinero de la billetera
+  personal; es el peor error posible para "certeza sobre cada peso". Además, la rueda del ratón
+  cambia el valor.
+- **Corrección:** `type="text"` con `inputMode="numeric"`, aceptar puntos de miles y
+  normalizarlos; mostrar en vivo "Vas a aportar $ 50.000 de tu billetera"; el formato en la ayuda
+  del campo, no en el placeholder. Conviene resolverlo una vez en un componente de monto
+  compartido por toda la app.
+- **Comando sugerido:** `/impeccable harden`.
+- **¿Lo resuelve la dirección del rediseño?** **No.**
+
+#### [P1] Pagar una deuda no tiene revisión ni momento de cierre
+
+- **Qué:** `SettleDebtForm` envía el pago directamente (`SettleDebtForm.tsx:61`); al terminar, la
+  fila del formulario desaparece y la tabla se recarga sin mensaje ni indicador
+  (`ProjectStatusTable.tsx:116-119`). El lector de pantalla no anuncia nada y el foco se pierde
+  porque el formulario se desmonta. Si después falla la recarga, la página se reemplaza por el
+  error (`SharedProjectDetailPage.tsx:31-42`) y el usuario no sabe si su pago quedó.
+- **Por qué importa:** pagar es el punto emocional más alto: plata real que sale de su billetera
+  hacia la de otra persona. Se pierde el alivio de "quedaste en paz".
+- **Corrección:** en el formulario, un resumen explícito ("De tu billetera ($123.000) a la
+  billetera de B · el fondo no cambia"); al terminar, un aviso con `role="status"` ("Le pagaste
+  $23.500 a B. Quedaste al día."), resaltar la fila y devolver el foco al título de la sección; si
+  la recarga falla después de una acción exitosa, conservar el mensaje de éxito y avisar que los
+  datos podrían no estar al día.
+- **Comando sugerido:** `/impeccable clarify`, luego `/impeccable delight`.
+- **¿Lo resuelve la dirección del rediseño?** **En parte.** El panel da un contenedor con estado
+  "listo", pero el éxito y el foco no están definidos en DESIGN.md.
+
+#### [P2] Las reglas aparecen después del error y los umbrales no coinciden
+
+- **Qué:**
+  - `MembersList.tsx:30` muestra "Eliminar" junto a cualquier integrante que no sea el
+    administrador, aunque la página ya tiene los saldos y sabe quién debe. La regla "solo al día"
+    aparece en la confirmación (`RemoveMemberConfirm.tsx:50-53`) y luego llega el 422. "Salir del
+    proyecto" tiene el mismo problema.
+  - `ProjectSummaryCard.tsx:12-13` decide el estado con `> 0` y `=== 0`, mientras la tabla usa
+    medio centavo (`ProjectStatusTable.tsx:15-25`). Un saldo de -0,003 (posible al dividir entre
+    3) se muestra como "Debes $ 0" en la tarjeta y "Al día" en la tabla.
+- **Por qué importa:** va contra el principio 4 de PRODUCT.md ("reglas visibles antes del
+  error"). Eliminar a alguien es socialmente delicado, y que falle después de confirmar se siente
+  como un error de la app. Dos estados distintos para el mismo saldo dañan la confianza.
+- **Corrección:** pasar los saldos a `MembersList` y, si la persona debe, mostrar "Debe $X ·
+  podrá salir cuando esté al día" en lugar del botón; usar el mismo umbral de medio centavo en
+  la tarjeta, extraído a una utilidad compartida.
+- **Comando sugerido:** `/impeccable clarify`, luego `/impeccable harden`.
+- **¿Lo resuelve la dirección del rediseño?** **No.**
+
+### Qué resuelve la dirección del rediseño
+
+| Problema | Menú lateral · barra inferior · hojas |
+|---|---|
+| [P1] Cuadrículas que no se apilan | En parte (gasto y aporte sí; integrantes no) |
+| [P1] Página no ordenada por tareas | En gran parte (falta diseñar "tu situación + acción") |
+| [P1] Montos que aceptan errores | No |
+| [P1] Pago sin revisión ni cierre | En parte |
+| [P2] Reglas tardías y umbrales distintos | No |
+
+### Problemas ya documentados que también aparecen aquí
+
+- **Navegación móvil rota** ([P0] del Resumen): en la captura del iPhone la página se aleja y hay
+  desborde horizontal.
+- **Accesibilidad estructural** ([P2] del Resumen): empieza en `h2` con el nombre del proyecto
+  (`SharedProjectDetailPage.tsx:44`), `lang="en"`, título genérico, sin enlace para saltar.
+- **Brechas de contraste** (DESIGN.md): `gain-500` en "A favor" y "Te deben", `loss-500` en los
+  gastos del historial, `ink-faint` en "Administrador", "Recibió / Pagó", fechas y notas.
+- **Filas del historial frágiles** ([P1] de la Billetera): es el mismo `TransactionList`.
+- **Guardar sin confirmación** ([P2] de la Billetera): aquí en gasto y aporte; el pago tiene su
+  propio problema arriba.
+
+### Señales de alerta por persona
+
+- **Usuario distraído en el celular:**
+  - Tiene que bajar más allá de la tabla para registrar un gasto.
+  - Objetivos táctiles chicos: "Eliminar" mide unos 30px de alto (`MembersList.css`), "Quitar a
+    todos" unos 24px (`ParticipantChips.css`).
+  - Puede escribir "50.000" en un campo numérico y no recibe confirmación al guardar.
+- **Primera vez:**
+  - Un proyecto recién creado muestra una tabla con una fila en $0, cuatro formularios y
+    "Todavía no hay movimientos registrados", sin guía.
+  - Nada le dice "primero aporta, luego registra gastos", ni explica "su parte de los gastos".
+- **Usuario de lector de pantalla o teclado:**
+  - Ningún anuncio de éxito; el foco se pierde al cerrarse el pago o la confirmación.
+  - La vista previa de la división sí tiene `aria-live`, pero los totales de la tabla no se
+    anuncian al cambiar.
+  - En el celular, el pie de la tabla genera una etiqueta "Fondo" redundante junto a "Fondo
+    disponible".
+- **Estudiante que comparte arriendo** (persona de PRODUCT.md):
+  - En el historial, "Aporte al fondo" aparece tres veces sin decir quién aportó, y los gastos no
+    dicen entre quiénes se dividieron.
+  - Ese dato ya llega en `involvedIdsList`, así que se puede mostrar "Aporte de B" o "Entre 3 ·
+    $X c/u" sin tocar el backend. Quien comparte arriendo con alguien que no paga necesita esa
+    trazabilidad para sostener la conversación incómoda.
+
+### Observaciones menores
+
+- En el celular, la fila "Saldo" de la tabla reparte tres elementos con `space-between` y el
+  saldo queda flotando en el centro (`ProjectStatusTable.css:178-182`).
+- "Para quedar al día" usa viñetas genéricas y no pone un botón de pago junto a la sugerencia
+  propia.
+- "Aportar" y "Agregar" en variante fantasma pesan casi lo mismo que un campo vacío;
+  "Registrar gasto" es el único botón principal, lo cual está bien.
+- El hover del botón de peligro solo cambia el borde a tinta (`Button.css:37-39`) y casi no se
+  nota.
+- Tamaños de `h3` en línea inconsistentes: 1rem en los formularios y 1.125rem en las secciones.
+- La tabla de escritorio con 8 integrantes o más y montos de 9 cifras no está probada.
+- El historial no tiene hora ni se agrupa por día ni se pagina.
+
+### Preguntas para el equipo
+
+1. ¿Cuál es la tarea número uno de esta pantalla en el celular: registrar un gasto, o revisar y
+   pagar lo que debo? Eso define qué acción va justo debajo de la cifra principal.
+2. ¿La cifra protagonista debe ser "Tu situación" (debes o te deben) y el fondo pasar a cifra
+   secundaria, como pide la regla de una sola cifra y como se propuso para el Resumen?
+3. ¿"Integrantes" y "Agregar integrante" pueden ir a una hoja aparte ("Ajustes del proyecto"),
+   separados del flujo de dinero, teniendo en cuenta el flujo de invitación con aceptación que
+   está pendiente?
+4. ¿Se acepta que el historial muestre quién aportó y entre quiénes se dividió cada gasto a partir
+   de `involvedIdsList` (solo frontend), y que el pago tenga un paso de revisión y un aviso de
+   éxito?
