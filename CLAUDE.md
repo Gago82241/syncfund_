@@ -1,6 +1,6 @@
 # SyncFund — Guía del proyecto para Claude Code
 
-> Versión 0.4 — revisada contra la estructura real del repositorio.
+> Versión 0.5 — revisada contra la estructura real del repositorio; agrega las skills de diseño.
 
 ## Qué es SyncFund
 Aplicación web de finanzas personales y gastos compartidos. Un usuario gestiona su
@@ -128,6 +128,49 @@ Antes de dar por terminado un cambio en el backend: `.\mvnw.cmd test` sin fallos
     nuevo, agregarlo como token en esos archivos; nunca escribir valores hex sueltos en componentes.
 - Reutilizar los componentes existentes antes de crear otros nuevos.
 - Toda pantalla debe funcionar en móvil y escritorio.
+
+## Skills de diseño
+Instaladas en el proyecto para el rediseño visual del frontend.
+
+**Qué skill se usa para qué**
+- **Dirección visual:** `frontend-design` (plugin de Anthropic, habilitado en `.claude/settings.json`).
+- **impeccable** (`.claude/skills/impeccable`, con sus subagentes en `.claude/agents`):
+  - Diagnóstico: `init`, `document`, `critique`.
+  - Construcción: `shape`, `layout`, `adapt`, `harden`.
+  - Cierre: `audit`, `polish`.
+- **Emil Kowalski** (`.claude/skills`):
+  - `emil-design-eng`, `find-animation-opportunities`, `review-animations` → animaciones e interacción.
+  - `mobile-native` → sensación nativa en móvil.
+  - `break-ui` → pruebas con datos extremos (nombres largos, montos enormes, listas vacías…).
+  - `learn-taste` → registrar las correcciones de diseño que haga el equipo.
+
+**Reglas**
+- Este CLAUDE.md tiene prioridad sobre cualquier skill: si una skill sugiere algo que lo contradice, gana CLAUDE.md.
+- El rediseño es solo frontend (`syncfund-frontend/`); no se toca el backend (`demo/`).
+- No se agregan librerías nuevas (animación, componentes, iconos, etc.) sin aprobación del equipo.
+- Colores, tipografías y espacios solo como tokens en `globals.css` / `theme.ts`.
+- **No usar el modo "live" de impeccable** (ni el subagente `impeccable-manual-edit-applier`, que solo sirve para ese modo).
+- Se conserva la identidad "libro mayor" (azul tinta, esmeralda, terracota; Fraunces + Figtree)
+  salvo que el equipo decida otra cosa.
+
+**Qué se versiona y qué no** (ver `.gitignore` de la raíz)
+- Se suben: `.claude/settings.json`, `.claude/skills/` (sin `bin/`), `.claude/agents/` y `skills-lock.json`.
+- No se suben: `.claude/settings.local.json` (hooks y permisos de cada uno),
+  `.claude/skills/impeccable/scripts/bin/` (motor binario) y `.agents/` (copia para otros agentes).
+
+**Activarlo en otro equipo**
+1. Traer la rama; las skills y los subagentes llegan con el repositorio.
+2. En Claude Code: `/plugins` → instalar `frontend-design`.
+3. Descargar el motor de impeccable una sola vez (no hace falta `npx impeccable install`). Desde la raíz, en PowerShell:
+   `.\.claude\skills\impeccable\scripts\impeccable.cmd engine-probe`
+   Debe imprimir `impeccable-engine 0.1.23`. El launcher descarga el binario de los releases de GitHub,
+   verifica su SHA-256 contra `scripts/engine-checksums.txt` y lo guarda en `%USERPROFILE%\.impeccable\bin\0.1.23\`.
+   Requiere red, `curl.exe` y `certutil` (vienen con Windows 10/11). Si se omite, el motor se descarga
+   la primera vez que se use, pero los hooks tienen un límite de 5 s y la descarga puede no alcanzar.
+4. (Opcional) Hook del detector de diseño: como `settings.local.json` no se sube, activarlo con
+   `/impeccable hooks on`, o copiar el bloque `hooks` de otro `settings.local.json` del equipo.
+   Corre después de cada edición de archivos de UI y al final de cada turno; nunca bloquea una edición,
+   solo agrega recordatorios. Se apaga con `/impeccable hooks off`.
 
 ## Forma de trabajo con Claude
 - Trabajar **por partes**: una tarea concreta a la vez.
