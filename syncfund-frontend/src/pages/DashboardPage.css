@@ -1,5 +1,6 @@
 /* Línea discreta cuando no hay deudas: confirma sin competir con la cifra. */
 .dashboard__even {
+  margin-top: calc(var(--space-md) * -1);
   margin-bottom: var(--space-xl);
   font-size: var(--text-small);
   color: var(--ink-muted);
@@ -20,6 +21,15 @@
   .dashboard__first-steps .sf-button {
     width: auto;
   }
+}
+
+/* Enlace al pie del título de cada hoja: área táctil de 44 px sin agrandar la letra. */
+.dashboard__sheet-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--tap-target);
+  margin: calc((var(--tap-target) - 1.5em) / -2) 0;
+  font-weight: 600;
 }
 
 .dashboard__ledger-skeleton {

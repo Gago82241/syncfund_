@@ -3,6 +3,8 @@
  * Lo que lo distingue es el tono y la palabra "Debes", no un adorno.
  */
 .debt-notice {
+  /* Más cerca de la cifra que de las hojas: el aviso es parte de la respuesta a "¿cuánto tengo?". */
+  margin-top: calc(var(--space-md) * -1);
   margin-bottom: var(--space-xl);
   padding: var(--space-md);
   background: var(--loss-100);
