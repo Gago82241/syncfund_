@@ -69,6 +69,7 @@
 
 .status-table__pay {
   font: inherit;
+  min-height: var(--tap-target); /* 44 px: objetivo táctil mínimo */
   font-weight: 600;
   font-size: 0.875rem;
   padding: 0.4rem 0.9rem;

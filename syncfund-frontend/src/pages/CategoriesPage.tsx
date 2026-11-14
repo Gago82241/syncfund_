@@ -1,6 +1,7 @@
 import { AppLayout } from '../components/layout/AppLayout';
 import { LoadError } from '../components/ui/LoadError';
 import { LoadingState } from '../components/ui/LoadingState';
+import { PageHeader } from '../components/ui/PageHeader';
 import { useAuth } from '../context/useAuth';
 import { useCategories } from '../features/categories/hooks/useCategories';
 import { CategoryForm } from '../features/categories/components/CategoryForm';
@@ -31,15 +32,13 @@ export function CategoriesPage() {
 
   return (
     <AppLayout>
-      <h2>Categorías</h2>
-      <p style={{ color: 'var(--ink-muted)', marginTop: '0.5rem' }}>
-        {/* Se nombra el mes consultado; antes de la primera carga todavía no se sabe. */}
-        Gasto de {month ? formatMonthLabel(month) : 'este mes'} en tu billetera personal, por categoría.
-      </p>
+      <PageHeader
+        title="Categorías"
+        // Se nombra el mes consultado; antes de la primera carga todavía no se sabe.
+        meta={`Gasto de ${month ? formatMonthLabel(month) : 'este mes'} en tu billetera personal, por categoría.`}
+      />
 
-      <div style={{ marginTop: '2rem' }}>
-        <CategoryForm onCreated={refreshAfterAction} />
-      </div>
+      <CategoryForm onCreated={refreshAfterAction} />
 
       {renderCategories()}
     </AppLayout>

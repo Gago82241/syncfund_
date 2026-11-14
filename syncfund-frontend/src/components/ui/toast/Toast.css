@@ -1,13 +1,13 @@
 /*
- * Región de avisos. En el celular va abajo y a todo el ancho; --toast-offset deja espacio
- * para la barra inferior cuando exista (rama style/estructura-app). Desde 1024 px, abajo a la derecha.
+ * Región de avisos. En el celular va abajo y a todo el ancho; --toast-offset lo define
+ * AppLayout para dejar libre la barra inferior (y la acción fija, si la página la usa).
+ * Desde 1024 px, abajo a la derecha.
  */
 .sf-toast-region {
-  --toast-offset: 0px;
   position: fixed;
   left: var(--space-md);
   right: var(--space-md);
-  bottom: calc(var(--space-md) + var(--toast-offset) + env(safe-area-inset-bottom));
+  bottom: calc(var(--space-md) + var(--toast-offset, 0px) + env(safe-area-inset-bottom, 0px));
   z-index: 100;
   display: flex;
   flex-direction: column;

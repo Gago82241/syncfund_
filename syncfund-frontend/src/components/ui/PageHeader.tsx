@@ -16,15 +16,21 @@ interface PageHeaderProps {
   meta?: ReactNode;
   /** Acción principal de la página. */
   action?: ReactNode;
+  /**
+   * En el celular (< 1024 px) la acción queda fija justo encima de la barra inferior, al
+   * alcance del pulgar; AppLayout deja libre ese alto en el contenido y en los avisos.
+   * Solo para páginas dentro de AppLayout. En escritorio no cambia nada.
+   */
+  fixedActionOnMobile?: boolean;
 }
 
 /**
  * Encabezado de página: título, una sola cifra protagonista con su etiqueta y la acción
  * principal. Cierra con una línea fina, como el pie de un bloque del libro mayor.
  */
-export function PageHeader({ title, figure, meta, action }: PageHeaderProps) {
+export function PageHeader({ title, figure, meta, action, fixedActionOnMobile }: PageHeaderProps) {
   return (
-    <header className="sf-page-header">
+    <header className={`sf-page-header${fixedActionOnMobile && action ? ' sf-page-header--fixed-action' : ''}`}>
       <div className="sf-page-header__main">
         <h1 className="sf-page-header__title">{title}</h1>
         {figure && (

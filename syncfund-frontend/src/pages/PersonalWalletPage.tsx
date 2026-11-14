@@ -1,6 +1,8 @@
 import { AppLayout } from '../components/layout/AppLayout';
+import { PageColumns } from '../components/layout/PageColumns';
 import { LoadError } from '../components/ui/LoadError';
 import { LoadingState } from '../components/ui/LoadingState';
+import { PageHeader } from '../components/ui/PageHeader';
 import { useAuth } from '../context/useAuth';
 import { usePersonalWallet } from '../features/personal-wallet/hooks/usePersonalWallet';
 import { WalletSummaryCard } from '../features/personal-wallet/components/WalletSummaryCard';
@@ -17,7 +19,7 @@ export function PersonalWalletPage() {
 
   return (
     <AppLayout>
-      <h2>Billetera personal</h2>
+      <PageHeader title="Billetera personal" />
 
       {/* Con error no se muestran los datos anteriores: podrían no estar actualizados. */}
       {error && (
@@ -39,14 +41,7 @@ export function PersonalWalletPage() {
             <TransactionForm walletId={wallet.walletId} onSaved={refreshAfterAction} />
           </div>
 
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: '1fr 1fr',
-              gap: '2rem',
-              marginBottom: '2.5rem',
-            }}
-          >
+          <PageColumns style={{ marginBottom: '2.5rem' }}>
             <SavingsGoalForm
               // El formulario copia la meta al montarse: si la meta cambia, se vuelve a montar con la nueva.
               key={wallet.monthlySavingsGoal}
@@ -55,9 +50,9 @@ export function PersonalWalletPage() {
               onSaved={refreshAfterAction}
             />
             <CushionForm walletId={wallet.walletId} onSaved={refreshAfterAction} />
-          </div>
+          </PageColumns>
 
-          <h3 style={{ fontSize: '1.125rem', marginBottom: '0.75rem' }}>Movimientos</h3>
+          <h2 style={{ fontSize: '1.125rem', marginBottom: '0.75rem' }}>Movimientos</h2>
           <TransactionList transactions={transactions} />
         </>
       )}

@@ -18,6 +18,10 @@ import { HomeRedirect } from './HomeRedirect';
 const ComponentCatalogPage = import.meta.env.DEV
   ? lazy(() => import('../pages/dev/ComponentCatalogPage'))
   : null;
+/** Demo de la estructura de la app (AppLayout), también solo en desarrollo y con sesión. */
+const StructureDemoPage = import.meta.env.DEV
+  ? lazy(() => import('../pages/dev/StructureDemoPage'))
+  : null;
 
 export function AppRouter() {
   return (
@@ -87,6 +91,18 @@ export function AppRouter() {
               <Suspense fallback={null}>
                 <ComponentCatalogPage />
               </Suspense>
+            }
+          />
+        )}
+        {StructureDemoPage && (
+          <Route
+            path="/dev/componentes/estructura"
+            element={
+              <ProtectedRoute>
+                <Suspense fallback={null}>
+                  <StructureDemoPage />
+                </Suspense>
+              </ProtectedRoute>
             }
           />
         )}

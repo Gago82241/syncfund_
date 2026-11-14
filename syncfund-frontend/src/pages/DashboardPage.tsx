@@ -1,6 +1,7 @@
 import { AppLayout } from '../components/layout/AppLayout';
 import { LoadError } from '../components/ui/LoadError';
 import { LoadingState } from '../components/ui/LoadingState';
+import { PageHeader } from '../components/ui/PageHeader';
 import { useAuth } from '../context/useAuth';
 import { useGeneralSummary } from '../features/users/hooks/useGeneralSummary';
 import { formatCOP } from '../styles/theme';
@@ -16,10 +17,10 @@ export function DashboardPage() {
   return (
     <AppLayout>
       {/* Primer nombre, aunque el nombre guardado empiece con espacios o tenga varios seguidos. */}
-      <h2>Hola, {user.name.trim().split(/\s+/)[0]}</h2>
-      <p style={{ color: 'var(--ink-muted)', marginTop: '0.5rem' }}>
-        Este es tu saldo general en SyncFund.
-      </p>
+      <PageHeader
+        title={`Hola, ${user.name.trim().split(/\s+/)[0]}`}
+        meta="Este es tu saldo general en SyncFund."
+      />
 
       {/* Ninguna cifra hasta tener la del backend: un saldo viejo se leería como real. */}
       {error && (

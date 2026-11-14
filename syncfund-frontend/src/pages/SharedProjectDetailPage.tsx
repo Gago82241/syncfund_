@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { AppLayout } from '../components/layout/AppLayout';
+import { PageColumns } from '../components/layout/PageColumns';
 import { LoadError } from '../components/ui/LoadError';
 import { LoadingState } from '../components/ui/LoadingState';
+import { PageHeader } from '../components/ui/PageHeader';
 import { useAuth } from '../context/useAuth';
 import { useSharedProjectDetail } from '../features/shared-project/hooks/useSharedProjectDetail';
 import { ProjectSummaryCard } from '../features/shared-project/components/ProjectSummaryCard';
@@ -38,6 +40,9 @@ export function SharedProjectDetailPage() {
 
   return (
     <AppLayout>
+      {/* El título existe desde el principio (también con error o cargando): siempre hay un h1. */}
+      <PageHeader title={project?.name ?? 'Proyecto compartido'} meta={project?.description || undefined} />
+
       {/* Con error no se muestran los datos anteriores: podrían no estar actualizados. */}
       {error && (
         <LoadError
@@ -52,14 +57,7 @@ export function SharedProjectDetailPage() {
 
       {!error && project && balances && netBalance && (
         <>
-          <h2>{project.name}</h2>
-          {project.description && (
-            <p style={{ color: 'var(--ink-muted)', marginTop: '0.25rem' }}>{project.description}</p>
-          )}
-
-          <div style={{ marginTop: '1.5rem' }}>
-            <ProjectSummaryCard project={project} netBalance={netBalance} />
-          </div>
+          <ProjectSummaryCard project={project} netBalance={netBalance} />
 
           <ProjectStatusTable
             projectId={projectId}
@@ -71,7 +69,7 @@ export function SharedProjectDetailPage() {
             }}
           />
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem', marginBottom: '2.5rem' }}>
+          <PageColumns style={{ marginBottom: '2.5rem' }}>
             <ExpenseForm
               projectId={projectId}
               payerId={user!.id}
@@ -85,11 +83,11 @@ export function SharedProjectDetailPage() {
               contributorId={user!.id}
               onSaved={refreshAfterAction}
             />
-          </div>
+          </PageColumns>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem', marginBottom: '2.5rem' }}>
+          <PageColumns style={{ marginBottom: '2.5rem' }}>
             <div>
-              <h3 style={{ fontSize: '1rem', marginBottom: '0.5rem' }}>Integrantes</h3>
+              <h2 style={{ fontSize: '1rem', marginBottom: '0.5rem' }}>Integrantes</h2>
               <MembersList
                 projectId={projectId}
                 projectName={project.name}
@@ -102,9 +100,9 @@ export function SharedProjectDetailPage() {
               />
             </div>
             <AddMemberForm projectId={projectId} onSaved={refreshAfterAction} />
-          </div>
+          </PageColumns>
 
-          <h3 style={{ fontSize: '1.125rem', marginBottom: '0.75rem' }}>Movimientos del proyecto</h3>
+          <h2 style={{ fontSize: '1.125rem', marginBottom: '0.75rem' }}>Movimientos del proyecto</h2>
           <TransactionList transactions={transactions} />
         </>
       )}

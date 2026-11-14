@@ -71,6 +71,16 @@
 
   /* Área táctil mínima (WCAG 2.5.5 / guías móviles). */
   --tap-target: 44px;
+
+  /* Estructura de la app con sesión. Menú lateral desde 1024 px; por debajo, barra inferior. */
+  --sidebar-width: 15rem;     /* 240 px */
+  --nav-bar-height: 3.5rem;   /* 56 px, sin contar el área segura del iPhone */
+  --content-max: 75rem;       /* 1200 px de contenido como máximo */
+  /* Franja de la acción principal fija sobre la barra inferior: botón + relleno + línea. */
+  --action-bar-height: calc(var(--tap-target) + 2 * var(--space-sm) + 1px);
+  /* Capas: la navegación y la acción fija quedan debajo de los avisos (100). */
+  --z-nav: 50;
+  --z-menu: 60;
 }
 
 * {
@@ -87,6 +97,9 @@ body {
   background: var(--ledger-50);
   color: var(--ink);
   -webkit-font-smoothing: antialiased;
+  /* Con viewport-fit=cover, en horizontal el contenido no se mete bajo la muesca del iPhone. */
+  padding-left: env(safe-area-inset-left, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
 }
 
 h1, h2, h3 {
