@@ -299,3 +299,29 @@
 .catalog-motion__track:focus-visible .catalog-motion__dot {
   transform: translateX(10rem);
 }
+
+/* --- Íconos --- */
+
+.catalog-icons {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(7rem, 1fr));
+  gap: var(--space-sm);
+  width: 100%;
+}
+
+.catalog-icons__item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-size: var(--text-small);
+}
+
+.catalog-icons__large {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-md);
+  color: var(--ink-900);
+}
