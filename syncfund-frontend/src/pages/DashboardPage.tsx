@@ -1,43 +1,71 @@
+import { useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { AppLayout } from '../components/layout/AppLayout';
 import { PageColumns } from '../components/layout/PageColumns';
+import { Button } from '../components/ui/Button';
 import { EmptyState } from '../components/ui/EmptyState';
+import { Icon } from '../components/ui/Icon';
 import { LoadError } from '../components/ui/LoadError';
 import { PageHeader } from '../components/ui/PageHeader';
+import { Panel } from '../components/ui/Panel';
 import { Sheet } from '../components/ui/Sheet';
 import { Skeleton, SkeletonGroup, SkeletonRows } from '../components/ui/Skeleton';
+import { useToast } from '../components/ui/toast/useToast';
 import { useAuth } from '../context/useAuth';
 import { BudgetAlerts } from '../features/dashboard/components/BudgetAlerts';
 import { DebtNotice } from '../features/dashboard/components/DebtNotice';
 import { ProjectStatusList } from '../features/dashboard/components/ProjectStatusList';
 import { SummaryLedger } from '../features/dashboard/components/SummaryLedger';
 import { useDashboard } from '../features/dashboard/hooks/useDashboard';
+import { TransactionForm } from '../features/personal-wallet/components/TransactionForm';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { formatCOP } from '../styles/theme';
 import './DashboardPage.css';
 
 const FIGURE_LABEL = 'Tienes en total';
 
+type MovementType = 'INGRESO' | 'GASTO';
+
 export function DashboardPage() {
   const { user } = useAuth();
-  const { data, error, loading, refresh, budget, budgetError, budgetLoading, retryBudget } = useDashboard(
-    user!.id,
-  );
+  const { data, error, loading, refresh, refreshAfterAction, budget, budgetError, budgetLoading, retryBudget } =
+    useDashboard(user!.id);
+  const { showToast } = useToast();
+  // formKey vuelve a montar el formulario en cada apertura: arranca limpio y con el tipo pedido.
+  const [panel, setPanel] = useState<{ open: boolean; type: MovementType; formKey: number }>({
+    open: false,
+    type: 'GASTO',
+    formKey: 0,
+  });
   useDocumentTitle('Resumen · SyncFund');
+
+  function openPanel(type: MovementType) {
+    setPanel((current) => ({ open: true, type, formKey: current.formKey + 1 }));
+  }
+
+  function closePanel() {
+    setPanel((current) => ({ ...current, open: false }));
+  }
+
+  function handleSaved() {
+    closePanel();
+    showToast('Movimiento registrado');
+    refreshAfterAction();
+  }
+
+  let content: ReactNode;
 
   // Certeza sobre cada peso: con error no se muestra ninguna cifra, ni siquiera la anterior.
   if (error) {
-    return (
-      <AppLayout>
+    content = (
+      <>
         <PageHeader title="Resumen" />
         <LoadError message={error.message} onRetry={error.canRetry ? refresh : undefined} retrying={loading} />
-      </AppLayout>
+      </>
     );
-  }
-
-  if (data === null) {
-    return (
-      <AppLayout>
+  } else if (data === null) {
+    content = (
+      <>
         <PageHeader
           title="Resumen"
           figure={{ label: FIGURE_LABEL, value: <Skeleton variant="figure" /> }}
@@ -59,14 +87,12 @@ export function DashboardPage() {
             <SkeletonRows count={2} />
           </Sheet>
         </PageColumns>
-      </AppLayout>
+      </>
     );
-  }
-
-  // Usuario nuevo: en vez de una cifra en cero, el primer paso.
-  if (data.isNewUser) {
-    return (
-      <AppLayout>
+  } else if (data.isNewUser) {
+    // Usuario nuevo: en vez de una cifra en cero, el primer paso.
+    content = (
+      <>
         <PageHeader title="Resumen" />
         <EmptyState
           icon="resumen"
@@ -74,61 +100,94 @@ export function DashboardPage() {
           description="Registra un ingreso para empezar a llevar tu dinero, o crea un proyecto para compartir gastos con otras personas."
           action={
             <div className="dashboard__first-steps">
-              <Link to="/wallet" className="sf-button sf-button--primary dashboard__link-button">
-                Registra tu primer ingreso
-              </Link>
+              <Button onClick={() => openPanel('INGRESO')}>Registra tu primer ingreso</Button>
               <Link to="/projects" className="sf-button sf-button--ghost dashboard__link-button">
                 Crea un proyecto
               </Link>
             </div>
           }
         />
-      </AppLayout>
+      </>
+    );
+  } else {
+    const { summary } = data;
+    content = (
+      <>
+        <PageHeader
+          title="Resumen"
+          figure={{
+            label: FIGURE_LABEL,
+            value: formatCOP(summary.total),
+            tone: summary.total < 0 ? 'loss' : 'neutral',
+          }}
+          meta={<SummaryLedger summary={summary} />}
+          fixedActionOnMobile
+          action={
+            <Button onClick={() => openPanel('GASTO')}>
+              <Icon name="agregar" />
+              Registrar movimiento
+            </Button>
+          }
+        />
+
+        {summary.debts.length > 0 && <DebtNotice debts={summary.debts} />}
+        {summary.debts.length === 0 && summary.projects.length > 0 && (
+          <p className="dashboard__even">Estás al día en todos tus proyectos.</p>
+        )}
+
+        <PageColumns>
+          <Sheet
+            title="Tus proyectos"
+            action={
+              summary.projects.length > 0 && (
+                <Link to="/projects" className="dashboard__sheet-link">Ver todos</Link>
+              )
+            }
+          >
+            {summary.projects.length > 0 ? (
+              <ProjectStatusList projects={summary.projects} />
+            ) : (
+              <EmptyState
+                title="Aún no participas en proyectos"
+                description="Un proyecto reúne los aportes y los gastos de un grupo, y calcula quién le debe a quién."
+                action={
+                  <Link to="/projects" className="sf-button sf-button--ghost dashboard__link-button">
+                    Crea un proyecto
+                  </Link>
+                }
+              />
+            )}
+          </Sheet>
+          <Sheet
+            title="Presupuesto del mes"
+            action={<Link to="/categories" className="dashboard__sheet-link">Ver categorías</Link>}
+          >
+            <BudgetAlerts budget={budget} error={budgetError} loading={budgetLoading} onRetry={retryBudget} />
+          </Sheet>
+        </PageColumns>
+      </>
     );
   }
 
-  const { summary } = data;
-
   return (
     <AppLayout>
-      <PageHeader
-        title="Resumen"
-        figure={{
-          label: FIGURE_LABEL,
-          value: formatCOP(summary.total),
-          tone: summary.total < 0 ? 'loss' : 'neutral',
-        }}
-        meta={<SummaryLedger summary={summary} />}
-      />
-
-      {summary.debts.length > 0 && <DebtNotice debts={summary.debts} />}
-      {summary.debts.length === 0 && summary.projects.length > 0 && (
-        <p className="dashboard__even">Estás al día en todos tus proyectos.</p>
-      )}
-
-      <PageColumns>
-        <Sheet
-          title="Tus proyectos"
-          action={summary.projects.length > 0 && <Link to="/projects" className="dashboard__sheet-link">Ver todos</Link>}
+      {content}
+      {data && (
+        <Panel
+          open={panel.open}
+          onClose={closePanel}
+          title="Registrar movimiento"
+          description="Se registra en tu billetera personal."
         >
-          {summary.projects.length > 0 ? (
-            <ProjectStatusList projects={summary.projects} />
-          ) : (
-            <EmptyState
-              title="Aún no participas en proyectos"
-              description="Un proyecto reúne los aportes y los gastos de un grupo, y calcula quién le debe a quién."
-              action={
-                <Link to="/projects" className="sf-button sf-button--ghost dashboard__link-button">
-                  Crea un proyecto
-                </Link>
-              }
-            />
-          )}
-        </Sheet>
-        <Sheet title="Presupuesto del mes" action={<Link to="/categories" className="dashboard__sheet-link">Ver categorías</Link>}>
-          <BudgetAlerts budget={budget} error={budgetError} loading={budgetLoading} onRetry={retryBudget} />
-        </Sheet>
-      </PageColumns>
+          <TransactionForm
+            key={panel.formKey}
+            walletId={data.walletId}
+            onSaved={handleSaved}
+            embedded
+            initialType={panel.type}
+          />
+        </Panel>
+      )}
     </AppLayout>
   );
 }
