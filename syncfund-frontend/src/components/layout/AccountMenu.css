@@ -1,0 +1,98 @@
+.sf-account-menu {
+  position: relative;
+  min-width: 0;
+}
+
+/* Botón de la cuenta: ícono + nombre cortado con elipsis, 44 px de alto como mínimo. */
+.sf-account-menu__trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  max-width: 100%;
+  min-height: var(--tap-target);
+  padding: 0 var(--space-xs);
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--ink-900);
+  font-size: var(--text-small);
+  font-weight: 500;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+  transition: background-color var(--duration-fast) var(--ease-out);
+}
+
+.sf-account-menu__trigger:active,
+.sf-account-menu__trigger[aria-expanded='true'] {
+  background: var(--ink-100);
+}
+
+@media (hover: hover) {
+  .sf-account-menu__trigger:hover {
+    background: var(--ink-100);
+  }
+}
+
+.sf-account-menu__trigger-name {
+  min-width: 0;
+  max-width: 9rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/*
+ * Panel flotante: lleva la única sombra del sistema. Cerrado queda con visibility: hidden,
+ * así sale del orden de tabulación y del lector de pantalla sin perder la transición.
+ */
+.sf-account-menu__panel {
+  position: absolute;
+  top: calc(100% + var(--space-xs));
+  right: 0;
+  z-index: var(--z-menu);
+  width: min(18rem, calc(100vw - 2 * var(--space-md)));
+  padding: var(--space-md);
+  background: var(--paper);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-float);
+  transform-origin: top right;
+  visibility: hidden;
+  opacity: 0;
+  transform: translateY(calc(var(--space-xs) * -1));
+  transition:
+    opacity var(--duration-fast) var(--ease-out),
+    transform var(--duration-fast) var(--ease-out),
+    visibility 0s linear var(--duration-fast);
+}
+
+.sf-account-menu__panel[data-open='true'] {
+  visibility: visible;
+  opacity: 1;
+  transform: none;
+  transition-delay: 0s;
+}
+
+.sf-account-menu__name,
+.sf-account-menu__email {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sf-account-menu__name {
+  font-weight: 600;
+  color: var(--ink-900);
+}
+
+.sf-account-menu__email {
+  font-size: var(--text-label);
+  color: var(--ink-faint);
+}
+
+.sf-account-menu__logout {
+  margin-top: var(--space-md);
+}

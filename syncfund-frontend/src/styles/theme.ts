@@ -97,6 +97,23 @@ export const breakpoints = {
 /** Área táctil mínima en px. */
 export const tapTarget = 44;
 
+/** Estructura de la app con sesión (en px). */
+export const layout = {
+  /** Ancho del menú lateral (desde breakpoints.desktop). */
+  sidebarWidth: 240,
+  /** Alto de la barra inferior del celular, sin el área segura. */
+  navBarHeight: 56,
+  /** Ancho máximo del contenido. */
+  contentMax: 1200,
+} as const;
+
+/** Capas: la navegación y el menú de cuenta van debajo de los avisos. */
+export const zIndex = {
+  nav: 50,
+  menu: 60,
+  toast: 100,
+} as const;
+
 /** Formato de pesos colombianos: $1.234.567, sin decimales. */
 export function formatCOP(amount: number): string {
   return new Intl.NumberFormat('es-CO', {
