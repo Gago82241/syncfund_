@@ -76,6 +76,8 @@
   --sidebar-width: 15rem;     /* 240 px */
   --nav-bar-height: 3.5rem;   /* 56 px, sin contar el área segura del iPhone */
   --content-max: 75rem;       /* 1200 px de contenido como máximo */
+  /* Franja de la acción principal fija sobre la barra inferior: botón + relleno + línea. */
+  --action-bar-height: calc(var(--tap-target) + 2 * var(--space-sm) + 1px);
   /* Capas: la navegación y la acción fija quedan debajo de los avisos (100). */
   --z-nav: 50;
   --z-menu: 60;

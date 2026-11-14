@@ -183,6 +183,23 @@
   --toast-offset: var(--nav-bar-height);
 }
 
+/*
+ * Si la página fija su acción principal sobre la barra inferior (PageHeader
+ * fixedActionOnMobile), el contenido y los avisos dejan libre también esa franja.
+ */
+@media (max-width: 1023.98px) {
+  .app-layout:has(.sf-page-header--fixed-action) .app-layout__content {
+    padding-bottom: calc(
+      var(--nav-bar-height) + var(--action-bar-height) + env(safe-area-inset-bottom, 0px) +
+        var(--space-xl)
+    );
+  }
+
+  :root:has(.sf-page-header--fixed-action) {
+    --toast-offset: calc(var(--nav-bar-height) + var(--action-bar-height));
+  }
+}
+
 @media (hover: hover) {
   .app-layout__nav-link:hover {
     color: var(--ink-900);

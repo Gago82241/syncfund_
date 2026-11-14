@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import { AccountMenu } from '../../../components/layout/AccountMenu';
 import { useToast } from '../../../components/ui/toast/useToast';
 import { CatalogCase, CatalogSection } from '../CatalogSection';
@@ -10,8 +11,13 @@ export function LayoutSection() {
     <CatalogSection
       id="estructura"
       title="Estructura de la app"
-      description="Menú de cuenta de la barra superior del celular. Se abre con el botón, se cierra con Esc (el foco vuelve al botón), al tocar fuera o al salir con Tab. El nombre y el correo largos se cortan con elipsis."
+      description="El menú lateral, la barra inferior y la acción principal fija solo se ven dentro de AppLayout: pruébalos en la demo (pide sesión iniciada). Aquí, el menú de cuenta de la barra superior del celular: se cierra con Esc (el foco vuelve al botón), al tocar fuera o al salir con Tab; el nombre y el correo largos se cortan con elipsis."
     >
+      <CatalogCase label="Demo de la estructura: página larga, hojas en una y dos columnas, acción fija y aviso">
+        <Link to="/dev/componentes/estructura" className="catalog-demo-link">
+          Abrir la demo de la estructura
+        </Link>
+      </CatalogCase>
       <CatalogCase label="Nombre corto">
         <div className="catalog-account-frame">
           <AccountMenu

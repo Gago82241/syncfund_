@@ -359,6 +359,13 @@
   margin-bottom: 0;
 }
 
+.catalog-demo-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--tap-target);
+  font-weight: 600;
+}
+
 /* Menú de cuenta: el panel se abre hacia la izquierda desde el borde derecho, como en la barra. */
 .catalog-account-frame {
   display: flex;

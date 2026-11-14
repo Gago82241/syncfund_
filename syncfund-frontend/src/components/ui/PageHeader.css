@@ -52,7 +52,39 @@
   width: 100%;
 }
 
+/*
+ * Acción fija en el celular: una franja de papel justo encima de la barra inferior de
+ * AppLayout, con su línea fina. En tableta el botón no se estira a todo el ancho.
+ */
+.sf-page-header--fixed-action .sf-page-header__action {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: calc(var(--nav-bar-height) + env(safe-area-inset-bottom, 0px));
+  z-index: var(--z-nav);
+  display: flex;
+  justify-content: flex-end;
+  padding: var(--space-sm) calc(var(--space-md) + env(safe-area-inset-right, 0px))
+    var(--space-sm) calc(var(--space-md) + env(safe-area-inset-left, 0px));
+  background: var(--ledger-50);
+  border-top: 1px solid var(--hairline);
+}
+
+@media (min-width: 640px) {
+  .sf-page-header--fixed-action .sf-page-header__action .sf-button {
+    width: auto;
+  }
+}
+
 @media (min-width: 1024px) {
+  .sf-page-header--fixed-action .sf-page-header__action {
+    position: static;
+    display: block;
+    padding: 0;
+    background: none;
+    border-top: none;
+  }
+
   .sf-page-header {
     flex-direction: row;
     align-items: flex-end;
