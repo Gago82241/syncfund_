@@ -5,7 +5,7 @@ import type { Debt } from '../summary';
 import './DebtNotice.css';
 
 /**
- * Aviso de deuda, justo debajo de la cifra: a quién, cuánto, en qué proyecto y "Pagar".
+ * Aviso de deuda, justo debajo de la cifra: a quién, cuánto, en qué proyecto e "Ir a pagar".
  * El pago se hace en el Detalle del proyecto. El estado se dice en texto ("Debes"), no solo
  * con el color.
  */
@@ -29,12 +29,18 @@ export function DebtNotice({ debts }: { debts: Debt[] }) {
               </p>
               <p className="debt-notice__project">{debt.projectName}</p>
             </div>
+            {/* Lleva al Detalle, donde se hace el pago: el texto lo dice para no prometer un pago aquí.
+                Secundario, para no competir con "Registrar movimiento", la acción de la página. */}
             <Link
               to={`/projects/${debt.projectId}`}
-              className="sf-button sf-button--primary debt-notice__pay"
-              aria-label={`Pagar ${formatCOP(debt.amount)}${debt.toName ? ` a ${debt.toName}` : ''} en ${debt.projectName}`}
+              className="sf-button sf-button--ghost debt-notice__pay"
+              aria-label={
+                debt.toName
+                  ? `Ir a ${debt.projectName} para pagarle a ${debt.toName}`
+                  : `Ir a ${debt.projectName} para pagar`
+              }
             >
-              Pagar
+              Ir a pagar
             </Link>
           </li>
         ))}

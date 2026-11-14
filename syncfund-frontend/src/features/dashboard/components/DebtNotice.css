@@ -68,8 +68,12 @@
   overflow-wrap: anywhere;
 }
 
-/* El enlace se ve como botón: en el celular ocupa la fila; desde 480 px, lo justo. */
+/*
+ * El enlace se ve como botón secundario: en el celular ocupa la fila; desde 480 px, lo justo.
+ * El ghost es transparente: sobre el terracota claro lleva papel para seguir leyéndose como botón.
+ */
 .debt-notice__pay {
+  background: var(--paper);
   text-decoration: none;
 }
 

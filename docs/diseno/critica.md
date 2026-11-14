@@ -552,6 +552,24 @@ pago ya listo, en la rama del Detalle del proyecto.
 3. Si el Resumen es un libro mayor, ¿no debería leerse de arriba abajo y terminar en el total bajo
    un filete doble?
 
+### Ajustes hechos después de la crítica
+
+El equipo decidió corregir en esta misma rama lo que hacía falta para que la pantalla no prometa más
+de lo que hace. El puntaje de arriba es el de antes de estos ajustes.
+
+- **[P1], ajuste mínimo:**
+  - El botón del aviso dice "Ir a pagar" y su `aria-label` "Ir a {proyecto} para pagarle a {nombre}".
+  - Pasa a botón secundario (contorno sobre papel), para no competir con "Registrar movimiento".
+- **[P2] "Estás al día":** con saldos a favor dice "No debes nada en tus proyectos"; "Estás al día
+  en todos tus proyectos" queda solo cuando todo está en cero.
+
+### Pendiente para `style/detalle-proyecto`
+
+- [ ] **Solución completa del [P1]:** que el Detalle del proyecto reciba la intención de pago desde
+  el Resumen (por ejemplo `/projects/{id}?pagar={toUserId}` o el `state` de la navegación) y abra
+  el panel de pago ya lleno con a quién y cuánto, para que "Ir a pagar" termine en el pago y no en
+  la tabla. Cuando esté, el botón del Resumen puede volver a decir "Pagar".
+
 ---
 
 ## Billetera personal
