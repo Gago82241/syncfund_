@@ -1,0 +1,27 @@
+/* Etiqueta de estado: fondo claro del mismo tono y texto en el 700 (≥ 4.8:1). */
+.sf-money-status {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.3em;
+  padding: calc(var(--space-xs) / 2) var(--space-xs);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-small);
+  font-weight: 600;
+  line-height: var(--leading-tight);
+  white-space: nowrap;
+}
+
+.sf-money-status--gain {
+  background: var(--gain-100);
+  color: var(--gain-700);
+}
+
+.sf-money-status--loss {
+  background: var(--loss-100);
+  color: var(--loss-700);
+}
+
+.sf-money-status--even {
+  background: var(--ledger-100);
+  color: var(--ink-muted);
+}

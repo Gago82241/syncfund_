@@ -3,6 +3,7 @@ import { TokensSection } from './sections/TokensSection';
 import { IconSection } from './sections/IconSection';
 import { ControlsSection } from './sections/ControlsSection';
 import { StructureSection } from './sections/StructureSection';
+import { MoneySection } from './sections/MoneySection';
 import './ComponentCatalogPage.css';
 
 const SECTIONS = [
@@ -17,6 +18,8 @@ const SECTIONS = [
   { id: 'hojas', label: 'Hojas' },
   { id: 'vacios', label: 'Vacíos' },
   { id: 'esqueleto', label: 'Carga' },
+  { id: 'estado', label: 'Estado del saldo' },
+  { id: 'progreso', label: 'Progreso' },
 ];
 
 /**
@@ -49,6 +52,7 @@ export default function ComponentCatalogPage() {
         <IconSection />
         <ControlsSection />
         <StructureSection />
+        <MoneySection />
       </main>
     </div>
   );
