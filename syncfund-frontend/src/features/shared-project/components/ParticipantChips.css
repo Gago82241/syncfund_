@@ -16,6 +16,7 @@
 /* Botón de texto: Button ocupa todo el ancho, aquí basta un enlace discreto. */
 .sf-chips__toggle {
   background: none;
+  min-height: var(--tap-target); /* 44 px: objetivo táctil mínimo */
   border: none;
   padding: 0.25rem 0;
   font-size: 0.8125rem;

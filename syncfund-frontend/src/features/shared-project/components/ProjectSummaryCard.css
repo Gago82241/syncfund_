@@ -1,6 +1,8 @@
 .project-summary {
   display: flex;
-  gap: 3rem;
+  /* A 320 px las dos cifras no caben lado a lado: la segunda baja de renglón. */
+  flex-wrap: wrap;
+  gap: var(--space-md) 3rem;
   border-bottom: 1px solid var(--hairline);
   padding-bottom: 1.5rem;
   margin-bottom: 1.5rem;

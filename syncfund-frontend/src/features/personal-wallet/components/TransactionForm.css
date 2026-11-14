@@ -18,6 +18,7 @@
 
 .tx-form__toggle button {
   flex: 1;
+  min-height: var(--tap-target); /* 44 px: objetivo táctil mínimo */
   padding: 0.5rem;
   border: 1px solid var(--hairline);
   background: var(--ledger-50);

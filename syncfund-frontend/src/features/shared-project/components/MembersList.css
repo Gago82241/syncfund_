@@ -38,6 +38,7 @@
 /* Acción destructiva discreta: solo texto terracota hasta que se confirma. */
 .members-list__action {
   font: inherit;
+  min-height: var(--tap-target); /* 44 px: objetivo táctil mínimo */
   font-size: 0.8125rem;
   font-weight: 600;
   color: var(--loss-700);
