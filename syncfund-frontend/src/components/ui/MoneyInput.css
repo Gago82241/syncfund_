@@ -1,0 +1,45 @@
+.sf-money-input {
+  position: relative;
+  display: flex;
+}
+
+/* El signo pesos va dentro del campo, fijo, para que se lea como monto desde antes de escribir. */
+.sf-money-input__prefix {
+  position: absolute;
+  left: 0.85rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--ink-muted);
+  pointer-events: none;
+}
+
+.sf-money-input__input {
+  width: 100%;
+  padding-left: 1.75rem;
+  font-weight: 500;
+}
+
+.sf-money-input__input--gain {
+  border-color: var(--gain-500);
+}
+
+.sf-money-input__input--loss {
+  border-color: var(--loss-500);
+}
+
+.sf-money-input__input--gain:focus {
+  border-color: var(--gain-500);
+  box-shadow: 0 0 0 1px var(--gain-500);
+}
+
+.sf-money-input__input--loss:focus {
+  border-color: var(--loss-500);
+  box-shadow: 0 0 0 1px var(--loss-500);
+}
+
+/* "Vas a aportar $50.000": confirma cómo se leyó el monto. */
+.sf-money-input__preview {
+  font-size: var(--text-small);
+  font-weight: 500;
+  color: var(--ink-900);
+}

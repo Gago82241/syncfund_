@@ -1,0 +1,62 @@
+.sf-progress {
+  display: grid;
+  gap: var(--space-xs);
+  min-width: 0;
+}
+
+.sf-progress__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: calc(var(--space-xs) / 2) var(--space-md);
+}
+
+.sf-progress__label {
+  font-weight: 500;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.sf-progress__amounts {
+  font-size: var(--text-small);
+  color: var(--ink-muted);
+  white-space: nowrap;
+}
+
+.sf-progress__track {
+  height: var(--space-xs);
+  background: var(--ledger-100);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.sf-progress__fill {
+  display: block;
+  height: 100%;
+  background: var(--ink-600);
+  border-radius: inherit;
+  transition: width var(--duration-panel) var(--ease-out);
+}
+
+.sf-progress__status {
+  display: flex;
+  flex-wrap: wrap;
+  gap: calc(var(--space-xs) / 2) var(--space-sm);
+  font-size: var(--text-label);
+  color: var(--ink-muted);
+}
+
+.sf-progress__alert {
+  font-weight: 600;
+}
+
+/* Los rellenos usan los 500 (solo gráfico); el texto del aviso, los 700 (≥ 4.5:1). */
+.sf-progress--warn .sf-progress__fill { background: var(--warn-500); }
+.sf-progress--warn .sf-progress__alert { color: var(--warn-700); }
+
+.sf-progress--over .sf-progress__fill { background: var(--loss-500); }
+.sf-progress--over .sf-progress__alert { color: var(--loss-700); }
+
+.sf-progress--done .sf-progress__fill { background: var(--gain-500); }
+.sf-progress--done .sf-progress__alert { color: var(--gain-700); }

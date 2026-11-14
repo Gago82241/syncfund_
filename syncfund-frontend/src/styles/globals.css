@@ -1,6 +1,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,500&family=Figtree:wght@400;500;600;700&display=swap');
 
 :root {
+  --ink-950: #0B1A33; /* estado presionado del botón principal */
   --ink-900: #13294B;
   --ink-700: #1F3A5F;
   --ink-600: #2C5F8A;
@@ -12,17 +13,27 @@
 
   --ink: #1C1C1A;
   --ink-muted: #5B5A54;
-  --ink-faint: #8C8A82;
+  /* Fechas, metadatos y ayudas: 5.1:1 sobre papel y 4.6:1 sobre ink-100 y loss-100. */
+  --ink-faint: #6A6860;
   --hairline: #DEDAD0;
+  /* Borde de campos: 3.4:1 sobre blanco (WCAG pide 3:1 para controles). */
+  --field-border: #8F8B80;
 
+  /* Los 500 solo van en bordes y rellenos; el texto de montos usa los 700 (≥ 4.5:1). */
+  --gain-700: #1E7259;
   --gain-500: #2F9E7D;
   --gain-100: #E1F3EC;
 
+  --loss-800: #8A3823; /* estado presionado del botón de peligro */
+  --loss-700: #A8452D;
   --loss-500: #C65D43;
   --loss-100: #F7E6E0;
-  --loss-700: #A8452D;
 
+  --warn-700: #86620F;
   --warn-500: #C9971F;
+
+  /* Velo detrás de paneles y hojas: azul tinta semitransparente. */
+  --scrim: rgb(19 41 75 / 0.4);
 
   --font-display: 'Fraunces', Georgia, serif;
   --font-body: 'Figtree', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
@@ -30,6 +41,36 @@
   --radius-sm: 4px;
   --radius-md: 8px;
   --radius-lg: 14px;
+
+  /* Escala tipográfica por rol. La cifra protagonista es fluida: 2rem en el celular,
+     2.75rem en escritorio; la headline siempre queda un paso por debajo. */
+  --text-display: clamp(2rem, 1.6rem + 1.6vw, 2.75rem);
+  --text-headline: clamp(1.5rem, 1.3rem + 0.8vw, 2rem);
+  --text-title: 1.125rem;
+  --text-body: 1rem;
+  --text-small: 0.9375rem;
+  --text-label: 0.8125rem;
+  --leading-tight: 1.15;
+  --leading-body: 1.55;
+
+  /* Escala de espacios: ningún componente nuevo usa medidas sueltas. */
+  --space-xs: 0.5rem;
+  --space-sm: 0.75rem;
+  --space-md: 1rem;
+  --space-lg: 1.5rem;
+  --space-xl: 2.5rem;
+  --space-2xl: 4rem;
+
+  /* Única sombra del sistema: solo paneles laterales, hojas inferiores y menús. */
+  --shadow-float: 0 12px 32px -8px rgb(19 41 75 / 0.28), 0 2px 6px rgb(19 41 75 / 0.12);
+
+  /* Movimiento: respuesta al toque y apertura de paneles; salida suave, sin rebote. */
+  --duration-fast: 150ms;
+  --duration-panel: 200ms;
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+
+  /* Área táctil mínima (WCAG 2.5.5 / guías móviles). */
+  --tap-target: 44px;
 }
 
 * {
@@ -63,6 +104,12 @@ p {
 
 a {
   color: var(--ink-600);
+  text-underline-offset: 0.15em;
+}
+
+::selection {
+  background: var(--ink-100);
+  color: var(--ink-900);
 }
 
 button {
@@ -74,8 +121,21 @@ button {
   font-variant-numeric: tabular-nums;
 }
 
-.amount-gain { color: var(--gain-500); }
-.amount-loss { color: var(--loss-500); }
+.amount-gain { color: var(--gain-700); }
+.amount-loss { color: var(--loss-700); }
+
+/* Oculta un texto a la vista pero lo deja para lectores de pantalla. */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
 
 :focus-visible {
   outline: 2px solid var(--ink-600);

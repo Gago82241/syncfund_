@@ -1,12 +1,28 @@
 .sf-button {
-  font-size: 0.9375rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-xs);
+  min-height: var(--tap-target);
+  font-size: var(--text-small);
   font-weight: 600;
-  padding: 0.75rem 1.25rem;
+  line-height: var(--leading-tight);
+  padding: var(--space-sm) 1.25rem;
   border-radius: var(--radius-sm);
   border: 1px solid transparent;
   cursor: pointer;
-  transition: background-color 0.15s ease, border-color 0.15s ease;
+  transition:
+    background-color var(--duration-fast) var(--ease-out),
+    border-color var(--duration-fast) var(--ease-out),
+    transform var(--duration-fast) var(--ease-out);
   width: 100%;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+/* Presionado: baja 1 px, como una tecla. Cada variante además se oscurece. */
+.sf-button:active:not(:disabled) {
+  transform: translateY(1px);
 }
 
 .sf-button--primary {
@@ -14,8 +30,8 @@
   color: var(--paper);
 }
 
-.sf-button--primary:hover:not(:disabled) {
-  background: var(--ink-700);
+.sf-button--primary:active:not(:disabled) {
+  background: var(--ink-950);
 }
 
 .sf-button--ghost {
@@ -24,7 +40,8 @@
   border-color: var(--hairline);
 }
 
-.sf-button--ghost:hover:not(:disabled) {
+.sf-button--ghost:active:not(:disabled) {
+  background: var(--ink-100);
   border-color: var(--ink-600);
 }
 
@@ -34,8 +51,23 @@
   color: var(--paper);
 }
 
-.sf-button--danger:hover:not(:disabled) {
-  border-color: var(--ink);
+.sf-button--danger:active:not(:disabled) {
+  background: var(--loss-800);
+}
+
+/* El hover solo en dispositivos con cursor: en el celular quedaría "pegado" tras tocar. */
+@media (hover: hover) {
+  .sf-button--primary:hover:not(:disabled):not(:active) {
+    background: var(--ink-700);
+  }
+
+  .sf-button--ghost:hover:not(:disabled):not(:active) {
+    border-color: var(--ink-600);
+  }
+
+  .sf-button--danger:hover:not(:disabled):not(:active) {
+    border-color: var(--ink);
+  }
 }
 
 .sf-button:disabled {

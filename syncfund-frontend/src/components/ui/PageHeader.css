@@ -1,0 +1,70 @@
+.sf-page-header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  padding-bottom: var(--space-lg);
+  margin-bottom: var(--space-xl);
+  border-bottom: 1px solid var(--hairline);
+}
+
+.sf-page-header__main {
+  display: grid;
+  gap: var(--space-sm);
+  min-width: 0;
+}
+
+.sf-page-header__title {
+  font-size: var(--text-title);
+  line-height: var(--leading-tight);
+  text-wrap: balance;
+}
+
+.sf-page-header__figure {
+  display: grid;
+  gap: calc(var(--space-xs) / 2);
+}
+
+.sf-page-header__figure-label {
+  font-size: var(--text-label);
+  font-weight: 600;
+  color: var(--ink-muted);
+}
+
+/* La cifra protagonista: fluida (2rem → 2.75rem) y, si es muy larga, parte en vez de salirse. */
+.sf-page-header__figure-value {
+  font-family: var(--font-display);
+  font-size: var(--text-display);
+  font-weight: 500;
+  line-height: var(--leading-tight);
+  color: var(--ink-900);
+  overflow-wrap: anywhere;
+}
+
+.sf-page-header__figure-value--gain { color: var(--gain-700); }
+.sf-page-header__figure-value--loss { color: var(--loss-700); }
+
+.sf-page-header__meta {
+  font-size: var(--text-small);
+  color: var(--ink-muted);
+}
+
+.sf-page-header__action .sf-button {
+  width: 100%;
+}
+
+@media (min-width: 1024px) {
+  .sf-page-header {
+    flex-direction: row;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: var(--space-xl);
+  }
+
+  .sf-page-header__action {
+    flex: none;
+  }
+
+  .sf-page-header__action .sf-button {
+    width: auto;
+  }
+}
