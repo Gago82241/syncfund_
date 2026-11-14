@@ -7,11 +7,12 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   loading?: boolean;
 }
 
-export function Button({ variant = 'primary', loading, children, disabled, ...rest }: ButtonProps) {
+export function Button({ variant = 'primary', loading, children, disabled, className, ...rest }: ButtonProps) {
   return (
     <button
-      className={`sf-button sf-button--${variant}`}
+      className={['sf-button', `sf-button--${variant}`, className].filter(Boolean).join(' ')}
       disabled={disabled || loading}
+      aria-busy={loading || undefined}
       {...rest}
     >
       {loading ? 'Procesando...' : children}

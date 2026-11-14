@@ -1,6 +1,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,500&family=Figtree:wght@400;500;600;700&display=swap');
 
 :root {
+  --ink-950: #0B1A33; /* estado presionado del botón principal */
   --ink-900: #13294B;
   --ink-700: #1F3A5F;
   --ink-600: #2C5F8A;
@@ -23,6 +24,7 @@
   --gain-500: #2F9E7D;
   --gain-100: #E1F3EC;
 
+  --loss-800: #8A3823; /* estado presionado del botón de peligro */
   --loss-700: #A8452D;
   --loss-500: #C65D43;
   --loss-100: #F7E6E0;

@@ -325,3 +325,21 @@
   gap: var(--space-md);
   color: var(--ink-900);
 }
+
+/* --- Botones y campos --- */
+
+.catalog-stack {
+  display: grid;
+  gap: var(--space-sm);
+  width: 100%;
+}
+
+.catalog-stack > .catalog-auto-width {
+  width: auto;
+  justify-self: start;
+}
+
+.catalog__case-body > .sf-field {
+  width: 100%;
+  margin-bottom: 0;
+}

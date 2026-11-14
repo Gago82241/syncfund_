@@ -1,6 +1,7 @@
 import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 import { TokensSection } from './sections/TokensSection';
 import { IconSection } from './sections/IconSection';
+import { ControlsSection } from './sections/ControlsSection';
 import './ComponentCatalogPage.css';
 
 const SECTIONS = [
@@ -9,6 +10,8 @@ const SECTIONS = [
   { id: 'espacios', label: 'Espacios' },
   { id: 'movimiento', label: 'Movimiento' },
   { id: 'iconos', label: 'Íconos' },
+  { id: 'botones', label: 'Botones' },
+  { id: 'campos', label: 'Campos' },
 ];
 
 /**
@@ -39,6 +42,7 @@ export default function ComponentCatalogPage() {
       <main className="catalog__main">
         <TokensSection />
         <IconSection />
+        <ControlsSection />
       </main>
     </div>
   );

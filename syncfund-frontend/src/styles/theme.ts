@@ -9,6 +9,7 @@
  */
 
 export const colors = {
+  ink950: '#0B1A33',   // presionado del botón principal
   ink900: '#13294B',   // azul tinta profundo — marca, títulos, navegación
   ink700: '#1F3A5F',
   ink600: '#2C5F8A',   // azul acero — estados interactivos/hover
@@ -28,6 +29,7 @@ export const colors = {
   gain500: '#2F9E7D',  // esmeralda apagado — solo bordes y rellenos
   gain100: '#E1F3EC',
 
+  loss800: '#8A3823',  // presionado del botón de peligro
   loss700: '#A8452D',  // texto de montos en contra, gastos y errores (5.4:1)
   loss500: '#C65D43',  // terracota quemado — solo bordes y rellenos
   loss100: '#F7E6E0',
