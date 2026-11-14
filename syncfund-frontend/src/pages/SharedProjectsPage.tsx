@@ -1,6 +1,7 @@
 import { AppLayout } from '../components/layout/AppLayout';
 import { LoadError } from '../components/ui/LoadError';
 import { LoadingState } from '../components/ui/LoadingState';
+import { PageHeader } from '../components/ui/PageHeader';
 import { useAuth } from '../context/useAuth';
 import { useSharedProjects } from '../features/shared-project/hooks/useSharedProjects';
 import { ProjectCard } from '../features/shared-project/components/ProjectCard';
@@ -32,12 +33,10 @@ export function SharedProjectsPage() {
 
   return (
     <AppLayout>
-      <h2>Proyectos compartidos</h2>
-      <div style={{ marginTop: '2rem' }}>
-        <CreateProjectForm adminId={user!.id} onCreated={refreshAfterAction} />
-      </div>
+      <PageHeader title="Proyectos compartidos" />
+      <CreateProjectForm adminId={user!.id} onCreated={refreshAfterAction} />
 
-      <h3 style={{ fontSize: '1.125rem', marginBottom: '0.5rem' }}>Tus proyectos</h3>
+      <h2 style={{ fontSize: '1.125rem', marginBottom: '0.5rem' }}>Tus proyectos</h2>
       {renderProjects()}
     </AppLayout>
   );
