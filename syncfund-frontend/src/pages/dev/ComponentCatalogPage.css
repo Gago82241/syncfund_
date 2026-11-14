@@ -428,3 +428,14 @@
   accent-color: var(--ink-900);
   min-height: var(--tap-target);
 }
+
+/* --- Campos de monto y contraseña --- */
+
+.catalog-raw {
+  padding: var(--space-sm);
+  background: var(--paper);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-small);
+  color: var(--ink-muted);
+}
