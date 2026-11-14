@@ -1,0 +1,29 @@
+/* Línea discreta cuando no hay deudas: confirma sin competir con la cifra. */
+.dashboard__even {
+  margin-bottom: var(--space-xl);
+  font-size: var(--text-small);
+  color: var(--ink-muted);
+}
+
+/* Enlaces que se ven como botones (llevan a otra pantalla, no ejecutan una acción aquí). */
+.dashboard__link-button {
+  text-decoration: none;
+}
+
+.dashboard__first-steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+}
+
+@media (min-width: 480px) {
+  .dashboard__first-steps .sf-button {
+    width: auto;
+  }
+}
+
+.dashboard__ledger-skeleton {
+  display: grid;
+  gap: var(--space-xs);
+  max-width: 100%;
+}
