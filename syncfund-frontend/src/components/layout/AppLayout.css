@@ -164,13 +164,23 @@
   outline: none;
 }
 
-/* Abajo deja libre el alto de la barra inferior y del área segura del iPhone. */
+/*
+ * Contenedor de la página: hasta 1200 px y centrado. Abajo deja libre el alto de la barra
+ * inferior y del área segura del iPhone. Es contenedor de consultas (container queries):
+ * PageColumns pasa a dos columnas según el espacio que de verdad queda, con o sin menú lateral.
+ */
 .app-layout__content {
   max-width: var(--content-max);
   margin: 0 auto;
   padding: var(--space-lg) var(--space-md)
     calc(var(--nav-bar-height) + env(safe-area-inset-bottom, 0px) + var(--space-xl));
   min-width: 0;
+  container-type: inline-size;
+}
+
+/* Los avisos suben para no quedar debajo de la barra inferior (en escritorio no se usa). */
+:root:has(.app-layout) {
+  --toast-offset: var(--nav-bar-height);
 }
 
 @media (hover: hover) {
