@@ -4,6 +4,7 @@ import { Icon } from '../../../components/ui/Icon';
 import { Input } from '../../../components/ui/Input';
 import { MoneyInput } from '../../../components/ui/MoneyInput';
 import { Panel } from '../../../components/ui/Panel';
+import { useToast } from '../../../components/ui/toast/useToast';
 import { formatCOP } from '../../../styles/theme';
 import { required, wholeAmount } from '../../../utils/validation';
 import { CatalogCase, CatalogSection } from '../CatalogSection';
@@ -11,6 +12,7 @@ import { CatalogCase, CatalogSection } from '../CatalogSection';
 const FUND = 450000;
 
 export function PanelSection() {
+  const { showToast } = useToast();
   const [formOpen, setFormOpen] = useState(false);
   const [longOpen, setLongOpen] = useState(false);
   const [description, setDescription] = useState('');
@@ -35,6 +37,7 @@ export function PanelSection() {
     setDescription('');
     setAmount('');
     setFormOpen(false);
+    showToast('Gasto registrado');
   }
 
   return (
