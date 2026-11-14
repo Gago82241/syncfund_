@@ -5,6 +5,7 @@ import { ControlsSection } from './sections/ControlsSection';
 import { StructureSection } from './sections/StructureSection';
 import { MoneySection } from './sections/MoneySection';
 import { FieldsSection } from './sections/FieldsSection';
+import { PanelSection } from './sections/PanelSection';
 import './ComponentCatalogPage.css';
 
 const SECTIONS = [
@@ -23,6 +24,7 @@ const SECTIONS = [
   { id: 'progreso', label: 'Progreso' },
   { id: 'monto', label: 'Monto' },
   { id: 'contrasena', label: 'Contraseña' },
+  { id: 'panel', label: 'Panel' },
 ];
 
 /**
@@ -57,6 +59,7 @@ export default function ComponentCatalogPage() {
         <StructureSection />
         <MoneySection />
         <FieldsSection />
+        <PanelSection />
       </main>
     </div>
   );

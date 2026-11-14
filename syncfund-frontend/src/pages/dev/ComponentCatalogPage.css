@@ -439,3 +439,11 @@
   font-size: var(--text-small);
   color: var(--ink-muted);
 }
+
+/* --- Panel --- */
+
+.catalog-long {
+  display: grid;
+  gap: var(--space-md);
+  max-width: 65ch;
+}

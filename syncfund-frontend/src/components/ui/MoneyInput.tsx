@@ -66,8 +66,7 @@ export function MoneyInput({
   const amount = value === '' ? 0 : Number(value);
   const previewText = preview && amount > 0 ? preview(amount) : undefined;
 
-  // Tras reformatear, devuelve el cursor al mismo punto del número (no al final). Corre en cada
-  // render: si se escribe una letra, el texto no cambia pero React lo repone y movería el cursor.
+  // Tras reformatear, devuelve el cursor al mismo punto del número (no al final).
   useLayoutEffect(() => {
     const input = inputRef.current;
     if (pendingCaret.current === null || !input || document.activeElement !== input) return;
@@ -77,9 +76,23 @@ export function MoneyInput({
   });
 
   function handleChange(event: ChangeEvent<HTMLInputElement>) {
-    const { value: typed, selectionStart } = event.target;
-    pendingCaret.current = significantBefore(typed, selectionStart ?? typed.length);
-    onValueChange(parseAmountInput(typed, allowDecimals));
+    const input = event.target;
+    const typed = input.value;
+    const caret = significantBefore(typed, input.selectionStart ?? typed.length);
+    const raw = parseAmountInput(typed, allowDecimals);
+
+    if (raw === value) {
+      // Nada cambió (una letra, o un punto de miles borrado): React no vuelve a renderizar,
+      // pero repone el texto y dejaría el cursor al final. Se coloca después de esa reposición.
+      queueMicrotask(() => {
+        const position = positionAfter(input.value, caret);
+        input.setSelectionRange(position, position);
+      });
+      return;
+    }
+
+    pendingCaret.current = caret;
+    onValueChange(raw);
   }
 
   const describedBy = [hint && hintId, previewText && previewId, error && errorId].filter(Boolean).join(' ');
