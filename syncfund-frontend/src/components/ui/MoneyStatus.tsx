@@ -6,7 +6,8 @@ interface MoneyStatusProps {
   /** Saldo neto: positivo = a favor, negativo = en contra. */
   amount: number;
   /**
-   * you: habla al usuario ("Te deben", "Debes").
+   * you: habla al usuario ("A tu favor", "Debes"). El saldo a favor no es una deuda de nadie:
+   * incluye tu parte del fondo que aún no se gasta.
    * other: describe a otro integrante ("A favor", "Debe"), como en la tabla de situación.
    */
   subject?: 'you' | 'other';
@@ -22,7 +23,7 @@ export function MoneyStatus({ amount, subject = 'you' }: MoneyStatusProps) {
   }
 
   const inFavor = amount > 0;
-  const label = subject === 'you' ? (inFavor ? 'Te deben' : 'Debes') : inFavor ? 'A favor' : 'Debe';
+  const label = subject === 'you' ? (inFavor ? 'A tu favor' : 'Debes') : inFavor ? 'A favor' : 'Debe';
 
   return (
     <span className={`sf-money-status sf-money-status--${inFavor ? 'gain' : 'loss'}`}>

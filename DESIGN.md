@@ -174,7 +174,7 @@ contra (y error, en terracota). Nunca se usan como adorno, ilustración o identi
 aparece en superficies que el usuario lee o llena: hojas, campos, formularios, cabecera.
 
 **The Not-Only-Color Rule.** Ingreso/gasto y deuda nunca se comunican solo con color: van con
-signo, etiqueta o texto ("te deben", "debes", "en paz").
+signo, etiqueta o texto ("a tu favor", "debes", "en paz").
 
 **Brecha conocida de contraste (WCAG 2.1 AA, compromiso de PRODUCT.md).** Sobre ledger-50:
 gain-500 da 3.0:1, loss-500 3.8:1, ink-faint 3.2:1 y warn-500 2.4:1; ninguno alcanza 4.5:1
@@ -321,7 +321,7 @@ gris y sin signo, con una nota, porque no mueven el fondo.
 - **Do** dejar una sola cifra en Display (2.75rem, Fraunces) por pantalla.
 - **Do** separar filas con línea de renglón de 1px y marcar totales con filete de 2px en azul
   tinta.
-- **Do** acompañar el color semántico con signo o texto ("te deben", "debes", "en paz").
+- **Do** acompañar el color semántico con signo o texto ("a tu favor", "debes", "en paz").
 - **Do** usar loss-700 para cualquier texto de error o botón de peligro.
 - **Do** agregar cualquier color, tamaño o espacio nuevo como token en `globals.css` y
   `theme.ts`.

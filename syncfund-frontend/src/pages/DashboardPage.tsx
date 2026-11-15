@@ -131,10 +131,10 @@ export function DashboardPage() {
         />
 
         {summary.debts.length > 0 && <DebtNotice debts={summary.debts} />}
-        {/* "Al día" solo si todo está en cero; si te deben, no debes nada pero tampoco estás al día. */}
+        {/* "Al día" solo si todo está en cero; con saldo a favor, no debes nada pero tampoco estás al día. */}
         {summary.debts.length === 0 && summary.projects.length > 0 && (
           <p className="dashboard__even">
-            {summary.owedToYou > 0 ? 'No debes nada en tus proyectos.' : 'Estás al día en todos tus proyectos.'}
+            {summary.inYourFavor > 0 ? 'No debes nada en tus proyectos.' : 'Estás al día en todos tus proyectos.'}
           </p>
         )}
 

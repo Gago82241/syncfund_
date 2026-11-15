@@ -43,7 +43,7 @@ export function StructureSection() {
           <div className="catalog-frame">
             <PageHeader
               title="Apartamento Laureles"
-              figure={{ label: 'Te deben', value: formatCOP(85000), tone: 'gain' }}
+              figure={{ label: 'A tu favor', value: formatCOP(85000), tone: 'gain' }}
               meta={`Fondo del proyecto: ${formatCOP(450000)}`}
             />
           </div>

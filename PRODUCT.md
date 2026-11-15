@@ -52,7 +52,7 @@ misma app, y las dos cosas pesan igual.
   cambian.
 - Terminología del producto: billetera personal, colchón, meta de ahorro, proyecto
   compartido, fondo, aporte, gasto compartido, integrante, administrador, saldo neto,
-  "en paz / te deben / debes", pago entre integrantes.
+  "en paz / a tu favor / debes", pago entre integrantes.
 - Reglas de negocio visibles en la interfaz: un gasto compartido que supera el fondo se
   rechaza; el administrador no puede salir ni ser eliminado; solo sale quien está al día.
 - Pendiente (no decidido): invitación de integrantes con aceptación; ciclo de vida completo

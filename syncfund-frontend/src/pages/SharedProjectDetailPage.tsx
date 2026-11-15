@@ -71,7 +71,8 @@ const CLOSED: PanelState = { open: false, kind: 'expense', formKey: 0 };
 /** La cifra protagonista: tu situación en el proyecto, con el mismo umbral que la tabla. */
 function situationFigure(net: number): { label: string; value: string; tone: MoneyTone } {
   if (net < -HALF_CENT) return { label: 'Debes', value: formatCOP(-net), tone: 'loss' };
-  if (net > HALF_CENT) return { label: 'Te deben', value: formatCOP(net), tone: 'gain' };
+  // Saldo neto positivo: incluye tu parte del fondo que aún no se gasta; no es una deuda de nadie.
+  if (net > HALF_CENT) return { label: 'A tu favor', value: formatCOP(net), tone: 'gain' };
   return { label: 'Tu situación', value: 'Estás al día', tone: 'neutral' };
 }
 

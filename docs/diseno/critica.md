@@ -1316,6 +1316,12 @@ pago el alivio que merece.
   - un renglón "Carla te debe $ 113.333" calculado desde `suggestedPayments`.
   - Es solo frontend.
 - **Comando sugerido:** `/impeccable clarify`.
+- **Resuelto (decisión del equipo, 2026-11-15):**
+  - El saldo neto positivo se llama "A tu favor" en el Detalle, en el Resumen ("Billetera + A tu
+    favor − Debes = Tienes en total") y en `MoneyStatus`. Ese saldo incluye la parte del fondo que
+    aún no se gasta, así que no es una deuda.
+  - "Debes" no cambia.
+  - Se ajustaron los mismos términos en PRODUCT.md, DESIGN.md y el README.
 
 #### [P2] El cierre del pago se queda corto
 
@@ -1413,7 +1419,8 @@ El puntaje de arriba es el de antes de estos ajustes.
 
 ### Pendiente (decisiones del equipo, sin hacer en esta rama)
 
-- [ ] Vocabulario de "Te deben" contra el saldo a favor en el fondo ([P1]), aquí y en el Resumen.
+- [x] Vocabulario de "Te deben" contra el saldo a favor en el fondo ([P1]), aquí y en el Resumen:
+  ahora dice "A tu favor".
 - [ ] Cierre del pago más claro y sin doble lectura ([P2]).
 - [ ] Un solo "Pagar" visible por deuda y lista del grupo plegable ([P2]).
 - [ ] Dos columnas en escritorio ([P2]).

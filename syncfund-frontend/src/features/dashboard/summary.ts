@@ -20,7 +20,7 @@ export interface ProjectLine {
   projectId: number;
   name: string;
   memberCount: number;
-  /** Saldo neto del usuario en el proyecto: positivo = te deben, negativo = debes. */
+  /** Saldo neto del usuario en el proyecto: positivo = a tu favor, negativo = debes. */
   net: number;
 }
 
@@ -35,13 +35,16 @@ export interface Debt {
 }
 
 export interface DashboardSummary {
-  /** Billetera + Te deben − Debes. */
+  /** Billetera + A tu favor − Debes. */
   total: number;
   /** Disponible + colchón: apartar al colchón no cambia cuánto tienes. */
   walletTotal: number;
   cushion: number;
-  /** Suma de los saldos netos a favor. */
-  owedToYou: number;
+  /**
+   * Suma de los saldos netos a favor. No es lo que te deben: incluye tu parte del fondo que
+   * aún no se gasta.
+   */
+  inYourFavor: number;
   /** Suma de los saldos netos en contra, en positivo. */
   youOwe: number;
   /** Primero los proyectos donde debes (la deuda mayor arriba); los demás en su orden. */
@@ -72,7 +75,7 @@ export function computeDashboardSummary(
 ): DashboardSummary {
   const lines: ProjectLine[] = [];
   const debts: Debt[] = [];
-  let owedToYou = 0;
+  let inYourFavor = 0;
   let youOwe = 0;
 
   for (const project of projects) {
@@ -90,7 +93,7 @@ export function computeDashboardSummary(
       net,
     });
 
-    if (net > 0) owedToYou += net;
+    if (net > 0) inYourFavor += net;
     if (net < 0) {
       youOwe += -net;
       const payments = balances.suggestedPayments.filter(
@@ -126,16 +129,16 @@ export function computeDashboardSummary(
   debts.sort((a, b) => b.amount - a.amount);
 
   // Cada parte se redondea a pesos antes de sumar, para que la cuenta que se ve en pantalla
-  // (Billetera + Te deben − Debes) dé exactamente el total mostrado.
+  // (Billetera + A tu favor − Debes) dé exactamente el total mostrado.
   const walletTotal = toPesos(wallet.currentBalance + wallet.cushionBalance);
-  const roundedOwedToYou = toPesos(owedToYou);
+  const roundedInYourFavor = toPesos(inYourFavor);
   const roundedYouOwe = toPesos(youOwe);
 
   return {
-    total: walletTotal + roundedOwedToYou - roundedYouOwe || 0,
+    total: walletTotal + roundedInYourFavor - roundedYouOwe || 0,
     walletTotal,
     cushion: toPesos(wallet.cushionBalance),
-    owedToYou: roundedOwedToYou,
+    inYourFavor: roundedInYourFavor,
     youOwe: roundedYouOwe,
     projects: sorted,
     debts,

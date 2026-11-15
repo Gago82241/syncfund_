@@ -68,7 +68,7 @@ Como riesgo aceptado, el registro y la incorporación de integrantes informan si
 
 - **Billetera personal**: registro de ingresos y gastos, meta de ahorro mensual con cálculo automático de cuota, y un "colchón" de seguridad que nunca permite dejar el saldo en negativo.
 - **Proyectos compartidos**: crea un grupo, agrega integrantes por correo electrónico, aporta al fondo común desde tu billetera personal y registra gastos selectivos (eliges quién participa en cada uno) que paga el fondo. Si el fondo no alcanza, el gasto se rechaza.
-- **Cálculo de deudas en tiempo real**: en todo momento puedes ver si estás "en paz", te deben, o debes, sin tener que hacer la cuenta a mano.
+- **Cálculo de deudas en tiempo real**: en todo momento puedes ver si estás "en paz", tienes saldo a favor o debes, sin tener que hacer la cuenta a mano.
 - **Situación del proyecto y pago de deudas**: una tabla muestra cuánto aportó cada integrante, su parte de los gastos y su saldo. Si debes, puedes pagarle directamente a quien tiene saldo a favor desde tu billetera personal, con el monto sugerido para quedar al día.
 - **Eliminar integrantes y salir de un proyecto**: el administrador puede quitar a un integrante y cualquier integrante puede salir, siempre que esté al día. Su historial se conserva y los saldos de los demás no cambian.
 - **Categorías con alerta de presupuesto**: crea tus propias categorías de gasto, define un límite mensual para cada una y recibe aviso visual cuando lo superas. Solo tú puedes verlas y usarlas.
