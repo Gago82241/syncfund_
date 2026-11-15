@@ -236,7 +236,7 @@ y una fila breve de indicadores en el Resumen, siempre con una sola cifra protag
 El sistema es plano. La profundidad se expresa con tres recursos: la línea fina (hairline), el
 cambio de tono entre el papel cálido de la página y el blanco de las hojas, y el borde de color
 en los estados (foco en azul acero, error en terracota, confirmación destructiva con borde
-izquierdo de 3px en terracota oscuro). Hoy no existe ninguna sombra en la interfaz.
+completo de 1px en terracota, sin franja lateral). Hoy no existe ninguna sombra en la interfaz.
 
 ### Named Rules
 **The Flat-By-Default Rule.** Las superficies son planas. Solo los elementos que flotan sobre el

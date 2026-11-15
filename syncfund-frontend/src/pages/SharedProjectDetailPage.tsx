@@ -258,11 +258,18 @@ export function SharedProjectDetailPage() {
                 projectId={projectId}
                 projectName={project.name}
                 members={members}
+                balances={balances}
                 adminId={project.adminId}
                 currentUserId={user!.id}
-                onRemoved={refreshAfterAction}
+                onRemoved={(member) => {
+                  showToast(`${member.name} ya no es integrante del proyecto`);
+                  refreshAfterAction();
+                }}
                 // Quien sale ya no puede ver el proyecto: vuelve a la lista de sus proyectos.
-                onLeft={() => navigate('/projects', { replace: true })}
+                onLeft={() => {
+                  showToast(`Saliste de «${project.name}»`);
+                  navigate('/projects', { replace: true });
+                }}
               />
               {isAdmin ? (
                 <Button variant="ghost" className="project-detail__inline-button" onClick={() => openPanel('member')}>
