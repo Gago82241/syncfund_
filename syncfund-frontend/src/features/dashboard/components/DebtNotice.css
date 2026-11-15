@@ -1,0 +1,91 @@
+/*
+ * Aviso destacado: fondo terracota claro con borde fino completo (sin franja lateral gruesa).
+ * Lo que lo distingue es el tono y la palabra "Debes", no un adorno.
+ */
+.debt-notice {
+  /* Más cerca de la cifra que de las hojas: el aviso es parte de la respuesta a "¿cuánto tengo?". */
+  margin-top: calc(var(--space-md) * -1);
+  margin-bottom: var(--space-xl);
+  padding: var(--space-md);
+  background: var(--loss-100);
+  border: 1px solid var(--loss-500);
+  border-radius: var(--radius-md);
+}
+
+.debt-notice__title {
+  font-size: var(--text-title);
+  color: var(--loss-700);
+  text-wrap: balance;
+}
+
+.debt-notice__list {
+  margin: var(--space-sm) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.debt-notice__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-sm) var(--space-md);
+  padding: var(--space-sm) 0;
+  border-top: 1px solid var(--loss-500);
+}
+
+.debt-notice__row:first-child {
+  border-top: none;
+  padding-top: 0;
+}
+
+.debt-notice__row:last-child {
+  padding-bottom: 0;
+}
+
+.debt-notice__text {
+  flex: 1 1 12rem;
+  min-width: 0;
+}
+
+.debt-notice__what {
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
+.debt-notice__label {
+  font-weight: 600;
+  color: var(--loss-700);
+}
+
+.debt-notice__what strong {
+  font-weight: 600;
+  color: var(--loss-700);
+}
+
+.debt-notice__project {
+  font-size: var(--text-label);
+  color: var(--ink-muted);
+  overflow-wrap: anywhere;
+}
+
+/*
+ * El enlace se ve como botón secundario: en el celular ocupa la fila; desde 480 px, lo justo.
+ * El ghost es transparente: sobre el terracota claro lleva papel para seguir leyéndose como botón.
+ */
+.debt-notice__pay {
+  background: var(--paper);
+  text-decoration: none;
+}
+
+@media (min-width: 480px) {
+  .debt-notice__pay {
+    width: auto;
+    flex: none;
+  }
+}
+
+@media (min-width: 640px) {
+  .debt-notice {
+    padding: var(--space-md) var(--space-lg);
+  }
+}

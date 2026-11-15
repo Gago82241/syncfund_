@@ -379,6 +379,199 @@ la cifra aparece:
 
 ---
 
+## Resumen — después del rediseño
+
+- **Archivos:** `src/pages/DashboardPage.tsx` y `src/features/dashboard/` (cálculo en `summary.ts`,
+  carga en `hooks/useDashboard.ts`).
+- **Fecha:** 2026-11-13 · rama `style/resumen` (commit `f62a903`).
+- **Método:** dos evaluaciones aisladas. A: revisión de diseño con el código y capturas de Chrome
+  sin interfaz contra una API simulada (320, 375 y 1280 px; escenarios con deuda, al día, usuario
+  nuevo, error, error solo del presupuesto, carga y datos extremos). B: detector de impeccable sobre
+  el código y sobre la página renderizada (`detect --cdp`).
+- **Modo de la pantalla:** Operate.
+- **Resultado:** **28/40, Bueno** (antes 18/40, +10). Cumple la meta de 28 del plan, sin margen.
+
+### Puntaje de heurísticas (Nielsen)
+
+| # | Heurística | Antes | Ahora | Problema clave que queda |
+|---|---|---|---|---|
+| 1 | Visibilidad del estado del sistema | 2 | 3 | Carga con la forma del contenido, página activa y aviso "Movimiento registrado". No dice cuándo se actualizó la cifra ni vuelve a consultar sola. |
+| 2 | Coincidencia con el mundo real | 1 | 3 | Vocabulario del producto. "Estás al día" aparece aunque te deban, y "Tienes en total" no aclara que "Te deben" no es dinero disponible. |
+| 3 | Control y libertad | 3 | 3 | El panel se cierra con Esc, "Cerrar" o el velo, y devuelve el foco. Al reabrirlo se pierde lo escrito. |
+| 4 | Consistencia y estándares | 2 | 3 | "Pagar" se ve como botón de acción pero solo navega al Detalle. El h1 mide lo mismo que los títulos de las hojas. |
+| 5 | Prevención de errores | 2 | 3 | Nunca hay cifra parcial. El formulario del panel aún usa el campo de monto antiguo (se cambia en `style/billetera`). |
+| 6 | Reconocer antes que recordar | 1 | 3 | Deudas y estado por proyecto a la vista. Al tocar "Pagar" hay que volver a buscar a la persona en la tabla del Detalle. |
+| 7 | Flexibilidad y eficiencia | 1 | 2 | "Registrar movimiento" a un toque. "Pagar" llega a medio camino. |
+| 8 | Estética y diseño minimalista | 2 | 3 | Sobria y ordenada. En el celular el monto de la deuda se repite tres veces y "Tus proyectos" queda bajo el pliegue. |
+| 9 | Recuperación de errores | 3 | 3 | Errores separados para la cifra y el presupuesto, con Reintentar, y aviso de que el cambio sí quedó si falla la recarga. |
+| 10 | Ayuda y documentación | 1 | 2 | La cuenta explica de dónde sale la cifra. Nada explica qué es el colchón ni que "Te deben" no se puede gastar todavía. |
+| **Total** | | **18/40** | **28/40** | **Bueno**: base sólida; falta cerrar el flujo de pago. |
+
+### Veredicto de especificidad
+
+**Revisión de diseño:** es de SyncFund por lo que dice y todavía genérica por cómo se dispone. La
+cuenta "Billetera + Te deben − Debes" con signos, "incluye colchón", el aviso "Debes $ 60.000 a
+Camilo · Viaje a Cartagena" y los estados "Te deben / Debes / Al día" no los puede usar otra app sin
+cambios: es justo lo personal y lo compartido, juntos. En escritorio, en cambio, el esqueleto (cifra
+grande, indicadores, aviso y dos hojas blancas con "Ver todos") se parece a la plantilla de un
+dashboard. El rasgo más de libro mayor, la suma, va debajo del total, cuando en un libro el total
+va al pie, bajo el filete.
+
+**Detector automático:**
+- Código: **0 hallazgos** (`detect --json` sobre la página, `features/dashboard`,
+  `components/ui`, `components/layout` y `TransactionForm`).
+- Página renderizada (375 y 1280 px; escenarios con deuda, usuario nuevo y datos extremos):
+  - Sin hallazgos de contraste ni de texto diminuto, y sin desplazamiento horizontal.
+  - `cream-palette`: es el fondo ledger-50, la identidad aprobada. Falso positivo.
+  - `flat-type-hierarchy`: el h1 y los h2 miden 18 px. Coincide con lo que vio la revisión de diseño.
+    La cifra (hasta 33,6 px) es la que manda, pero no es un encabezado.
+  - `straggler`: solo con un nombre extremo en el aviso de deuda ("Gómez-Restrepo" solo en la
+    última línea). Real y de baja prioridad: `text-wrap: pretty`.
+- No se usó el overlay en vivo; la evidencia del navegador sale de `detect --cdp`.
+
+### Impresión general
+
+El Resumen ya responde "¿cuánto tengo?" con una cifra que es solo del usuario y que se puede
+comprobar a ojo, y no deja pasar ninguna deuda. Lo que falta está en el borde de la pantalla:
+"Pagar" promete un pago y entrega una navegación. La mayor oportunidad es que ese botón lleve al
+pago ya listo, en la rama del Detalle del proyecto.
+
+### Lo que funciona
+
+1. **La cifra es del usuario y se explica sola.**
+   - Cada parte se redondea antes de sumar, así que la cuenta visible siempre cuadra con el total.
+   - El lector de pantalla oye "más Te deben, menos Debes".
+   - Es lo más fácil de sustentar ante el docente.
+2. **Disciplina de estados.**
+   - La cifra es todo o nada: si falla una petición no queda un total parcial ni el anterior.
+   - El presupuesto falla aparte.
+   - Las respuestas viejas se descartan.
+   - "Usuario nuevo" se distingue de "gastó todo lo que tenía".
+3. **Robusta en el celular.**
+   - Sin desborde a 320 px, incluso con $ 221.234.506.799 y nombres larguísimos.
+   - La acción fija queda al alcance del pulgar sin tapar el último renglón.
+   - El panel sube como hoja inferior con el foco en el monto.
+
+### Problemas prioritarios
+
+#### [P1] "Pagar" promete un pago y entrega una navegación
+
+- **Qué:** en `DebtNotice.tsx`, "Pagar" es un enlace al Detalle con estilo de botón principal y
+  `aria-label` "Pagar $ 60.000 a Camilo en Viaje a Cartagena". En el Detalle no hay nada abierto
+  y hay que volver a encontrar el "Pagar" de la tabla de situación.
+- **Por qué importa:** es el flujo de "quedar al día con un solo pago" (PRODUCT.md). Quien usa
+  lector de pantalla puede creer que ya pagó.
+- **Corrección:** en `style/detalle-proyecto`, que el Detalle acepte una intención de pago
+  (p. ej. `?pagar={toUserId}`) y abra el panel de pago ya lleno. Mientras tanto, cambiar el
+  `aria-label` a "Ir a Viaje a Cartagena para pagarle $ 60.000 a Camilo".
+- **Comando sugerido:** `/impeccable clarify`, luego `/impeccable shape`.
+
+#### [P2] Dos acciones principales del mismo peso
+
+- **Qué:** "Pagar" y "Registrar movimiento" son botones azul tinta iguales. Con varias deudas, en
+  el celular se apilan varios bloques de ancho completo encima de la acción fija.
+- **Por qué importa:** rompe "una acción principal por pantalla" y le quita espacio a lo demás.
+- **Corrección:** "Pagar" en versión secundaria (contorno) y compacto a la derecha del renglón
+  también en el celular.
+- **Comando sugerido:** `/impeccable layout`, luego `/impeccable polish`.
+
+#### [P2] "Estás al día" y "Tienes en total" dicen un poco más de lo cierto
+
+- **Qué:** "Estás al día en todos tus proyectos" sale cuando no debes, aunque te deban
+  $ 150.000. "Tienes en total" incluye "Te deben" sin aclarar que todavía no se puede gastar.
+- **Por qué importa:** principio 1, "cada cifra dice qué es". Quien comparte arriendo puede
+  gastar de más.
+- **Corrección:** "No debes nada en tus proyectos" cuando hay saldos a favor y "Estás al día"
+  solo si todo está en cero. Una nota corta bajo "Te deben" ("lo recibes cuando te paguen"), sin
+  cambiar la cifra aprobada.
+- **Comando sugerido:** `/impeccable clarify`.
+
+#### [P2] En el celular la deuda se repite y los proyectos quedan bajo el pliegue
+
+- **Qué:** a 375 px el primer pantallazo es cifra, cuenta y aviso. "$ 60.000" aparece en la
+  cuenta, en el aviso y en la fila del proyecto. "Tus proyectos" empieza detrás de la acción fija.
+- **Por qué importa:** "una sola cifra protagonista" y lo que distingue a SyncFund (la posición
+  en cada proyecto) solo se ve al desplazarse.
+- **Corrección:** cuenta más compacta en el celular, o renglón "− Debes" que se despliegue con
+  "a Camilo · Pagar" en lugar de un aviso aparte.
+- **Comando sugerido:** `/impeccable layout`, luego `/impeccable adapt`.
+
+#### [P3] Composición de dashboard en escritorio y título plano
+
+- **Qué:** el h1 "Resumen" mide lo mismo que los títulos de las hojas (también lo marca el
+  detector). En escritorio queda un hueco entre la cuenta y el botón. El usuario nuevo ve media
+  pantalla vacía.
+- **Corrección:** total al pie de la cuenta con filete doble de libro mayor; escala de títulos con
+  un paso claro entre h1 y h2; en el usuario nuevo, una vista muda de cómo se verá la cuenta, sin
+  cifras inventadas.
+- **Comando sugerido:** `/impeccable typeset`, luego `/impeccable onboard`.
+
+### Señales de alerta por persona
+
+- **Usuario distraído en el celular:**
+  - "Registrar movimiento" queda al pulgar.
+  - "Pagar", de ancho completo justo encima, se toca sin querer al desplazar.
+  - El borde terracota del monto en modo Gasto parece un error (formulario antiguo, ya programado).
+- **Usuario de lector de pantalla o teclado:**
+  - A favor:
+    - Enlace de salto.
+    - Un solo h1.
+    - La cuenta se lee con "más" y "menos".
+    - Las barras tienen `aria-valuetext`.
+    - El panel atrapa y devuelve el foco (verificado).
+  - En contra:
+    - El `aria-label` de "Pagar" anuncia un pago que no ocurre.
+    - El nuevo total no se anuncia tras guardar (solo el aviso).
+- **Primera vez:**
+  - El estado vacío se entiende en segundos.
+  - "Crea un proyecto" lleva a la lista, no crea nada.
+  - Nada explica qué es el colchón.
+- **Estudiante que comparte arriendo:**
+  - Ve al abrir "Debes $ 60.000 a Camilo · Viaje a Cartagena": el fallo central de la crítica
+    anterior está resuelto.
+  - Le falta que "Pagar" lo deje en el pago.
+  - Si le deben, "Estás al día" y un total que incluye esa plata pueden hacerlo gastar de más.
+
+### Observaciones menores
+
+- En el celular, la cuenta y el encabezado cierran con dos líneas finas casi seguidas.
+- "− Debes $ 0" podría ir atenuado cuando no debes nada.
+- ProgressBar muestra "10000000 % usado" con gastos absurdos; por encima de 999 % convendría
+  "más de 999 %" (`style/categorias`).
+- El nombre del proyecto en el aviso va en gris pequeño, y en las filas va destacado.
+- Con error de la cifra, la página no ofrece ninguna acción aparte de Reintentar.
+- El aviso y la línea "al día" usan margen negativo para acercarse a la cifra; un `gap` del
+  contenedor sería más limpio.
+
+### Preguntas para el equipo
+
+1. Si la cuenta ya responde "¿cuánto tengo?", ¿hace falta un aviso aparte, o el renglón
+   "− Debes" podría desplegarse con "a Camilo · Pagar"?
+2. ¿La protagonista debería ser "Puedes gastar" (billetera disponible) y "Tienes en total" el
+   renglón de cierre?
+3. Si el Resumen es un libro mayor, ¿no debería leerse de arriba abajo y terminar en el total bajo
+   un filete doble?
+
+### Ajustes hechos después de la crítica
+
+El equipo decidió corregir en esta misma rama lo que hacía falta para que la pantalla no prometa más
+de lo que hace. El puntaje de arriba es el de antes de estos ajustes.
+
+- **[P1], ajuste mínimo:**
+  - El botón del aviso dice "Ir a pagar" y su `aria-label` "Ir a {proyecto} para pagarle a {nombre}".
+  - Pasa a botón secundario (contorno sobre papel), para no competir con "Registrar movimiento".
+- **[P2] "Estás al día":** con saldos a favor dice "No debes nada en tus proyectos"; "Estás al día
+  en todos tus proyectos" queda solo cuando todo está en cero.
+
+### Pendiente para `style/detalle-proyecto`
+
+- [ ] **Solución completa del [P1]:** que el Detalle del proyecto reciba la intención de pago desde
+  el Resumen (por ejemplo `/projects/{id}?pagar={toUserId}` o el `state` de la navegación) y abra
+  el panel de pago ya lleno con a quién y cuánto, para que "Ir a pagar" termine en el pago y no en
+  la tabla. Cuando esté, el botón del Resumen puede volver a decir "Pagar".
+
+---
+
 ## Billetera personal
 
 - **Archivo:** `src/pages/PersonalWalletPage.tsx` (ruta `/wallet`), con `WalletSummaryCard`,

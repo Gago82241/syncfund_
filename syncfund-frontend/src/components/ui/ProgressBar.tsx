@@ -1,9 +1,7 @@
 import { useId } from 'react';
 import { formatCOP } from '../../styles/theme';
+import { BUDGET_WARN_PERCENT, budgetPercent } from '../../utils/budget';
 import './ProgressBar.css';
-
-/** Desde este porcentaje un presupuesto pasa a "Cerca del límite". */
-const WARN_FROM = 80;
 
 interface ProgressBarProps {
   /** Nombre visible de lo que se mide (ej. "Mercado", "Meta de noviembre"). */
@@ -24,7 +22,7 @@ type Status = 'normal' | 'warn' | 'over' | 'done';
 function statusFor(kind: 'budget' | 'goal', percent: number): Status {
   if (kind === 'goal') return percent >= 100 ? 'done' : 'normal';
   if (percent >= 100) return 'over';
-  if (percent >= WARN_FROM) return 'warn';
+  if (percent >= BUDGET_WARN_PERCENT) return 'warn';
   return 'normal';
 }
 
@@ -41,7 +39,7 @@ const STATUS_TEXT: Record<Status, string | null> = {
  */
 export function ProgressBar({ label, value, max, kind = 'budget', format = formatCOP }: ProgressBarProps) {
   const labelId = useId();
-  const percent = max > 0 ? Math.round((value / max) * 100) : 0;
+  const percent = budgetPercent(value, max);
   const status = statusFor(kind, percent);
   const statusText = STATUS_TEXT[status];
   const percentText = kind === 'goal' ? `${percent} % de la meta` : `${percent} % usado`;

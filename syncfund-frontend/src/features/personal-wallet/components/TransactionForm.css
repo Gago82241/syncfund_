@@ -5,6 +5,14 @@
   background: var(--paper);
 }
 
+/* Dentro de un Panel: el panel ya es la superficie y tiene el título. */
+.tx-form--embedded {
+  border: none;
+  border-radius: 0;
+  padding: 0;
+  background: none;
+}
+
 .tx-form h3 {
   font-size: 1.125rem;
   margin-bottom: 1rem;

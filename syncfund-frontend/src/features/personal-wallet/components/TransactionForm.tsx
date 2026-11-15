@@ -12,11 +12,18 @@ import './TransactionForm.css';
 interface Props {
   walletId: number;
   onSaved: () => void;
+  /**
+   * Dentro de un Panel: sin marco ni título propios (el panel ya los pone) y con el foco
+   * inicial en el monto. En la Billetera se usa sin esta opción.
+   */
+  embedded?: boolean;
+  /** Tipo con el que abre (ej. "Registra tu primer ingreso"). Solo cuenta al montarse. */
+  initialType?: 'INGRESO' | 'GASTO';
 }
 
 /** Transaction.execute() vía POST /api/transactions, para la PersonalWallet. */
-export function TransactionForm({ walletId, onSaved }: Props) {
-  const [type, setType] = useState<'INGRESO' | 'GASTO'>('GASTO');
+export function TransactionForm({ walletId, onSaved, embedded = false, initialType = 'GASTO' }: Props) {
+  const [type, setType] = useState<'INGRESO' | 'GASTO'>(initialType);
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
   const [categoryId, setCategoryId] = useState('');
@@ -89,8 +96,13 @@ export function TransactionForm({ walletId, onSaved }: Props) {
   }
 
   return (
-    <form ref={formRef} onSubmit={handleSubmit} className="tx-form" noValidate>
-      <h3>Registrar movimiento</h3>
+    <form
+      ref={formRef}
+      onSubmit={handleSubmit}
+      className={embedded ? 'tx-form tx-form--embedded' : 'tx-form'}
+      noValidate
+    >
+      {!embedded && <h3>Registrar movimiento</h3>}
       <div className="tx-form__toggle">
         <button
           type="button"
@@ -117,6 +129,7 @@ export function TransactionForm({ walletId, onSaved }: Props) {
         className={fieldErrors.amount ? undefined : `tx-form__amount--${type === 'GASTO' ? 'gasto' : 'ingreso'}`}
         value={amount}
         error={fieldErrors.amount}
+        data-autofocus={embedded || undefined}
         onChange={(e) => {
           setAmount(e.target.value);
           clearField('amount');

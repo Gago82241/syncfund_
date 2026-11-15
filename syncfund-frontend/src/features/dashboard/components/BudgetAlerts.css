@@ -1,0 +1,17 @@
+.budget-alerts__note {
+  font-size: var(--text-small);
+  color: var(--ink-muted);
+}
+
+.budget-alerts__list {
+  display: grid;
+  gap: var(--space-md);
+  margin: var(--space-md) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.budget-alerts__list li + li {
+  padding-top: var(--space-md);
+  border-top: 1px solid var(--hairline);
+}
