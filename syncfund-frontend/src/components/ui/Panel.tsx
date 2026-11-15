@@ -101,7 +101,8 @@ export function Panel({ open, onClose, title, description, children, footer, fal
   function handleClose() {
     const target = returnFocusRef.current;
     returnFocusRef.current = null;
-    if (target?.isConnected) target.focus();
+    // Safari no enfoca un botón al tocarlo: entonces el foco "de origen" es el body, y tampoco sirve.
+    if (target && target !== document.body && target.isConnected) target.focus();
     else fallbackFocusRef?.current?.focus();
     // Si el navegador lo cerró por su cuenta (p. ej. Esc repetido), avisa al padre.
     if (open) onClose();

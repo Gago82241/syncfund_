@@ -26,3 +26,108 @@
   gap: var(--space-md);
   text-wrap: pretty;
 }
+
+/* Pago: revisión antes de mover el dinero. Un asiento de libro mayor: de dónde sale, a dónde
+   llega y qué pasa con el fondo, con el resultado bajo un filete de 2 px. */
+.settle-review {
+  display: grid;
+  gap: var(--space-md);
+}
+
+.settle-review__title,
+.settle-done__title {
+  font-size: var(--text-title);
+}
+
+.settle-review__title:focus,
+.settle-done:focus {
+  outline: none;
+}
+
+.settle-review__title:focus-visible,
+.settle-done:focus-visible {
+  outline: 2px solid var(--ink-600);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+.settle-review__lead {
+  font-size: var(--text-body);
+  text-wrap: pretty;
+}
+
+.settle-review__lead strong {
+  font-family: var(--font-display);
+  font-size: var(--text-title);
+  font-weight: 500;
+  color: var(--ink-900);
+}
+
+.settle-review__ledger {
+  margin: 0;
+  font-size: var(--text-small);
+}
+
+.settle-review__row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--space-md);
+  padding: var(--space-sm) 0;
+  border-bottom: 1px solid var(--hairline);
+}
+
+.settle-review__row dt {
+  color: var(--ink-muted);
+}
+
+.settle-review__row dd {
+  margin: 0;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+.settle-review__row--total {
+  border-bottom: none;
+  border-top: 2px solid var(--ink-900);
+  font-weight: 600;
+}
+
+/* El filete de 2 px reemplaza la línea fina de la fila anterior. */
+.settle-review__row:has(+ .settle-review__row--total) {
+  border-bottom: none;
+}
+
+.settle-review__note {
+  display: block;
+  font-size: var(--text-label);
+  color: var(--ink-faint);
+}
+
+.settle-review__actions {
+  display: flex;
+  flex-direction: column-reverse;
+  gap: var(--space-sm);
+}
+
+@media (min-width: 480px) {
+  .settle-review__actions {
+    flex-direction: row;
+    justify-content: flex-end;
+  }
+
+  .settle-review__actions .sf-button {
+    width: auto;
+  }
+}
+
+/* Cierre del pago: el alivio de quedar al día, dicho en una frase y en tinta, no en un adorno. */
+.settle-done {
+  display: grid;
+  gap: var(--space-md);
+}
+
+.settle-done__message {
+  font-size: var(--text-body);
+  text-wrap: pretty;
+}

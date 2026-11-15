@@ -19,19 +19,23 @@ import { MembersList } from '../features/shared-project/components/MembersList';
 import { AddMemberForm } from '../features/shared-project/components/AddMemberForm';
 import { ExpenseForm } from '../features/shared-project/components/ExpenseForm';
 import { ContributionForm } from '../features/shared-project/components/ContributionForm';
+import { SettleDebtForm } from '../features/shared-project/components/SettleDebtForm';
+import { debtOf, paymentsToSettle, suggestedAmount } from '../features/shared-project/payment';
 import { TransactionList } from '../features/transactions/components/TransactionList';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { formatCOP } from '../styles/theme';
+import type { MemberBalance } from '../types/api';
 import './SharedProjectDetailPage.css';
 
 const FALLBACK_TITLE = 'Proyecto compartido';
 
-type PanelKind = 'expense' | 'contribution' | 'member';
+type PanelKind = 'expense' | 'contribution' | 'member' | 'pay';
 
 const PANEL_TITLES: Record<PanelKind, string> = {
   expense: 'Registrar gasto',
   contribution: 'Aportar al fondo',
   member: 'Agregar integrante',
+  pay: 'Pagar',
 };
 
 const TABS = [
@@ -55,6 +59,8 @@ interface PanelState {
   kind: PanelKind;
   /** Vuelve a montar el formulario en cada apertura: arranca limpio y con datos actuales. */
   formKey: number;
+  /** Solo para 'pay': a quién y cuánto, fijado al abrir (los saldos se recargan detrás). */
+  payment?: { payee: MemberBalance; debt: number; suggested: number };
 }
 
 const CLOSED: PanelState = { open: false, kind: 'expense', formKey: 0 };
@@ -104,6 +110,16 @@ export function SharedProjectDetailPage() {
 
   function openPanel(kind: PanelKind) {
     setPanel((current) => ({ open: true, kind, formKey: current.formKey + 1 }));
+  }
+
+  function openPay(payee: MemberBalance) {
+    if (!balances) return;
+    const payment = {
+      payee,
+      debt: debtOf(balances, user!.id),
+      suggested: suggestedAmount(balances, user!.id, payee),
+    };
+    setPanel((current) => ({ open: true, kind: 'pay', formKey: current.formKey + 1, payment }));
   }
 
   function closePanel() {
@@ -182,16 +198,15 @@ export function SharedProjectDetailPage() {
           }
         />
 
-        <ProjectActions onContribute={() => openPanel('contribution')} />
+        <ProjectActions
+          payments={paymentsToSettle(balances, user!.id)}
+          onPay={openPay}
+          onContribute={() => openPanel('contribution')}
+        />
 
         <Tabs label="Secciones del proyecto" tabs={TABS} active={activeTab} onChange={changeTab}>
           {activeTab === 'situacion' && (
-            <ProjectStatusTable
-              projectId={projectId}
-              currentUserId={user!.id}
-              balances={balances}
-              onPaid={refreshAfterAction}
-            />
+            <ProjectStatusTable currentUserId={user!.id} balances={balances} onPay={openPay} />
           )}
 
           {activeTab === 'movimientos' &&
@@ -244,16 +259,29 @@ export function SharedProjectDetailPage() {
           open={panel.open}
           onClose={closePanel}
           fallbackFocusRef={figureRef}
-          title={PANEL_TITLES[panel.kind]}
+          title={panel.payment && panel.kind === 'pay' ? `Pagarle a ${panel.payment.payee.name}` : PANEL_TITLES[panel.kind]}
           description={
-            panel.kind === 'expense'
+            panel.kind === 'pay'
+              ? `Sale de tu billetera personal y llega a la de ${panel.payment?.payee.name ?? 'la otra persona'}; el fondo del proyecto no cambia.`
+              : panel.kind === 'expense'
               ? `Lo paga el fondo del proyecto (disponible ${formatCOP(project.currentBalance)}) y se reparte entre quienes participan.`
               : panel.kind === 'contribution'
                 ? 'Sale de tu billetera personal y entra al fondo del proyecto.'
                 : 'Escribe el correo con el que la persona se registró.'
           }
         >
-          {panel.kind === 'member' ? (
+          {panel.kind === 'pay' && panel.payment ? (
+            <SettleDebtForm
+              key={panel.formKey}
+              projectId={projectId}
+              payerId={user!.id}
+              debt={panel.payment.debt}
+              payee={panel.payment.payee}
+              suggestedAmount={panel.payment.suggested}
+              onPaid={refreshAfterAction}
+              onFinish={closePanel}
+            />
+          ) : panel.kind === 'member' ? (
             <AddMemberForm
               key={panel.formKey}
               projectId={projectId}

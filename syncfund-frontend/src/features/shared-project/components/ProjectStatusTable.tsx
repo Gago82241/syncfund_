@@ -1,15 +1,14 @@
-import { Fragment, useState } from 'react';
 import { formatCOP } from '../../../styles/theme';
 import type { MemberBalance, ProjectBalancesResponse } from '../../../types/api';
 import { HALF_CENT } from '../balance';
-import { SettleDebtForm } from './SettleDebtForm';
+import { payableMember } from '../payment';
 import './ProjectStatusTable.css';
 
 interface Props {
-  projectId: number;
   currentUserId: number;
   balances: ProjectBalancesResponse;
-  onPaid: () => void;
+  /** "Pagar" en la fila de quien tiene saldo a favor: abre el panel de pago. */
+  onPay: (payee: MemberBalance) => void;
 }
 
 /** El saldo siempre lleva texto, no solo color: "A favor", "Debe" o "Al día". */
@@ -35,22 +34,12 @@ function PaymentsNote({ member }: { member: MemberBalance }) {
 /**
  * "Situación del proyecto": una fila por integrante (DebtCalculator.calculateBalances) y al final
  * el fondo disponible, que es igual a la suma de los saldos. Solo muestra cifras del proyecto.
- * Junto a quien tiene saldo a favor aparece "Pagar", solo si el usuario actual debe.
+ * Junto a quien tiene saldo a favor aparece "Pagar", solo si el usuario actual debe; el pago se
+ * hace en un panel (SettleDebtForm), con revisión antes de mover el dinero.
  */
-export function ProjectStatusTable({ projectId, currentUserId, balances, onPaid }: Props) {
-  const [payeeId, setPayeeId] = useState<number | null>(null);
-
-  const me = balances.members.find((m) => m.userId === currentUserId);
-  const myDebt = me && me.netBalance < -HALF_CENT ? -me.netBalance : 0;
+export function ProjectStatusTable({ currentUserId, balances, onPay }: Props) {
   const nameOf = (userId: number) => balances.members.find((m) => m.userId === userId)?.name ?? 'Integrante';
   const hasUnassigned = Math.abs(balances.unassigned) > HALF_CENT;
-
-  function suggestedAmountFor(payee: MemberBalance): number {
-    const suggestion = balances.suggestedPayments.find(
-      (p) => p.fromUserId === currentUserId && p.toUserId === payee.userId,
-    );
-    return suggestion ? suggestion.amount : Math.min(myDebt, payee.netBalance);
-  }
 
   return (
     <div className="status-table">
@@ -69,57 +58,36 @@ export function ProjectStatusTable({ projectId, currentUserId, balances, onPaid 
         <tbody>
           {balances.members.map((member) => {
             const isMe = member.userId === currentUserId;
-            const canPay = myDebt > 0 && !isMe && member.netBalance > HALF_CENT;
-            const formOpen = payeeId === member.userId;
+            const canPay = payableMember(balances, currentUserId, member.userId) !== null;
             return (
-              <Fragment key={member.userId}>
-                <tr className={isMe ? 'status-table__row status-table__row--me' : 'status-table__row'}>
-                  <th scope="row" className="status-table__name">
-                    {member.name}
-                    {isMe && <span className="status-table__you"> (tú)</span>}
-                  </th>
-                  <td className="status-table__num tabular-nums" data-label="Aportó">
-                    {formatCOP(member.contributed)}
-                  </td>
-                  <td className="status-table__num tabular-nums" data-label="Su parte de los gastos">
-                    {formatCOP(member.shareOfExpenses)}
-                  </td>
-                  <td className="status-table__num tabular-nums" data-label="Saldo">
-                    <BalanceLabel value={member.netBalance} />
-                    <PaymentsNote member={member} />
-                  </td>
-                  <td className="status-table__action">
-                    {canPay && !formOpen && (
-                      <button
-                        type="button"
-                        className="status-table__pay"
-                        onClick={() => setPayeeId(member.userId)}
-                        aria-label={`Pagarle a ${member.name}`}
-                      >
-                        Pagar
-                      </button>
-                    )}
-                  </td>
-                </tr>
-                {canPay && formOpen && (
-                  <tr className="status-table__form-row">
-                    <td colSpan={5}>
-                      <SettleDebtForm
-                        projectId={projectId}
-                        payerId={currentUserId}
-                        debt={myDebt}
-                        payee={member}
-                        suggestedAmount={suggestedAmountFor(member)}
-                        onCancel={() => setPayeeId(null)}
-                        onSaved={() => {
-                          setPayeeId(null);
-                          onPaid();
-                        }}
-                      />
-                    </td>
-                  </tr>
-                )}
-              </Fragment>
+              <tr key={member.userId} className={isMe ? 'status-table__row status-table__row--me' : 'status-table__row'}>
+                <th scope="row" className="status-table__name">
+                  {member.name}
+                  {isMe && <span className="status-table__you"> (tú)</span>}
+                </th>
+                <td className="status-table__num tabular-nums" data-label="Aportó">
+                  {formatCOP(member.contributed)}
+                </td>
+                <td className="status-table__num tabular-nums" data-label="Su parte de los gastos">
+                  {formatCOP(member.shareOfExpenses)}
+                </td>
+                <td className="status-table__num tabular-nums" data-label="Saldo">
+                  <BalanceLabel value={member.netBalance} />
+                  <PaymentsNote member={member} />
+                </td>
+                <td className="status-table__action">
+                  {canPay && (
+                    <button
+                      type="button"
+                      className="status-table__pay"
+                      onClick={() => onPay(member)}
+                      aria-label={`Pagarle a ${member.name}`}
+                    >
+                      Pagar
+                    </button>
+                  )}
+                </td>
+              </tr>
             );
           })}
         </tbody>

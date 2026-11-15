@@ -1,24 +1,31 @@
-import { useRef, useState, type FormEvent } from 'react';
-import { Input } from '../../../components/ui/Input';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { MoneyInput } from '../../../components/ui/MoneyInput';
 import { Button } from '../../../components/ui/Button';
 import { FormError } from '../../../components/ui/FormError';
 import { sharedProjectService } from '../services/sharedProjectService';
 import { usePersonalWallet } from '../../personal-wallet/hooks/usePersonalWallet';
 import { useFormErrors } from '../../../hooks/useFormErrors';
 import { paymentAmount } from '../../../utils/validation';
-import { formatCOP } from '../../../styles/theme';
-import type { MemberBalance } from '../../../types/api';
+import { formatCOP, formatCOPExact } from '../../../styles/theme';
+import { HALF_CENT } from '../balance';
+import { debtOf } from '../payment';
+import type { MemberBalance, ProjectBalancesResponse } from '../../../types/api';
+import './ProjectForms.css';
 
 interface Props {
   projectId: number;
   payerId: number;
-  /** Lo que debe el usuario actual (positivo). */
+  /** Lo que debe el usuario actual (positivo), al abrir el panel. */
   debt: number;
   payee: MemberBalance;
   suggestedAmount: number;
-  onCancel: () => void;
-  onSaved: () => void;
+  /** El backend aceptó el pago: la página recarga sus datos detrás del aviso de cierre. */
+  onPaid: () => void;
+  /** "Listo" en el aviso de cierre. */
+  onFinish: () => void;
 }
+
+type Step = 'amount' | 'review' | 'done';
 
 /** Monto para el campo: sin decimales si es entero, con 2 si tiene centavos. */
 function toInputValue(amount: number): string {
@@ -26,41 +33,74 @@ function toInputValue(amount: number): string {
   return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(2);
 }
 
+/** Aviso de cierre con la situación que devolvió el backend (no una cuenta del frontend). */
+function closingMessage(amount: number, payee: MemberBalance, after: ProjectBalancesResponse, payerId: number) {
+  const paid = `Le pagaste ${formatCOPExact(amount)} a ${payee.name}.`;
+  if (!after.members.some((m) => m.userId === payerId)) return paid;
+  const stillOwes = debtOf(after, payerId);
+  return stillOwes > 0
+    ? `${paid} Aún debes ${formatCOPExact(stillOwes)} en este proyecto.`
+    : `${paid} Quedaste al día.`;
+}
+
 /**
- * SharedProject.settleDebts(payerId, payeeId, amount): el usuario actual le paga a un integrante
- * con saldo a favor. Sale de su billetera personal y entra en la del otro; el fondo no cambia.
- * El botón se deshabilita mientras se envía para evitar pagos duplicados por doble clic.
+ * SharedProject.settleDebts(payerId, payeeId, amount) en tres pasos dentro de un Panel:
+ * monto (con el sugerido ya puesto), revisión (de qué billetera a cuál; el fondo no cambia)
+ * y aviso de cierre. El dinero solo se mueve al confirmar en la revisión.
  */
-export function SettleDebtForm({ projectId, payerId, debt, payee, suggestedAmount, onCancel, onSaved }: Props) {
+export function SettleDebtForm({ projectId, payerId, debt, payee, suggestedAmount, onPaid, onFinish }: Props) {
+  const [step, setStep] = useState<Step>('amount');
   const [amount, setAmount] = useState(() => toInputValue(suggestedAmount));
   const [loading, setLoading] = useState(false);
+  const [closing, setClosing] = useState('');
   const sending = useRef(false);
-  const { wallet, refresh: refreshWallet } = usePersonalWallet(payerId);
+  const reviewTitleRef = useRef<HTMLHeadingElement>(null);
+  const doneRef = useRef<HTMLDivElement>(null);
+  const previousStep = useRef<Step>(step);
+  const { wallet } = usePersonalWallet(payerId);
   const { fieldErrors, formError, formRef, validate, showApiError, clearField } = useFormErrors(['amount']);
 
   const available = wallet?.currentBalance;
-  const hint =
-    available === undefined
-      ? 'Sale de tu billetera personal; el fondo del proyecto no cambia.'
-      : `Sale de tu billetera personal (disponible: ${formatCOP(available)}); el fondo no cambia.`;
+  const limits = [
+    { max: debt, message: `Supera lo que debes (${formatCOPExact(debt)}).` },
+    { max: payee.netBalance, message: `Supera el saldo a favor de ${payee.name} (${formatCOPExact(payee.netBalance)}).` },
+    { max: available, message: `Tu billetera tiene ${formatCOPExact(available ?? 0)}; no alcanza para este pago.` },
+  ];
+  // Aviso en vivo: los límites se revisan mientras se escribe, no solo al pulsar "Revisar pago".
+  const liveError = amount === '' ? undefined : paymentAmount(amount, limits);
+  const amountError = fieldErrors.amount ?? liveError;
+  const value = Number(amount);
+  const remaining = debt - value;
 
-  async function handleSubmit(e: FormEvent) {
+  // El foco sigue al paso: título de la revisión, aviso de cierre, o el monto al volver.
+  useEffect(() => {
+    if (previousStep.current === step) return;
+    previousStep.current = step;
+    if (step === 'review') reviewTitleRef.current?.focus();
+    if (step === 'done') doneRef.current?.focus();
+    if (step === 'amount') formRef.current?.querySelector<HTMLInputElement>('input[name="amount"]')?.focus();
+  }, [step, formRef]);
+
+  function handleReview(e: FormEvent) {
     e.preventDefault();
+    if (!validate({ amount: paymentAmount(amount, limits) })) return;
+    setStep('review');
+  }
+
+  async function handleConfirm() {
     // El estado "loading" tarda un render en deshabilitar el botón: la referencia bloquea al instante.
     if (sending.current) return;
-    const error = paymentAmount(amount, [
-      { max: debt, message: `El monto supera lo que debes (${formatCOP(debt)}).` },
-      { max: payee.netBalance, message: `El monto supera el saldo a favor de ${payee.name} (${formatCOP(payee.netBalance)}).` },
-      { max: available, message: 'Saldo insuficiente en tu billetera personal para este pago.' },
-    ]);
-    if (!validate({ amount: error })) return;
-
     sending.current = true;
     setLoading(true);
     try {
-      await sharedProjectService.settle(projectId, { payerId, payeeId: payee.userId, amount: Number(amount) });
-      refreshWallet();
-      onSaved();
+      const { data } = await sharedProjectService.settle(projectId, {
+        payerId,
+        payeeId: payee.userId,
+        amount: value,
+      });
+      setClosing(closingMessage(value, payee, data, payerId));
+      setStep('done');
+      onPaid();
     } catch (err) {
       showApiError(err, 'No se pudo registrar el pago.');
     } finally {
@@ -69,29 +109,91 @@ export function SettleDebtForm({ projectId, payerId, debt, payee, suggestedAmoun
     }
   }
 
+  if (step === 'done') {
+    return (
+      <div ref={doneRef} className="settle-done" role="status" tabIndex={-1}>
+        <h3 className="settle-done__title">Pago registrado</h3>
+        <p className="settle-done__message tabular-nums">{closing}</p>
+        <Button onClick={onFinish}>Listo</Button>
+      </div>
+    );
+  }
+
+  if (step === 'review') {
+    return (
+      <div className="settle-review">
+        <h3 ref={reviewTitleRef} className="settle-review__title" tabIndex={-1}>
+          Revisa el pago
+        </h3>
+        <p className="settle-review__lead">
+          Vas a pagarle <strong className="tabular-nums">{formatCOPExact(value)}</strong> a {payee.name}.
+        </p>
+        <dl className="settle-review__ledger">
+          <div className="settle-review__row">
+            <dt>Sale de</dt>
+            <dd>
+              Tu billetera
+              {available !== undefined && (
+                <span className="settle-review__note tabular-nums">Disponible {formatCOPExact(available)}</span>
+              )}
+            </dd>
+          </div>
+          <div className="settle-review__row">
+            <dt>Llega a</dt>
+            <dd>La billetera de {payee.name}</dd>
+          </div>
+          <div className="settle-review__row">
+            <dt>Fondo del proyecto</dt>
+            <dd>No cambia</dd>
+          </div>
+          <div className="settle-review__row settle-review__row--total">
+            <dt>Después del pago</dt>
+            <dd className="tabular-nums">
+              {remaining < HALF_CENT ? 'Quedas al día' : `Aún debes ${formatCOPExact(remaining)}`}
+            </dd>
+          </div>
+        </dl>
+        {/* Un error del backend sobre el monto también se ve aquí, sin volver al paso anterior. */}
+        <FormError message={formError || fieldErrors.amount} />
+        <div className="settle-review__actions">
+          <Button variant="ghost" onClick={() => setStep('amount')} disabled={loading}>
+            Volver
+          </Button>
+          <Button onClick={handleConfirm} loading={loading}>
+            Confirmar pago
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <form ref={formRef} onSubmit={handleSubmit} noValidate className="settle-form">
-      <p className="settle-form__title">Pagarle a {payee.name}</p>
-      <Input
-        label="Monto (COP)"
-        type="number"
+    <form ref={formRef} onSubmit={handleReview} noValidate className="project-form">
+      <p className="project-form__note">
+        Debes <strong className="tabular-nums">{formatCOPExact(debt)}</strong> en el proyecto.
+        {available !== undefined && (
+          <>
+            {' '}
+            Disponible en tu billetera: <strong className="tabular-nums">{formatCOP(available)}</strong>
+          </>
+        )}
+      </p>
+      <MoneyInput
+        label="Monto"
         name="amount"
-        min="0.01"
-        step="0.01"
+        allowDecimals
         value={amount}
-        hint={hint}
-        error={fieldErrors.amount}
-        onChange={(e) => {
-          setAmount(e.target.value);
+        onValueChange={(raw) => {
+          setAmount(raw);
           clearField('amount');
         }}
+        hint="Viene con el monto sugerido para quedar al día. Admite centavos con coma."
+        preview={liveError ? undefined : (v) => `Vas a pagarle ${formatCOPExact(v)} a ${payee.name}`}
+        error={amountError}
         required
+        data-autofocus
       />
-      <FormError message={formError} />
-      <div className="settle-form__actions">
-        <Button type="button" variant="ghost" onClick={onCancel} disabled={loading}>Cancelar</Button>
-        <Button type="submit" loading={loading}>Pagar</Button>
-      </div>
+      <Button type="submit">Revisar pago</Button>
     </form>
   );
 }
