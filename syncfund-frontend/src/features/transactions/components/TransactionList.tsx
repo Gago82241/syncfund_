@@ -29,7 +29,8 @@ function projectDetail(tx: TransactionResponse, names: ReadonlyMap<number, strin
     // Igual que DebtCalculator.splitBill: monto / participantes; si no es exacta, "≈".
     const share = tx.amount / ids.length;
     const sign = Number.isInteger(share) ? '' : '≈ ';
-    return `Entre ${ids.length} · ${sign}${formatCOP(share)} c/u`;
+    // Espacio duro antes de "c/u": que no quede solo en la línea siguiente.
+    return `Entre ${ids.length} · ${sign}${formatCOP(share)}\u00a0c/u`;
   }
   return null;
 }

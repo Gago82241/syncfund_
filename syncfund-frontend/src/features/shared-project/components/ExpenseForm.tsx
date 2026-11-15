@@ -116,7 +116,10 @@ export function ExpenseForm({ projectId, payerId, members, fundBalance, onSaved,
     }
   }
 
-  const split = splitSummary(amount, involved.length);
+  // Si supera el fondo no se muestra una división que nunca va a ocurrir: se dice cuánto alcanza.
+  const split = exceedsFund
+    ? `El fondo alcanza para ${formatCOP(fundBalance)}.`
+    : splitSummary(amount, involved.length);
 
   return (
     <form ref={formRef} onSubmit={handleSubmit} noValidate className="project-form">

@@ -132,6 +132,11 @@
   padding-left: 1.25rem;
 }
 
+/* Con nombres largos, que la última línea no quede con una sola palabra. */
+.status-table__suggestions li {
+  text-wrap: pretty;
+}
+
 /* Móvil: cada integrante se apila como una tarjeta con sus etiquetas. */
 @media (max-width: 640px) {
   .status-table__table thead {
