@@ -17,6 +17,7 @@ const SECTIONS = [
   { id: 'movimiento', label: 'Movimiento' },
   { id: 'iconos', label: 'Íconos' },
   { id: 'botones', label: 'Botones' },
+  { id: 'pestanas', label: 'Pestañas' },
   { id: 'campos', label: 'Campos' },
   { id: 'encabezado', label: 'Encabezado' },
   { id: 'hojas', label: 'Hojas' },

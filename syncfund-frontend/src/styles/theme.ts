@@ -124,3 +124,17 @@ export function formatCOP(amount: number): string {
     maximumFractionDigits: 0,
   }).format(amount);
 }
+
+/**
+ * Pesos con centavos solo si los hay: $80.000 o $33.333,33. Para los pagos entre integrantes,
+ * donde la revisión debe mostrar exactamente lo que va a salir de la billetera.
+ */
+export function formatCOPExact(amount: number): string {
+  const hasCents = Math.round(amount * 100) % 100 !== 0;
+  return new Intl.NumberFormat('es-CO', {
+    style: 'currency',
+    currency: 'COP',
+    minimumFractionDigits: hasCents ? 2 : 0,
+    maximumFractionDigits: hasCents ? 2 : 0,
+  }).format(amount);
+}
