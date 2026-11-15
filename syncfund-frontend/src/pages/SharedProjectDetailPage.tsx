@@ -239,7 +239,10 @@ export function SharedProjectDetailPage() {
 
           {activeTab === 'movimientos' &&
             (transactions.length > 0 ? (
-              <TransactionList transactions={transactions} />
+              <TransactionList
+                transactions={transactions}
+                memberNames={new Map(members.map((m) => [m.id, m.name]))}
+              />
             ) : (
               <EmptyState
                 title="Aún no hay movimientos"

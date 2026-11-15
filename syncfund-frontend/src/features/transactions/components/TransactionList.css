@@ -8,6 +8,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: var(--space-md);
   padding: 0.9rem 0;
   border-bottom: 1px solid var(--hairline);
 }
@@ -16,9 +17,25 @@
   border-bottom: none;
 }
 
+.tx-list__text {
+  min-width: 0;
+}
+
+/* Una descripción larga parte en palabras y nunca empuja el monto fuera de la fila. */
 .tx-list__description {
   margin: 0;
   font-weight: 500;
+  overflow-wrap: break-word;
+}
+
+/* El monto nunca se parte en dos líneas. */
+.tx-list__amount {
+  flex: none;
+  white-space: nowrap;
+}
+
+.tx-list__detail {
+  color: var(--ink-muted);
 }
 
 .tx-list__date {
