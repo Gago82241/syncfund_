@@ -43,6 +43,7 @@ export function Panel({ open, onClose, title, description, children, footer, fal
   const dialogRef = useRef<HTMLDialogElement>(null);
   const returnFocusRef = useRef<HTMLElement | null>(null);
   const pressStartedOnBackdrop = useRef(false);
+  const closedByUnmount = useRef(false);
   const titleId = useId();
   const descriptionId = useId();
 
@@ -85,10 +86,16 @@ export function Panel({ open, onClose, title, description, children, footer, fal
   }, [open]);
 
   // Si el componente se desmonta abierto, cierra el diálogo para no dejar la página inerte.
+  // Ese cierre no es del usuario: su evento "close" (que llega después) no debe avisar al padre.
+  // Importa cuando el panel se monta ya abierto (ej. el pago que llega con ?pagar=) y React,
+  // en modo estricto, simula desmontar y volver a montar.
   useEffect(() => {
     const dialog = dialogRef.current;
     return () => {
-      if (dialog?.open) dialog.close();
+      if (dialog?.open) {
+        closedByUnmount.current = true;
+        dialog.close();
+      }
     };
   }, []);
 
@@ -99,6 +106,10 @@ export function Panel({ open, onClose, title, description, children, footer, fal
   }
 
   function handleClose() {
+    if (closedByUnmount.current) {
+      closedByUnmount.current = false;
+      return;
+    }
     const target = returnFocusRef.current;
     returnFocusRef.current = null;
     // Safari no enfoca un botón al tocarlo: entonces el foco "de origen" es el body, y tampoco sirve.

@@ -5,9 +5,9 @@ import type { Debt } from '../summary';
 import './DebtNotice.css';
 
 /**
- * Aviso de deuda, justo debajo de la cifra: a quién, cuánto, en qué proyecto e "Ir a pagar".
- * El pago se hace en el Detalle del proyecto. El estado se dice en texto ("Debes"), no solo
- * con el color.
+ * Aviso de deuda, justo debajo de la cifra: a quién, cuánto, en qué proyecto y "Pagar".
+ * "Pagar" abre el Detalle del proyecto con el panel de pago ya lleno (revisión antes de pagar).
+ * El estado se dice en texto ("Debes"), no solo con el color.
  */
 export function DebtNotice({ debts }: { debts: Debt[] }) {
   const titleId = useId();
@@ -29,19 +29,26 @@ export function DebtNotice({ debts }: { debts: Debt[] }) {
               </p>
               <p className="debt-notice__project">{debt.projectName}</p>
             </div>
-            {/* Lleva al Detalle, donde se hace el pago: el texto lo dice para no prometer un pago aquí.
+            {/* Con acreedor conocido, el Detalle abre el pago ya lleno (?pagar=): "Pagar" cumple lo que
+                dice. Sin acreedor solo se puede llevar al proyecto, y el texto lo dice.
                 Secundario, para no competir con "Registrar movimiento", la acción de la página. */}
-            <Link
-              to={`/projects/${debt.projectId}`}
-              className="sf-button sf-button--ghost debt-notice__pay"
-              aria-label={
-                debt.toName
-                  ? `Ir a ${debt.projectName} para pagarle a ${debt.toName}`
-                  : `Ir a ${debt.projectName} para pagar`
-              }
-            >
-              Ir a pagar
-            </Link>
+            {debt.toUserId !== null && debt.toName ? (
+              <Link
+                to={`/projects/${debt.projectId}?pagar=${debt.toUserId}`}
+                className="sf-button sf-button--ghost debt-notice__pay"
+                aria-label={`Pagarle ${formatCOP(debt.amount)} a ${debt.toName} en ${debt.projectName}`}
+              >
+                Pagar
+              </Link>
+            ) : (
+              <Link
+                to={`/projects/${debt.projectId}`}
+                className="sf-button sf-button--ghost debt-notice__pay"
+                aria-label={`Ir a ${debt.projectName} para pagar`}
+              >
+                Ir a pagar
+              </Link>
+            )}
           </li>
         ))}
       </ul>

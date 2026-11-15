@@ -565,10 +565,13 @@ de lo que hace. El puntaje de arriba es el de antes de estos ajustes.
 
 ### Pendiente para `style/detalle-proyecto`
 
-- [ ] **Solución completa del [P1]:** que el Detalle del proyecto reciba la intención de pago desde
+- [x] **Solución completa del [P1]:** que el Detalle del proyecto reciba la intención de pago desde
   el Resumen (por ejemplo `/projects/{id}?pagar={toUserId}` o el `state` de la navegación) y abra
   el panel de pago ya lleno con a quién y cuánto, para que "Ir a pagar" termine en el pago y no en
   la tabla. Cuando esté, el botón del Resumen puede volver a decir "Pagar".
+  - Hecho en `style/detalle-proyecto`: el aviso enlaza a `/projects/{id}?pagar={toUserId}` y dice
+    "Pagar"; el Detalle valida que sea una deuda real del usuario (si no, la ignora), abre el panel
+    de pago con el monto sugerido y quita el parámetro de la URL.
 
 ---
 

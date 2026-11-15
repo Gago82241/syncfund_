@@ -1,4 +1,4 @@
-import { useRef, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { AppLayout } from '../components/layout/AppLayout';
 import { Button } from '../components/ui/Button';
@@ -20,7 +20,7 @@ import { AddMemberForm } from '../features/shared-project/components/AddMemberFo
 import { ExpenseForm } from '../features/shared-project/components/ExpenseForm';
 import { ContributionForm } from '../features/shared-project/components/ContributionForm';
 import { SettleDebtForm } from '../features/shared-project/components/SettleDebtForm';
-import { debtOf, paymentsToSettle, suggestedAmount } from '../features/shared-project/payment';
+import { debtOf, payableMember, paymentsToSettle, suggestedAmount } from '../features/shared-project/payment';
 import { TransactionList } from '../features/transactions/components/TransactionList';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { formatCOP } from '../styles/theme';
@@ -49,6 +49,9 @@ type TabId = (typeof TABS)[number]['id'];
 /** La pestaña vive en la URL (?pestana=…): recargar o compartir el enlace abre la misma. */
 const TAB_PARAM = 'pestana';
 const DEFAULT_TAB: TabId = 'situacion';
+
+/** Intención de pago desde el Resumen: /projects/{id}?pagar={id de a quién}. */
+const PAY_PARAM = 'pagar';
 
 function tabFromParam(value: string | null): TabId {
   return TABS.find((tab) => tab.id === value)?.id ?? DEFAULT_TAB;
@@ -121,6 +124,31 @@ export function SharedProjectDetailPage() {
     };
     setPanel((current) => ({ open: true, kind: 'pay', formKey: current.formKey + 1, payment }));
   }
+
+  // Intención de pago (?pagar=): se atiende una sola vez por proyecto, cuando ya hay saldos.
+  // Solo abre el pago si es una deuda real del usuario (misma regla que la tabla); si no, se
+  // ignora en silencio. En los dos casos el parámetro se quita de la URL (efecto de abajo),
+  // para que recargar o cerrar el panel no lo vuelva a abrir.
+  const payParam = searchParams.get(PAY_PARAM);
+  const payIntentKey = payParam === null ? null : `${projectId}:${payParam}`;
+  const [handledPayIntent, setHandledPayIntent] = useState<string | null>(null);
+  if (payIntentKey !== null && project && balances && !error && handledPayIntent !== payIntentKey) {
+    setHandledPayIntent(payIntentKey);
+    const payee = /^\d+$/.test(payParam!) ? payableMember(balances, user!.id, Number(payParam)) : null;
+    if (payee) openPay(payee);
+  }
+
+  useEffect(() => {
+    if (payIntentKey === null || handledPayIntent !== payIntentKey) return;
+    setSearchParams(
+      (params) => {
+        const next = new URLSearchParams(params);
+        next.delete(PAY_PARAM);
+        return next;
+      },
+      { replace: true },
+    );
+  }, [payIntentKey, handledPayIntent, setSearchParams]);
 
   function closePanel() {
     setPanel((current) => ({ ...current, open: false }));

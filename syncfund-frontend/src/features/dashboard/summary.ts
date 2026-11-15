@@ -29,6 +29,7 @@ export interface Debt {
   projectId: number;
   projectName: string;
   /** null solo si el backend no sugirió a quién pagarle (no debería pasar). */
+  toUserId: number | null;
   toName: string | null;
   amount: number;
 }
@@ -96,13 +97,14 @@ export function computeDashboardSummary(
         (p) => p.fromUserId === userId && p.amount >= HALF_CENT,
       );
       if (payments.length === 0) {
-        debts.push({ projectId: project.projectId, projectName: project.name, toName: null, amount: -net });
+        debts.push({ projectId: project.projectId, projectName: project.name, toUserId: null, toName: null, amount: -net });
       }
       for (const payment of payments) {
         const payee = balances.members.find((m) => m.userId === payment.toUserId);
         debts.push({
           projectId: project.projectId,
           projectName: project.name,
+          toUserId: payment.toUserId,
           toName: payee?.name ?? null,
           amount: payment.amount,
         });
