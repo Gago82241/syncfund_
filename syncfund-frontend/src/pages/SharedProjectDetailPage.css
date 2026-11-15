@@ -20,6 +20,28 @@
   color: var(--ink);
 }
 
+.project-detail__members {
+  display: grid;
+  gap: var(--space-lg);
+  justify-items: start;
+}
+
+.project-detail__members > :first-child {
+  justify-self: stretch;
+}
+
+.project-detail__note {
+  font-size: var(--text-small);
+  color: var(--ink-muted);
+}
+
+/* Acciones dentro de una pestaña: a lo ancho en el celular, lo justo desde 480 px. */
+@media (min-width: 480px) {
+  .project-detail__inline-button {
+    width: auto;
+  }
+}
+
 .project-detail__description {
   overflow-wrap: anywhere;
   text-wrap: pretty;

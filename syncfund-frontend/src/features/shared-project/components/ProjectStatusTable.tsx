@@ -53,10 +53,10 @@ export function ProjectStatusTable({ projectId, currentUserId, balances, onPaid 
   }
 
   return (
-    <section className="status-table" aria-labelledby="status-table-title">
-      <h3 id="status-table-title" className="status-table__title">Situación del proyecto</h3>
-
+    <div className="status-table">
       <table className="status-table__table">
+        {/* La pestaña "Situación" ya titula el panel; el caption nombra la tabla para el lector. */}
+        <caption className="visually-hidden">Situación del proyecto por integrante</caption>
         <thead>
           <tr>
             <th scope="col">Integrante</th>
@@ -150,7 +150,7 @@ export function ProjectStatusTable({ projectId, currentUserId, balances, onPaid 
 
       {balances.suggestedPayments.length > 0 && (
         <div className="status-table__suggestions">
-          <p className="status-table__suggestions-title">Para quedar al día</p>
+          <h2 className="status-table__suggestions-title">Para quedar al día</h2>
           <ul>
             {balances.suggestedPayments.map((p) => (
               <li key={`${p.fromUserId}-${p.toUserId}`}>
@@ -162,6 +162,6 @@ export function ProjectStatusTable({ projectId, currentUserId, balances, onPaid 
           </ul>
         </div>
       )}
-    </section>
+    </div>
   );
 }

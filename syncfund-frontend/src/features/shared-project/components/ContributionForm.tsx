@@ -76,7 +76,7 @@ export function ContributionForm({ projectId, contributorId, onSaved }: Props) {
           setAmount(raw);
           clearField('amount');
         }}
-        preview={(value) => `Vas a aportar ${formatCOP(value)} de tu billetera`}
+        preview={exceedsWallet ? undefined : (value) => `Vas a aportar ${formatCOP(value)} de tu billetera`}
         error={amountError}
         required
         data-autofocus

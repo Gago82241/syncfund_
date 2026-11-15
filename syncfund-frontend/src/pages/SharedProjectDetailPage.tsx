@@ -1,13 +1,14 @@
 import { useRef, useState, type ReactNode } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { AppLayout } from '../components/layout/AppLayout';
-import { PageColumns } from '../components/layout/PageColumns';
 import { Button } from '../components/ui/Button';
+import { EmptyState } from '../components/ui/EmptyState';
 import { Icon } from '../components/ui/Icon';
 import { LoadError } from '../components/ui/LoadError';
 import { PageHeader, type MoneyTone } from '../components/ui/PageHeader';
 import { Panel } from '../components/ui/Panel';
 import { Skeleton, SkeletonGroup, SkeletonRows } from '../components/ui/Skeleton';
+import { Tabs } from '../components/ui/Tabs';
 import { useToast } from '../components/ui/toast/useToast';
 import { useAuth } from '../context/useAuth';
 import { HALF_CENT } from '../features/shared-project/balance';
@@ -25,7 +26,29 @@ import './SharedProjectDetailPage.css';
 
 const FALLBACK_TITLE = 'Proyecto compartido';
 
-type PanelKind = 'expense' | 'contribution';
+type PanelKind = 'expense' | 'contribution' | 'member';
+
+const PANEL_TITLES: Record<PanelKind, string> = {
+  expense: 'Registrar gasto',
+  contribution: 'Aportar al fondo',
+  member: 'Agregar integrante',
+};
+
+const TABS = [
+  { id: 'situacion', label: 'Situación' },
+  { id: 'movimientos', label: 'Movimientos' },
+  { id: 'integrantes', label: 'Integrantes' },
+] as const;
+
+type TabId = (typeof TABS)[number]['id'];
+
+/** La pestaña vive en la URL (?pestana=…): recargar o compartir el enlace abre la misma. */
+const TAB_PARAM = 'pestana';
+const DEFAULT_TAB: TabId = 'situacion';
+
+function tabFromParam(value: string | null): TabId {
+  return TABS.find((tab) => tab.id === value)?.id ?? DEFAULT_TAB;
+}
 
 interface PanelState {
   open: boolean;
@@ -61,6 +84,22 @@ export function SharedProjectDetailPage() {
   if (!Object.is(panelProjectId, projectId)) {
     setPanelProjectId(projectId);
     setPanel(CLOSED);
+  }
+
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = tabFromParam(searchParams.get(TAB_PARAM));
+
+  // replace: cambiar de pestaña no llena el historial; "Atrás" sale de la página.
+  function changeTab(tab: TabId) {
+    setSearchParams(
+      (params) => {
+        const next = new URLSearchParams(params);
+        if (tab === DEFAULT_TAB) next.delete(TAB_PARAM);
+        else next.set(TAB_PARAM, tab);
+        return next;
+      },
+      { replace: true },
+    );
   }
 
   function openPanel(kind: PanelKind) {
@@ -109,6 +148,7 @@ export function SharedProjectDetailPage() {
   } else {
     const me = balances.members.find((m) => m.userId === user!.id);
     const figure = situationFigure(me?.netBalance ?? 0);
+    const isAdmin = project.adminId === user!.id;
 
     content = (
       <>
@@ -144,32 +184,54 @@ export function SharedProjectDetailPage() {
 
         <ProjectActions onContribute={() => openPanel('contribution')} />
 
-        <ProjectStatusTable
-          projectId={projectId}
-          currentUserId={user!.id}
-          balances={balances}
-          onPaid={refreshAfterAction}
-        />
-
-        <PageColumns style={{ marginBottom: '2.5rem' }}>
-          <div>
-            <h2 style={{ fontSize: '1rem', marginBottom: '0.5rem' }}>Integrantes</h2>
-            <MembersList
+        <Tabs label="Secciones del proyecto" tabs={TABS} active={activeTab} onChange={changeTab}>
+          {activeTab === 'situacion' && (
+            <ProjectStatusTable
               projectId={projectId}
-              projectName={project.name}
-              members={members}
-              adminId={project.adminId}
               currentUserId={user!.id}
-              onRemoved={refreshAfterAction}
-              // Quien sale ya no puede ver el proyecto: vuelve a la lista de sus proyectos.
-              onLeft={() => navigate('/projects', { replace: true })}
+              balances={balances}
+              onPaid={refreshAfterAction}
             />
-          </div>
-          <AddMemberForm projectId={projectId} onSaved={refreshAfterAction} />
-        </PageColumns>
+          )}
 
-        <h2 style={{ fontSize: '1.125rem', marginBottom: '0.75rem' }}>Movimientos del proyecto</h2>
-        <TransactionList transactions={transactions} />
+          {activeTab === 'movimientos' &&
+            (transactions.length > 0 ? (
+              <TransactionList transactions={transactions} />
+            ) : (
+              <EmptyState
+                title="Aún no hay movimientos"
+                description="Primero aporten al fondo; después registren los gastos y el sistema los divide."
+                action={
+                  <Button variant="ghost" className="project-detail__inline-button" onClick={() => openPanel('contribution')}>
+                    Aportar al fondo
+                  </Button>
+                }
+              />
+            ))}
+
+          {activeTab === 'integrantes' && (
+            <div className="project-detail__members">
+              <MembersList
+                projectId={projectId}
+                projectName={project.name}
+                members={members}
+                adminId={project.adminId}
+                currentUserId={user!.id}
+                onRemoved={refreshAfterAction}
+                // Quien sale ya no puede ver el proyecto: vuelve a la lista de sus proyectos.
+                onLeft={() => navigate('/projects', { replace: true })}
+              />
+              {isAdmin ? (
+                <Button variant="ghost" className="project-detail__inline-button" onClick={() => openPanel('member')}>
+                  <Icon name="agregar" />
+                  Agregar integrante
+                </Button>
+              ) : (
+                <p className="project-detail__note">Solo el administrador puede agregar integrantes.</p>
+              )}
+            </div>
+          )}
+        </Tabs>
       </>
     );
   }
@@ -182,14 +244,22 @@ export function SharedProjectDetailPage() {
           open={panel.open}
           onClose={closePanel}
           fallbackFocusRef={figureRef}
-          title={panel.kind === 'expense' ? 'Registrar gasto' : 'Aportar al fondo'}
+          title={PANEL_TITLES[panel.kind]}
           description={
             panel.kind === 'expense'
               ? `Lo paga el fondo del proyecto (disponible ${formatCOP(project.currentBalance)}) y se reparte entre quienes participan.`
-              : 'Sale de tu billetera personal y entra al fondo del proyecto.'
+              : panel.kind === 'contribution'
+                ? 'Sale de tu billetera personal y entra al fondo del proyecto.'
+                : 'Escribe el correo con el que la persona se registró.'
           }
         >
-          {panel.kind === 'expense' ? (
+          {panel.kind === 'member' ? (
+            <AddMemberForm
+              key={panel.formKey}
+              projectId={projectId}
+              onSaved={(email) => finishAction(`Agregaste a ${email} al proyecto`)}
+            />
+          ) : panel.kind === 'expense' ? (
             <ExpenseForm
               key={panel.formKey}
               projectId={projectId}

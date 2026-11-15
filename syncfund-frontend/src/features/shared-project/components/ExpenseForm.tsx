@@ -128,7 +128,8 @@ export function ExpenseForm({ projectId, payerId, members, fundBalance, onSaved,
           setAmount(raw);
           clearField('amount');
         }}
-        preview={(value) => `El fondo paga ${formatCOP(value)}`}
+        // Si supera el fondo no se afirma "El fondo paga…": el aviso dice que no puede.
+        preview={exceedsFund ? undefined : (value) => `El fondo paga ${formatCOP(value)}`}
         error={amountError}
         required
         data-autofocus
