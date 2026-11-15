@@ -1,0 +1,28 @@
+/*
+ * Formularios del proyecto dentro de un Panel (gasto, aporte, pago, agregar integrante).
+ * El panel ya es la superficie y tiene el título: aquí solo el ritmo interno.
+ */
+
+.project-form {
+  display: block;
+}
+
+/* Ayuda propia del formulario (ej. lo disponible en la billetera), antes del primer campo. */
+.project-form__note {
+  margin-bottom: var(--space-md);
+  font-size: var(--text-small);
+  color: var(--ink-muted);
+  text-wrap: pretty;
+}
+
+.project-form__note strong {
+  font-weight: 600;
+  color: var(--ink);
+}
+
+/* Fondo en cero: la regla se explica antes de que el usuario llene nada. */
+.project-form__empty-fund {
+  display: grid;
+  gap: var(--space-md);
+  text-wrap: pretty;
+}

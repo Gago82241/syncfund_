@@ -1,0 +1,26 @@
+/* La cifra es enfocable (para devolverle el foco) pero no es un control: sin anillo con el ratón. */
+.project-detail__figure:focus {
+  outline: none;
+}
+
+.project-detail__figure:focus-visible {
+  outline: 2px solid var(--ink-600);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+.project-detail__meta {
+  display: grid;
+  gap: calc(var(--space-xs) / 2);
+}
+
+/* El fondo es el dato secundario: tinta, sin color de dinero (es de todos, no tuyo). */
+.project-detail__fund {
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.project-detail__description {
+  overflow-wrap: anywhere;
+  text-wrap: pretty;
+}

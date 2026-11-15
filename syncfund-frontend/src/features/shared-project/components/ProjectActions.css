@@ -1,0 +1,22 @@
+/*
+ * Acciones secundarias del proyecto, justo bajo la línea del encabezado: forman parte de la
+ * respuesta a "¿cómo estoy?", por eso van más cerca de la cifra que de las pestañas.
+ */
+.project-actions {
+  display: grid;
+  gap: var(--space-md);
+  margin-top: calc(var(--space-md) * -1);
+  margin-bottom: var(--space-xl);
+}
+
+.project-actions__buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+}
+
+@media (min-width: 480px) {
+  .project-actions__buttons .sf-button {
+    width: auto;
+  }
+}
