@@ -12,6 +12,8 @@ import './CreateCategoryForm.css';
 
 /** Tope del frontend: la columna admite 255 y el backend aún no tiene @Size. */
 const NAME_MAX = 100;
+/** La columna es DECIMAL(12,2): un límite mayor hace fallar al backend con un error 500. */
+const LIMIT_MAX = 9_999_999_999;
 /** Por debajo de este límite, la revisión pregunta si faltaron ceros (300 en vez de 300.000). */
 const SUSPICIOUS_LIMIT = 10000;
 
@@ -71,6 +73,7 @@ export function CreateCategoryForm({ existingNames, onCreated }: Props) {
 
   function limitError(): string | undefined {
     if (limit !== '' && limitValue === 0) return 'Deja el campo vacío si no quieres ponerle límite.';
+    if (limitValue > LIMIT_MAX) return `El límite no puede pasar de ${formatCOP(LIMIT_MAX)}.`;
     return undefined;
   }
 

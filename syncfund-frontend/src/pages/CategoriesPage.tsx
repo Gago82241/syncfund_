@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { AppLayout } from '../components/layout/AppLayout';
 import { Button } from '../components/ui/Button';
 import { EmptyState } from '../components/ui/EmptyState';
@@ -24,10 +24,19 @@ const TITLE = 'Categorías';
 export function CategoriesPage() {
   const { user } = useAuth();
   const { lines, month, loading, error, refresh, refreshAfterAction } = useCategories(user!.id);
-  // formKey vuelve a montar el formulario en cada apertura: arranca limpio.
   const { showToast } = useToast();
+  // formKey vuelve a montar el formulario en cada apertura: arranca limpio.
   const [panel, setPanel] = useState({ open: false, formKey: 0 });
+  // La primera categoría se crea desde el estado vacío, cuyo botón desaparece con la lista nueva:
+  // el foco pasa al contenido en vez de perderse en la página.
+  const focusContentOnLoad = useRef(false);
   useDocumentTitle(`${TITLE} · SyncFund`);
+
+  useEffect(() => {
+    if (!focusContentOnLoad.current || !lines || lines.length === 0) return;
+    focusContentOnLoad.current = false;
+    document.getElementById('contenido')?.focus();
+  }, [lines]);
 
   function openPanel() {
     setPanel((current) => ({ open: true, formKey: current.formKey + 1 }));
@@ -39,6 +48,7 @@ export function CategoriesPage() {
 
   /** Si la recarga falla, el error dice que la categoría sí se creó (afterActionLoadError). */
   function handleCreated(category: CategoryResponse) {
+    if (lines?.length === 0) focusContentOnLoad.current = true;
     closePanel();
     showToast(`Categoría «${category.name}» creada`);
     refreshAfterAction();

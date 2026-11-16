@@ -66,9 +66,11 @@ export function ProgressBar({ label, value, max, kind = 'budget', format = forma
         <span className="sf-progress__fill" style={{ width: `${fill}%` }} />
       </div>
       <p className="sf-progress__status">
-        <span className="tabular-nums">{percentText}</span>
-        {alert && <strong className="sf-progress__alert tabular-nums">{alert}</strong>}
-        {detail && <span className="tabular-nums">{detail}</span>}
+        <span className="sf-progress__state">
+          <span className="tabular-nums">{percentText}</span>
+          {alert && <strong className="sf-progress__alert tabular-nums">{alert}</strong>}
+        </span>
+        {detail && <span className="sf-progress__detail tabular-nums">{detail}</span>}
       </p>
     </div>
   );
