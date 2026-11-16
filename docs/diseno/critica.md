@@ -1159,6 +1159,202 @@ que se abre.
 
 ---
 
+## Proyectos compartidos — después del rediseño
+
+- **Archivos:** `src/pages/SharedProjectsPage.tsx` y `src/features/shared-project/`:
+  - renglón compartido con el Resumen en `components/ProjectStatusList`;
+  - orden y línea de resumen en `projectLines.ts`;
+  - carga con un saldo por proyecto en `projectBalances.ts` y `hooks/useSharedProjects.ts`;
+  - panel `CreateProjectForm`.
+- **Fecha:** 2026-11-16 · rama `style/proyectos` (commit `86379b7`).
+- **Método:** dos evaluaciones aisladas en subagentes separados.
+  - A: revisión de diseño con el código y 15 capturas de Chrome sin interfaz contra una API simulada
+    (320, 375 y 1280 px). Escenarios: lista normal, falla del saldo de un proyecto, sin proyectos,
+    error, carga, panel de crear, Detalle tras crear (con y sin error de carga) y datos extremos
+    (40 proyectos, nombres sin espacios, montos de 12 cifras).
+  - B: detector de impeccable sobre el código y sobre la página renderizada (`detect --cdp`, a 1280
+    y 375 px), más comprobaciones de contraste, títulos, nombres accesibles y áreas táctiles.
+- **Modo de la pantalla:** Operate.
+- **Resultado:** **29/40, Bueno** (antes 23/40, +6). Cumple la meta de 28 del plan, con poco margen.
+
+### Puntaje de heurísticas (Nielsen)
+
+| # | Heurística | Antes | Ahora | Problema clave que queda |
+|---|---|---|---|---|
+| 1 | Visibilidad del estado del sistema | 2 | 3 | Esqueleto con forma, falla parcial visible y aviso al crear. La lista espera al saldo más lento: N + 1 peticiones antes de ver un renglón. |
+| 2 | Coincidencia con el mundo real | 2 | 3 | "Debes / A tu favor / Al día" se entiende de una vez. "A tu favor" incluye tu parte del fondo sin gastar y se puede leer como "me deben". |
+| 3 | Control y libertad | 3 | 3 | El panel se cierra con Esc, "Cerrar" o el velo; "Atrás" vuelve del Detalle a la lista. No se puede renombrar ni borrar un proyecto (backend). |
+| 4 | Consistencia y estándares | 2 | 3 | Mismo renglón y mismo orden que el Resumen. El h1 y el h2 miden igual; el Resumen dice "a quién" y ofrece "Pagar", la lista no. |
+| 5 | Prevención de errores | 3 | 3 | Nombre obligatorio y tope de 100/500 caracteres. Sin aviso de nombre repetido; la elipsis puede esconder lo que distingue dos nombres. |
+| 6 | Reconocer antes que recordar | 2 | 3 | Rol, estado e integrantes a la vista. No dice a quién le debes. |
+| 7 | Flexibilidad y eficiencia | 2 | 2 | El orden ayuda. Sin atajo para pagar, búsqueda ni cortes por grupo; con 40 proyectos es desplazamiento puro. |
+| 8 | Estética y diseño minimalista | 3 | 3 | El formulario ya no domina. En la falla parcial la noticia sale tres veces; el título "Tus proyectos" repite el h1. |
+| 9 | Recuperación de errores | 3 | 3 | "Reintentar" pide solo los saldos que fallaron. Tras crear, el error dice "Tu cambio se guardó", no "El proyecto se creó". |
+| 10 | Ayuda y documentación | 1 | 3 | El estado vacío explica el fondo común y el camino "si te agregan por correo"; el panel dice que serás el administrador. Nada explica qué incluye "A tu favor". |
+| **Total** | | **23/40** | **29/40** | **Bueno**: la lista responde "¿dónde debo?" de un vistazo; falta "a quién" y que cargue más rápido con muchos grupos. |
+
+### Veredicto de especificidad
+
+**Revisión de diseño:** la pantalla dejó de ser intercambiable con un gestor de tareas. Tres cosas
+son propias de SyncFund:
+- El renglón dice tu situación en texto ("Debes", "A tu favor", "Al día"), con integrantes y rol.
+- El orden dice qué atender primero: debes, saldo sin cargar, a tu favor y al día, cada grupo con el
+  monto mayor arriba.
+- Ninguna cifra se inventa: un saldo que no llegó se muestra como "Saldo sin cargar" (borde
+  punteado, sin monto) y la línea de resumen nunca dice "no debes nada" si falta un saldo.
+
+Lo genérico es la composición de escritorio: título pequeño, botón suelto a la derecha y una hoja
+de 768 px sobre un lienzo vacío.
+
+**Detector automático:**
+- Código: **0 hallazgos** (`detect --json` y `--scope layout` sobre la página, `ProjectStatusList`,
+  `CreateProjectForm` y `components/ui`; también con `--no-config`).
+- Página renderizada (`detect --cdp`, igual a 1280 y a 375 px): **2 avisos**.
+  - `cream-palette` (el fondo `ledger-50`): falso positivo. Es la identidad de DESIGN.md.
+  - `flat-type-hierarchy` (h1 y h2 de 18 px): ya conocido. Es el pendiente del `h1` de
+    `PageHeader` para `style/pulido-final`; coincide con lo que vio la revisión de diseño.
+- Sin desplazamiento horizontal a 320, 375 ni 1280 px (tampoco con el panel abierto). Un solo h1.
+  Renglones y botones de 44 px o más. Contraste AA en todo: el más justo es "Debes" (4.88:1).
+- Los nombres accesibles de los renglones se leen completos ("Salida 1 integrante, Administrador
+  Al día"). No se inyectó la superposición visual (sin navegador visible en la sesión).
+
+### Impresión general
+
+Antes, la lista mostraba el fondo común sin etiqueta. Ahora dice, renglón por renglón, cómo estás
+en cada grupo y en qué orden atenderlo. Crear ya no tapa la lista y lleva directo a agregar
+integrantes. Lo que más rinde ahora es que la lista diga a quién le debes (hoy el Resumen da más
+información que la pantalla dedicada) y que no espere al saldo más lento.
+
+### Lo que funciona
+
+1. **"Certeza sobre cada peso" hasta el final.**
+   - El saldo que falta nunca se vuelve cero, y va arriba porque podría ser una deuda.
+   - La línea de resumen no promete "al día" sin todos los datos.
+   - "Reintentar" pide solo lo que falló.
+2. **Un renglón para toda la app.** El Resumen y la lista usan el mismo componente y el mismo orden:
+   - un solo enlace por fila;
+   - el nombre ocupa hasta dos líneas, y el estado baja de línea antes que aplastarlo;
+   - montos de 12 cifras sin desbordes a 320 px.
+3. **Crear en su lugar.**
+   - Panel con foco en el nombre y acción fija al alcance del pulgar en el celular.
+   - Aviso con el nombre del proyecto y salto al Detalle en la pestaña Integrantes.
+   - Si esa carga falla, el error dice que el cambio se guardó.
+
+### Problemas prioritarios
+
+#### [P2] La lista dice dónde debes, pero no a quién ni deja pagar
+
+- **Qué:** el renglón termina en "Debes $ 85.000 →". El Resumen, con los mismos datos, dice
+  "Debes $ 85.000 a Laura Gómez" y ofrece "Pagar".
+- **Por qué importa:** quien entra por "Ver todos" pierde información respecto al Resumen, y el
+  principio es "quedar al día sin hacer cuentas".
+- **Corrección:**
+  - En los renglones con deuda, escribir "a Laura Gómez" (o "a 2 integrantes") en la segunda línea.
+  - Opcional: un enlace secundario "Pagar" a `/projects/{id}?pagar=…`, que el Detalle ya atiende.
+  - Los datos ya llegan en la situación de cada proyecto.
+- **Comando sugerido:** `/impeccable shape`, luego `/impeccable clarify`.
+
+#### [P2] La lista espera al saldo más lento y escala mal
+
+- **Qué:** se pide la lista y luego un saldo por proyecto; el esqueleto sigue hasta que llegan
+  todos (`projectBalances.ts`). Con 40 proyectos son 41 peticiones.
+- **Por qué importa:** el uso principal es en el celular con datos móviles; la pantalla se siente
+  más lenta justo cuando hay más grupos.
+- **Corrección:**
+  - Solo frontend: mostrar los renglones al llegar la lista, con "Cargando saldo", y ordenar al final.
+  - Ideal, con aprobación del equipo: que la respuesta de la lista traiga el saldo neto del usuario
+    (un campo en el DTO; es la pregunta 1 de la crítica anterior).
+- **Comando sugerido:** `/impeccable harden`.
+
+#### [P2] El siguiente paso tras crear solo vive en un aviso de 4 segundos
+
+- **Qué:**
+  - El aviso dice "Ahora agrega a los integrantes".
+  - En el Detalle, la acción fija es "Registrar gasto", que fallaría con el fondo en $ 0.
+  - "Agregar integrante" es una acción secundaria.
+- **Por qué importa:** es el cierre del flujo de crear y la interfaz contradice al aviso.
+- **Corrección:** en el Detalle, con un solo integrante, un estado guía persistente en Integrantes
+  ("Solo estás tú. Agrega a los integrantes por su correo para repartir los gastos") con "Agregar
+  integrante" como acción principal.
+- **Comando sugerido:** `/impeccable onboard`, luego `/impeccable clarify` (es del Detalle).
+
+#### [P3] La falla de un saldo se anuncia tres veces y con tono de error
+
+- **Qué:** la línea de resumen, el aviso terracota con `role="alert"` y el renglón "Saldo sin
+  cargar" dicen lo mismo.
+- **Corrección:** quitar la frase de la línea de resumen cuando el aviso está visible, o volver el
+  aviso una nota neutra de una línea con "Reintentar".
+- **Comando sugerido:** `/impeccable distill`.
+
+#### [P3] Jerarquía plana y el orden no se ve
+
+- **Qué:**
+  - El h1 y el título de la hoja miden lo mismo; es un pendiente conocido para `style/pulido-final`.
+  - El orden por grupos no tiene cortes visibles.
+- **Corrección:**
+  - Quitar el título "Tus proyectos" o volverlo encabezado de grupo.
+  - Con más de unos 6 proyectos, subtítulos discretos en `ink-muted` ("Debes · 2", "A tu favor · 1",
+    "Al día · 2").
+- **Comando sugerido:** `/impeccable typeset`, luego `/impeccable layout`.
+
+### Señales de alerta por persona
+
+- **En el celular, con una mano y conexión lenta:**
+  - Espera el esqueleto completo por el saldo más lento.
+  - La acción fija queda bien al pulgar.
+  - Para pagar tiene que entrar al proyecto, cambiar de pestaña y buscar a la persona.
+- **Lector de pantalla y teclado:**
+  - A favor: un enlace por fila, foco visible, aviso con `role="status"` y pausa oculta antes de
+    "Administrador".
+  - El aviso de falla parcial lleva `role="alert"` e interrumpe en cada carga.
+  - El nombre cortado no tiene `title` para quien ve.
+- **Casos extremos:**
+  - Con 40 nombres largos que solo difieren al final, la elipsis los deja iguales a 320 px.
+  - Si la lista no carga, no se puede crear un proyecto.
+- **Estudiante con varios grupos** (persona de PRODUCT.md):
+  - Responde "¿en cuál debo?" de una mirada, como pedía la crítica anterior.
+  - No ve a quién le debe.
+  - "A tu favor $ 120.001" puede hacerle creer que alguien le debe esa plata.
+
+### Observaciones menores
+
+- En escritorio, "Crear proyecto" queda alineado al borde de la página y no al de la hoja de 768 px.
+- A 375 px unos renglones ponen el estado al lado y otros debajo, según el largo del nombre.
+- La descripción del proyecto sigue sin mostrarse en la lista.
+- El error genérico dice "Inténtalo de nuevo en unos minutos" junto a un "Reintentar" inmediato.
+- En el panel, la descripción se parte en tres líneas angostas por el botón "Cerrar".
+
+### Estado de los problemas de la crítica anterior
+
+| Problema | Estado |
+|---|---|
+| [P1] Cifra ambigua en cada fila | **Resuelto.** Tu saldo neto con estado en texto; el fondo sale del renglón. |
+| [P1] El formulario desplaza a la lista | **Resuelto.** Panel y acción fija al pulgar. |
+| [P2] Estado vacío pobre | **Resuelto.** Explica el fondo común y el camino "te agregan por correo". |
+| [P2] Fila frágil y poco informativa | **Resuelto en su mayoría.** Corte seguro, plural, rol, flecha, orden fijo y tope de longitud. Falta `@Size` en el backend. |
+| [P3] Crear sin confirmación | **Resuelto en parte.** Aviso y salto a Integrantes; el Detalle no sostiene el siguiente paso. |
+| Estilos en línea y contraste de `ink-faint` | **Resueltos.** |
+
+### Preguntas para el equipo
+
+1. Si el Resumen ya muestra los mismos renglones con "a quién" y "Pagar", ¿la lista debe ser la
+   versión completa (a quién, pagar y grupos)?
+2. ¿Puede la respuesta de la lista traer el saldo neto del usuario, para evitar N peticiones?
+3. "A tu favor" mezcla lo que te deben con tu parte del fondo sin gastar. ¿Se distinguen en el
+   renglón o basta con explicarlo en el Detalle?
+4. Tras crear, ¿qué debe empujar el Detalle: agregar integrantes o aportar primero?
+5. Con 15 o más proyectos, muchos terminados, ¿hace falta archivar o filtrar "con saldo
+   pendiente"? (El ciclo de vida del proyecto aún no está decidido.)
+
+### Pendiente (sin hacer en esta rama)
+
+- Los tres P2 y los dos P3 de arriba, para `style/pulido-final` o según lo que decida el equipo.
+  El tercer P2 es del Detalle.
+- Backend: `@Size` en el nombre del proyecto (`fix/limites-longitud`) y, si el equipo lo aprueba,
+  el saldo neto del usuario en la respuesta de la lista.
+
+---
+
 ## Detalle del proyecto
 
 - **Archivo:** `src/pages/SharedProjectDetailPage.tsx` (ruta `/projects/:id`), con
