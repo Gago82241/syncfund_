@@ -8,6 +8,7 @@
  * de los compañeros) y deja fuera el colchón.
  */
 import { HALF_CENT } from '../shared-project/balance';
+import { toPesos, walletFigures } from '../personal-wallet/walletFigures';
 import { BUDGET_WARN_PERCENT, budgetPercent } from '../../utils/budget';
 import type {
   CategoryResponse,
@@ -55,11 +56,6 @@ export interface DashboardSummary {
 /** Menos de medio centavo cuenta como cero (mismo criterio que el backend y MoneyStatus). */
 function settle(amount: number): number {
   return Math.abs(amount) < HALF_CENT ? 0 : amount;
-}
-
-/** A pesos enteros, como los muestra formatCOP. */
-function toPesos(amount: number): number {
-  return Math.round(settle(amount)) || 0; // || 0 evita mostrar "-0"
 }
 
 /**
@@ -130,14 +126,15 @@ export function computeDashboardSummary(
 
   // Cada parte se redondea a pesos antes de sumar, para que la cuenta que se ve en pantalla
   // (Billetera + A tu favor − Debes) dé exactamente el total mostrado.
-  const walletTotal = toPesos(wallet.currentBalance + wallet.cushionBalance);
+  // El total de la billetera sale de walletFigures, igual que en la Billetera.
+  const { total: walletTotal, cushion } = walletFigures(wallet);
   const roundedInYourFavor = toPesos(inYourFavor);
   const roundedYouOwe = toPesos(youOwe);
 
   return {
     total: walletTotal + roundedInYourFavor - roundedYouOwe || 0,
     walletTotal,
-    cushion: toPesos(wallet.cushionBalance),
+    cushion,
     inYourFavor: roundedInYourFavor,
     youOwe: roundedYouOwe,
     projects: sorted,
