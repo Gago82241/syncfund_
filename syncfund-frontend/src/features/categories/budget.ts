@@ -8,7 +8,7 @@
  * con límite 0; por eso el estado se calcula aquí con lo gastado y el límite, sin consultarlo.
  */
 import { categoryService } from './services/categoryService';
-import { BUDGET_WARN_PERCENT, budgetPercent } from '../../utils/budget';
+import { budgetStatus, budgetUsedPercent } from '../../utils/budget';
 import type { CategoryResponse } from '../../types/api';
 
 export interface BudgetLine {
@@ -18,7 +18,7 @@ export interface BudgetLine {
   spent: number;
   /** Límite mensual; 0 = sin límite. */
   limit: number;
-  /** Porcentaje usado como lo muestra ProgressBar (0 sin límite). */
+  /** Porcentaje usado como lo muestra ProgressBar (0 sin límite; 100 solo al llegar al límite). */
   percent: number;
 }
 
@@ -34,7 +34,7 @@ export function toBudgetLines(
   return categories.map((c) => {
     const spent = spentByCategory.get(c.categoryId) ?? 0;
     const limit = c.monthlyLimit > 0 ? c.monthlyLimit : 0;
-    return { categoryId: c.categoryId, name: c.name, spent, limit, percent: budgetPercent(spent, limit) };
+    return { categoryId: c.categoryId, name: c.name, spent, limit, percent: budgetUsedPercent(spent, limit) };
   });
 }
 
@@ -68,7 +68,7 @@ export function selectBudgetAlerts(
   spentByCategory: ReadonlyMap<number, number>,
 ): BudgetLine[] {
   return sortBudgetLines(toBudgetLines(categories, spentByCategory)).limited.filter(
-    (line) => line.percent >= BUDGET_WARN_PERCENT,
+    (line) => budgetStatus(line.spent, line.limit) !== 'normal',
   );
 }
 

@@ -1,6 +1,6 @@
 import { useId } from 'react';
 import { formatCOP } from '../../styles/theme';
-import { BUDGET_WARN_PERCENT, budgetPercent } from '../../utils/budget';
+import { budgetPercent, budgetStatus, budgetUsedPercent } from '../../utils/budget';
 import './ProgressBar.css';
 
 interface ProgressBarProps {
@@ -9,7 +9,8 @@ interface ProgressBarProps {
   value: number;
   max: number;
   /**
-   * budget: presupuesto de categoría (normal, "Cerca del límite" desde 80 %, "Te pasaste" desde 100 %).
+   * budget: presupuesto de categoría ("Cerca del límite" desde 80 %, "Llegaste al límite" justo en
+   *         el límite y "Te pasaste" al superarlo), con lo que te queda o cuánto te pasaste.
    * goal: meta de ahorro (avanza en esmeralda; "Meta cumplida" al llegar al 100 %).
    */
   kind?: 'budget' | 'goal';
@@ -17,21 +18,7 @@ interface ProgressBarProps {
   format?: (n: number) => string;
 }
 
-type Status = 'normal' | 'warn' | 'over' | 'done';
-
-function statusFor(kind: 'budget' | 'goal', percent: number): Status {
-  if (kind === 'goal') return percent >= 100 ? 'done' : 'normal';
-  if (percent >= 100) return 'over';
-  if (percent >= BUDGET_WARN_PERCENT) return 'warn';
-  return 'normal';
-}
-
-const STATUS_TEXT: Record<Status, string | null> = {
-  normal: null,
-  warn: 'Cerca del límite',
-  over: 'Te pasaste',
-  done: 'Meta cumplida',
-};
+type Status = 'normal' | 'warn' | 'limit' | 'over' | 'done';
 
 /**
  * Barra de progreso accesible: el estado se dice en texto (porcentaje y aviso), no solo con
@@ -39,10 +26,24 @@ const STATUS_TEXT: Record<Status, string | null> = {
  */
 export function ProgressBar({ label, value, max, kind = 'budget', format = formatCOP }: ProgressBarProps) {
   const labelId = useId();
-  const percent = budgetPercent(value, max);
-  const status = statusFor(kind, percent);
-  const statusText = STATUS_TEXT[status];
-  const percentText = kind === 'goal' ? `${percent} % de la meta` : `${percent} % usado`;
+  const isBudget = kind === 'budget';
+  const percent = isBudget ? budgetUsedPercent(value, max) : budgetPercent(value, max);
+  const status: Status = isBudget ? budgetStatus(value, max) : percent >= 100 ? 'done' : 'normal';
+
+  let alert: string | null = null;
+  let detail: string | null = null;
+  if (isBudget) {
+    if (status === 'over') alert = `Te pasaste por ${format(value - max)}`;
+    else {
+      if (status === 'warn') alert = 'Cerca del límite';
+      if (status === 'limit') alert = 'Llegaste al límite';
+      if (max > 0) detail = `Te quedan ${format(Math.max(max - value, 0))}`;
+    }
+  } else if (status === 'done') {
+    alert = 'Meta cumplida';
+  }
+
+  const percentText = isBudget ? `${percent} % usado` : `${percent} % de la meta`;
   const amounts = `${format(value)} de ${format(max)}`;
   // La barra se llena hasta 100 %; el texto dice el porcentaje real (ej. 130 %).
   const fill = Math.min(Math.max(percent, 0), 100);
@@ -60,13 +61,14 @@ export function ProgressBar({ label, value, max, kind = 'budget', format = forma
         aria-valuemin={0}
         aria-valuemax={100}
         aria-valuenow={fill}
-        aria-valuetext={[percentText, amounts, statusText].filter(Boolean).join(', ')}
+        aria-valuetext={[percentText, amounts, alert, detail].filter(Boolean).join(', ')}
       >
         <span className="sf-progress__fill" style={{ width: `${fill}%` }} />
       </div>
       <p className="sf-progress__status">
         <span className="tabular-nums">{percentText}</span>
-        {statusText && <strong className="sf-progress__alert">{statusText}</strong>}
+        {alert && <strong className="sf-progress__alert tabular-nums">{alert}</strong>}
+        {detail && <span className="tabular-nums">{detail}</span>}
       </p>
     </div>
   );

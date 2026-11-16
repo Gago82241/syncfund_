@@ -46,7 +46,7 @@ export function MoneySection() {
       <CatalogSection
         id="progreso"
         title="Barra de progreso"
-        description="El estado va en texto además del color. Presupuesto: aviso ámbar desde 80 % y terracota desde 100 %. La barra se llena hasta 100 % y el texto dice el porcentaje real."
+        description="El estado va en texto además del color. Presupuesto: aviso ámbar desde 80 % y al llegar justo al límite, terracota al pasarse, con lo que queda o cuánto te pasaste. La barra se llena hasta 100 % y el texto dice el porcentaje real."
       >
         <div className="catalog__grid">
           <CatalogCase label="Presupuesto de 100.000 en 0, 45, 85, 100 y 130 %">
