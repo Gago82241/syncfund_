@@ -50,8 +50,53 @@
   color: var(--ink-faint);
 }
 
+/* El punto es solo visual; el lector oye la coma oculta ("3 integrantes, Administrador"). */
+.project-status-list__role {
+  color: var(--ink-muted);
+  font-weight: 600;
+}
+
+.project-status-list__role::before {
+  content: ' · ';
+  content: ' · ' / '';
+  font-weight: 400;
+  color: var(--ink-faint);
+}
+
+/* Estado y flecha juntos: si el renglón se parte en dos líneas, bajan a la derecha. */
+.project-status-list__end {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  margin-left: auto;
+}
+
+/* Sin saldo: texto, sin cifra y sin color de dinero; borde punteado = dato pendiente. */
+.project-status-list__unknown {
+  padding: calc(var(--space-xs) / 2) var(--space-xs);
+  border: 1px dashed var(--field-border);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-small);
+  font-weight: 600;
+  line-height: var(--leading-tight);
+  color: var(--ink-muted);
+  white-space: nowrap;
+}
+
+.project-status-list__arrow {
+  color: var(--ink-faint);
+  transition:
+    color var(--duration-fast) var(--ease-out),
+    transform var(--duration-fast) var(--ease-out);
+}
+
 @media (hover: hover) {
   .project-status-list__row:hover {
     background: var(--ledger-50);
+  }
+
+  .project-status-list__row:hover .project-status-list__arrow {
+    color: var(--ink-600);
+    transform: translateX(2px);
   }
 }
