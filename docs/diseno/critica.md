@@ -779,6 +779,195 @@ de tu meta") y que registrar un movimiento sea una acción que se abre, no un bl
 
 ---
 
+## Billetera personal — después del rediseño
+
+- **Archivos:** `src/pages/PersonalWalletPage.tsx` y `src/features/personal-wallet/` (cálculos en
+  `walletFigures.ts`; hojas `WalletLedger`, `SavingsGoalSheet` y `CushionSheet`; paneles
+  `TransactionForm`, `SavingsGoalForm` y `CushionForm`), más `TransactionList`.
+- **Fecha:** 2026-11-16 · rama `style/billetera` (commit `e852c6c`).
+- **Método:** dos evaluaciones aisladas en subagentes separados.
+  - A: revisión de diseño con el código y 16 capturas de Chrome sin interfaz contra una API simulada
+    (320, 375 y 1280 px). Escenarios: normal, usuario nuevo, sin meta, ahorro negativo, meta
+    cumplida, datos extremos, error, carga, error de categorías y cuota, los tres paneles y el aviso
+    de éxito.
+  - B: detector de impeccable sobre el código y sobre la página renderizada (`detect --cdp`, a 1280
+    y 375 px).
+- **Modo de la pantalla:** Operate.
+- **Resultado:** **28/40, Bueno** (antes 20/40, +8). Cumple la meta de 28 del plan, sin margen.
+
+### Puntaje de heurísticas (Nielsen)
+
+| # | Heurística | Antes | Ahora | Problema clave que queda |
+|---|---|---|---|---|
+| 1 | Visibilidad del estado del sistema | 2 | 3 | Avisos con monto ("Gasto de $ 2.000 registrado", "Apartaste… tu disponible quedó en…") y carga con forma. Si falla la cuota, la línea desaparece sin aviso; el movimiento nuevo no se marca en la lista. |
+| 2 | Coincidencia con el mundo real | 3 | 3 | Disponible, Colchón y Total claros. "Para lograrla: $ 500.000 por quincena" no dice si es ahorrar o gastar, y el ahorro del mes resta los aportes que el Resumen cuenta "A tu favor". |
+| 3 | Control y libertad | 1 | 2 | Paneles que se cierran con Esc, "Cerrar" o el velo, y devuelven el foco. Sigue sin poder editarse ni borrarse un movimiento (backend), y cambiar de tipo borra lo escrito (decisión del equipo). |
+| 4 | Consistencia y estándares | 2 | 3 | Mismos componentes y el mismo total que el Resumen. "−$ 65.000" sin espacio frente a "− $ 25.000" en las filas; la acción de la hoja de la meta es botón o enlace según el estado. |
+| 5 | Prevención de errores | 2 | 3 | `MoneyInput` con vista previa, límite avisado en vivo (gasto y colchón) y Liberar deshabilitado sin colchón. La cuota no se ajusta al progreso. |
+| 6 | Reconocer antes que recordar | 2 | 3 | Categoría en la fila, límites antes de escribir y meta precargada. Pagos y aportes no enlazan a su proyecto. |
+| 7 | Flexibilidad y eficiencia | 2 | 2 | Acción fija al pulgar y "Ver más". Sin agrupación por mes, filtros ni otros meses; el año se repite en cada fecha. |
+| 8 | Estética y diseño minimalista | 2 | 3 | Una sola cifra protagonista y formularios en paneles. "Disponible" aparece dos veces seguidas y el colchón se explica en cuatro lugares. |
+| 9 | Recuperación de errores | 3 | 3 | Error con Reintentar, nota de categorías con Reintentar y errores de formulario claros. La falla de la cuota es silenciosa. |
+| 10 | Ayuda y documentación | 1 | 3 | Se explica qué es el colchón y cómo se calcula el ahorro; estados vacíos con siguiente paso. Falta explicar la cuota. |
+| **Total** | | **20/40** | **28/40** | **Bueno**: la pantalla ya responde "¿cuánto puedo gastar?"; falta afinar la meta y aligerar el celular. |
+
+### Veredicto de especificidad
+
+**Revisión de diseño:** la voz de libro mayor está en las cuentas, no en el encuadre. Hay tres
+elementos que solo se pueden usar en SyncFund:
+- La suma "Disponible + Colchón = Total en tu billetera" con filete de 2 px, que cuadra con el
+  Resumen.
+- La cuenta del mes como asiento: Ingresos − Gastos − Aportes a proyectos ± Pagos entre integrantes
+  = Ahorro del mes. Separa lo personal de lo compartido.
+- La vista previa del colchón ("Tu disponible quedará en $ 73.000 y tu colchón en $ 100.000").
+
+Lo genérico es la composición de escritorio (cifra a la izquierda, botón suelto a la derecha y tres
+hojas blancas) y la nota del colchón en un recuadro fijo al inicio del libro.
+
+**Detector automático:**
+- Código: **0 hallazgos** (`detect --json` sobre la página, `features/personal-wallet` y
+  `features/transactions`; código de salida 0).
+- Página renderizada (`detect --cdp`, igual a 1280 y a 375 px): **3 avisos**.
+  - `cream-palette` (el fondo `ledger-50`): falso positivo. Es la identidad de DESIGN.md, ya
+    aceptada.
+  - `flat-type-hierarchy` (h1 y h2 de 18 px): ya conocido. Es el pendiente del `h1` de `PageHeader`
+    para `style/pulido-final`.
+  - `nested-cards` en `.wallet__cushion-note`: un recuadro con borde dentro de una hoja. Coincide
+    con el P2 de la revisión de diseño (explicaciones repetidas).
+- Sin problemas de contraste ni de texto diminuto. Sin desplazamiento horizontal a 320, 375 ni
+  1280 px. No se inyectó la superposición visual (sin navegador visible en la sesión).
+
+### Impresión general
+
+La Billetera pasó de un CRUD con tres formularios fijos a un estado de cuenta que se explica solo.
+La cifra dice qué es, la suma cuadra con el Resumen y la meta tiene progreso con su cuenta a la
+vista. Lo que más rinde ahora es quitar repeticiones (colchón explicado cuatro veces, "Disponible"
+dos veces) y hacer que la meta se vea sin bajar 20 filas en el celular.
+
+### Lo que funciona
+
+1. **"Certeza sobre cada peso" hecha interfaz.** La suma cuadra con el Resumen, la cuenta del mes
+   se ve completa, con error no se muestra ninguna cifra y los cálculos son funciones puras
+   (`walletFigures.ts`) que se pueden verificar a mano.
+2. **Formularios seguros.** El gasto mayor que el disponible se avisa mientras se escribe, el
+   colchón muestra límites y resultado antes de confirmar, la meta llega precargada y se quita con
+   0; selector con `aria-pressed`, radios reales y foco inicial en el monto.
+3. **Robusta y accesible en lo estructural.** Sin desborde con montos de 15 cifras y 45 filas
+   (el monto baja de línea), barra con `aria-valuetext`, texto oculto "más / igual a / Gasto de"
+   para el lector de pantalla y estados propios de carga, error, vacío y categorías fallidas.
+
+### Problemas prioritarios
+
+#### [P2] La cuota "Para lograrla" no tiene en cuenta el progreso
+
+- **Qué:**
+  - Siempre muestra meta/2 por quincena y meta/30 por día (cálculo del backend).
+  - Con $ 525.000 de $ 1.000.000 el 16 de noviembre sigue diciendo "$ 500.000 por quincena".
+  - Con la meta cumplida dice "Para lograrla".
+- **Por qué importa:** es la única cifra que parece un consejo, y para el mes en curso no es
+  cierta.
+- **Corrección:** ocultarla con la meta cumplida y nombrarla como ritmo fijo ("Ritmo de la meta:
+  …"). La otra opción es "Te faltan $ 475.000 este mes", una resta de cifras que ya están en
+  pantalla.
+- **Comando sugerido:** `/impeccable clarify`.
+
+#### [P2] Explicaciones y cifras repetidas
+
+- **Qué:**
+  - El colchón se explica en la nota de Movimientos, en su hoja, en la nota de la meta y en el
+    panel.
+  - "Disponible" sale como etiqueta de la cifra y como primer renglón de la suma.
+  - Con colchón en $ 0, la suma no aporta nada.
+  - El detector marca la nota como recuadro dentro de una hoja (`nested-cards`).
+- **Por qué importa:** la nota fija empuja el libro hacia abajo en la tarea diaria.
+- **Corrección:**
+  - Llevar la nota a una línea al pie de la lista o a la hoja del colchón.
+  - Mostrar la suma solo con colchón mayor que 0.
+  - Aplanar la nota, sin borde.
+- **Comando sugerido:** `/impeccable distill`.
+
+#### [P2] En el celular la meta queda lejos y el libro no se organiza
+
+- **Qué:**
+  - Con 20 filas por tanda, la meta queda a unos 1.700 px de desplazamiento a 375 px.
+  - No hay encabezados por mes, y el año se repite en cada fecha.
+- **Por qué importa:** "celular primero", y la meta es el gancho de la pantalla.
+- **Corrección:**
+  - En el celular, de 5 a 8 filas con "Ver todos", o la hoja de la meta antes del libro.
+  - Agrupar por mes y omitir el año en curso.
+- **Comando sugerido:** `/impeccable layout`, luego `/impeccable adapt`.
+
+#### [P2] Primera visita: cinco "$ 0" y dos acciones primarias
+
+- **Qué:**
+  - "$ 0" en la cifra, en la suma y en "Apartado".
+  - "Registra tu primer ingreso" y la barra fija "Registrar movimiento" son dos botones llenos a la
+    vez.
+  - "Apartar o liberar" se ofrece aunque no hay nada que mover; el panel lo dice recién al abrirlo.
+- **Por qué importa:** diluye el primer paso y la regla se ve después, no antes.
+- **Corrección:** ocultar la suma y la acción del colchón cuando todo está en $ 0, y dejar una sola
+  acción primaria en el estado vacío.
+- **Comando sugerido:** `/impeccable onboard`.
+
+#### [P3] Meta cumplida sin momento y encabezado de escritorio con hueco
+
+- **Qué:**
+  - "Meta cumplida" pesa lo mismo que el texto de apoyo.
+  - A 1280 px el botón queda a unos 500 px de la cifra.
+- **Corrección:** un titular breve en esmeralda para la meta cumplida y un encabezado más compacto
+  en escritorio.
+- **Comando sugerido:** `/impeccable delight`, luego `/impeccable layout`.
+
+### Señales de alerta por persona
+
+- **Usuario distraído en el celular:** acción fija al pulgar, áreas de 44 px y vista previa del
+  monto. En contra: la meta está a unas 20 filas y el aviso de éxito tapa filas por unos segundos.
+- **Primera vez:** cinco "$ 0", dos botones primarios y una acción del colchón que no lleva a nada.
+- **Usuario de lector de pantalla o teclado:**
+  - "Disponible 123.000" se escucha dos veces seguidas.
+  - La nota de categorías (`role="status"`) se anuncia al aparecer.
+  - Si falla la cuota, no se anuncia nada.
+- **Datos extremos:** a 320 px la cifra protagonista se parte dentro del número
+  (`overflow-wrap: anywhere`, decisión de `style/sistema-base` para no desbordar).
+- **Estudiante que comparte arriendo:** ve aportes y pagos separados en la cuenta del mes, pero un
+  aporte le baja el "Ahorro del mes" aunque el Resumen lo cuente "A tu favor". Las filas de pagos
+  no enlazan al proyecto.
+- **Docente evaluador:** todo se puede sustentar con funciones puras. La clasificación de aportes y
+  pagos depende de la descripción (anotado en "Fuera del rediseño"): el total no cambia, el renglón
+  sí.
+
+### Observaciones menores
+
+- En el panel de gasto, con el error visible ("Tu disponible es $ 123.000…") sobra la ayuda
+  "Disponible para gastar".
+- "Guardar" es genérico; "Registrar gasto" o "Registrar ingreso" dirían más.
+- El comentario de `ProgressBar.tsx` dice que la meta "avanza en esmeralda", pero la barra es azul
+  tinta hasta cumplirla.
+- "− Pagos entre integrantes" se parte en dos líneas en la columna de escritorio.
+- La frase "Este mes salió $ 65.000 más…" repite el total "−$ 65.000" que está justo debajo.
+
+### Preguntas para el equipo
+
+1. ¿Aportar al fondo es "no ahorrar"? El Resumen trata ese dinero como "A tu favor". Si la meta lo
+   resta, ¿qué le decimos al estudiante que aporta para el arriendo?
+2. La pantalla pregunta "¿Cuánto puedo gastar?". ¿Debería existir "Puedes gastar $ X este mes sin
+   romper tu meta" como renglón de la suma?
+3. ¿La nota del colchón se queda en el libro hasta que el backend registre esos movimientos, o
+   basta con la hoja del colchón?
+
+### Pendiente (sin hacer en esta rama)
+
+- Los cuatro P2 y el P3 de arriba, para `style/pulido-final` o según lo que decida el equipo (la
+  pregunta 1 cambia la definición del ahorro, que aprobó el usuario en esta rama).
+- Backend, anotado en "Fuera del rediseño" de `plan-rediseno.md`:
+  - Cuota semanal errónea.
+  - Marca de origen de los movimientos.
+  - Zona horaria del servidor.
+  - Movimiento en el historial al apartar o liberar.
+  - Editar o eliminar movimientos.
+
+---
+
 ## Proyectos compartidos
 
 - **Archivo:** `src/pages/SharedProjectsPage.tsx` (ruta `/projects`, la lista), con
