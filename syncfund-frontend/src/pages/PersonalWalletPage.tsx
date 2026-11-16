@@ -16,6 +16,7 @@ import { SavingsGoalForm } from '../features/personal-wallet/components/SavingsG
 import { SavingsGoalSheet } from '../features/personal-wallet/components/SavingsGoalSheet';
 import { TransactionForm } from '../features/personal-wallet/components/TransactionForm';
 import { WalletLedger } from '../features/personal-wallet/components/WalletLedger';
+import { savedMovementMessage } from '../features/personal-wallet/movementMessage';
 import { usePersonalWallet } from '../features/personal-wallet/hooks/usePersonalWallet';
 import { walletFigures } from '../features/personal-wallet/walletFigures';
 import { TransactionList } from '../features/transactions/components/TransactionList';
@@ -153,7 +154,8 @@ export function PersonalWalletPage() {
             <TransactionForm
               key={panel.formKey}
               walletId={wallet.walletId}
-              onSaved={() => handleSaved('Movimiento registrado')}
+              available={walletFigures(wallet).available}
+              onSaved={(saved) => handleSaved(savedMovementMessage(saved))}
               embedded
               initialType={panel.type}
             />

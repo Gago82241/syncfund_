@@ -1,29 +1,48 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { Input } from '../../../components/ui/Input';
+import { MoneyInput } from '../../../components/ui/MoneyInput';
 import { Button } from '../../../components/ui/Button';
 import { FormError } from '../../../components/ui/FormError';
 import { transactionService } from '../../transactions/services/transactionService';
 import { categoryService } from '../../categories/services/categoryService';
 import { useFormErrors } from '../../../hooks/useFormErrors';
-import { required, wholeAmount } from '../../../utils/validation';
+import { amountWithin, required, wholeAmount } from '../../../utils/validation';
+import { formatCOP } from '../../../styles/theme';
 import type { CategoryResponse } from '../../../types/api';
 import './TransactionForm.css';
 
+type MovementType = 'INGRESO' | 'GASTO';
+
+/** Lo que se registró, para el aviso de éxito ("Gasto de $2.000 registrado"). */
+export interface SavedMovement {
+  type: MovementType;
+  amount: number;
+}
+
 interface Props {
   walletId: number;
-  onSaved: () => void;
+  onSaved: (saved: SavedMovement) => void;
+  /**
+   * Disponible de la billetera (currentBalance). Si se conoce, el gasto lo muestra antes de
+   * escribir y avisa en vivo si no alcanza: el backend no permite gastar más que el disponible.
+   */
+  available?: number;
   /**
    * Dentro de un Panel: sin marco ni título propios (el panel ya los pone) y con el foco
    * inicial en el monto. En la Billetera se usa sin esta opción.
    */
   embedded?: boolean;
   /** Tipo con el que abre (ej. "Registra tu primer ingreso"). Solo cuenta al montarse. */
-  initialType?: 'INGRESO' | 'GASTO';
+  initialType?: MovementType;
+}
+
+function overAvailableMessage(available: number): string {
+  return `Tu disponible es ${formatCOP(available)}; no alcanza para este gasto.`;
 }
 
 /** Transaction.execute() vía POST /api/transactions, para la PersonalWallet. */
-export function TransactionForm({ walletId, onSaved, embedded = false, initialType = 'GASTO' }: Props) {
-  const [type, setType] = useState<'INGRESO' | 'GASTO'>(initialType);
+export function TransactionForm({ walletId, onSaved, available, embedded = false, initialType = 'GASTO' }: Props) {
+  const [type, setType] = useState<MovementType>(initialType);
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
   const [categoryId, setCategoryId] = useState('');
@@ -58,7 +77,13 @@ export function TransactionForm({ walletId, onSaved, embedded = false, initialTy
     loadCategories();
   }, [loadCategories]);
 
-  function handleTypeChange(next: 'INGRESO' | 'GASTO') {
+  // Aviso en vivo: en un gasto, si ya se sabe el disponible, se avisa mientras se escribe.
+  const exceedsAvailable =
+    type === 'GASTO' && available !== undefined && amount !== '' && Number(amount) > available;
+  const amountError =
+    fieldErrors.amount ?? (exceedsAvailable && available !== undefined ? overAvailableMessage(available) : undefined);
+
+  function handleTypeChange(next: MovementType) {
     if (next === type) return;
     setType(next);
     setAmount('');
@@ -70,7 +95,10 @@ export function TransactionForm({ walletId, onSaved, embedded = false, initialTy
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     const valid = validate({
-      amount: wholeAmount(amount),
+      amount:
+        type === 'GASTO' && available !== undefined
+          ? amountWithin(amount, available, overAvailableMessage(available))
+          : wholeAmount(amount),
       description: required(description, 'La descripción es obligatoria'),
     });
     if (!valid) return;
@@ -84,10 +112,11 @@ export function TransactionForm({ walletId, onSaved, embedded = false, initialTy
         originWalletType: 'PERSONAL',
         categoryId: categoryId ? Number(categoryId) : undefined,
       });
+      const saved = { type, amount: Number(amount) };
       setAmount('');
       setDescription('');
       setCategoryId('');
-      onSaved();
+      onSaved(saved);
     } catch (err) {
       showApiError(err, 'No se pudo registrar el movimiento.');
     } finally {
@@ -103,9 +132,10 @@ export function TransactionForm({ walletId, onSaved, embedded = false, initialTy
       noValidate
     >
       {!embedded && <h3>Registrar movimiento</h3>}
-      <div className="tx-form__toggle">
+      <div className="tx-form__toggle" role="group" aria-label="Tipo de movimiento">
         <button
           type="button"
+          aria-pressed={type === 'GASTO'}
           className={type === 'GASTO' ? 'is-active' : ''}
           onClick={() => handleTypeChange('GASTO')}
         >
@@ -113,25 +143,33 @@ export function TransactionForm({ walletId, onSaved, embedded = false, initialTy
         </button>
         <button
           type="button"
+          aria-pressed={type === 'INGRESO'}
           className={type === 'INGRESO' ? 'is-active' : ''}
           onClick={() => handleTypeChange('INGRESO')}
         >
           Ingreso
         </button>
       </div>
-      <Input
-        label="Monto (COP)"
-        type="number"
+      <MoneyInput
+        label="Monto"
         name="amount"
-        min="1"
-        placeholder="Ej: 50000 (sin puntos)"
-        // El color por tipo tiene más especificidad: con error debe mandar el estilo de error.
-        className={fieldErrors.amount ? undefined : `tx-form__amount--${type === 'GASTO' ? 'gasto' : 'ingreso'}`}
         value={amount}
-        error={fieldErrors.amount}
+        // El color del tipo aparece al escribir: vacío no debe parecer un campo con error.
+        tone={amount === '' || amountError ? undefined : type === 'GASTO' ? 'loss' : 'gain'}
+        hint={
+          type === 'GASTO' && available !== undefined
+            ? `Disponible para gastar: ${formatCOP(available)}`
+            : undefined
+        }
+        preview={
+          exceedsAvailable
+            ? undefined
+            : (value) => `Vas a registrar ${type === 'GASTO' ? 'un gasto' : 'un ingreso'} de ${formatCOP(value)}`
+        }
+        error={amountError}
         data-autofocus={embedded || undefined}
-        onChange={(e) => {
-          setAmount(e.target.value);
+        onValueChange={(raw) => {
+          setAmount(raw);
           clearField('amount');
         }}
         required

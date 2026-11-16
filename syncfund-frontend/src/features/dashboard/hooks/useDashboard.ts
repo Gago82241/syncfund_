@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { walletFigures } from '../../personal-wallet/walletFigures';
 import { personalWalletService } from '../../personal-wallet/services/personalWalletService';
 import { sharedProjectService } from '../../shared-project/services/sharedProjectService';
 import { categoryService } from '../../categories/services/categoryService';
@@ -17,6 +18,8 @@ import type { CategoryResponse, PersonalWalletResponse, ProjectBalancesResponse 
 
 export interface DashboardData {
   walletId: number;
+  /** Disponible de la billetera: lo muestra el formulario de gasto antes de escribir. */
+  available: number;
   isNewUser: boolean;
   summary: DashboardSummary;
 }
@@ -51,6 +54,7 @@ async function fetchSummary(
   const balancesByProject = new Map<number, ProjectBalancesResponse>(balances.map((b) => [b.projectId, b]));
   return {
     walletId: wallet.walletId,
+    available: walletFigures(wallet).available,
     isNewUser: isNewUser(wallet, projects, transactionCount),
     summary: computeDashboardSummary(userId, wallet, projects, balancesByProject),
   };

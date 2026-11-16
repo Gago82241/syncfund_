@@ -16,8 +16,9 @@ import { BudgetAlerts } from '../features/dashboard/components/BudgetAlerts';
 import { DebtNotice } from '../features/dashboard/components/DebtNotice';
 import { ProjectStatusList } from '../features/dashboard/components/ProjectStatusList';
 import { SummaryLedger } from '../features/dashboard/components/SummaryLedger';
+import { savedMovementMessage } from '../features/personal-wallet/movementMessage';
 import { useDashboard } from '../features/dashboard/hooks/useDashboard';
-import { TransactionForm } from '../features/personal-wallet/components/TransactionForm';
+import { TransactionForm, type SavedMovement } from '../features/personal-wallet/components/TransactionForm';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { formatCOP } from '../styles/theme';
 import './DashboardPage.css';
@@ -47,9 +48,9 @@ export function DashboardPage() {
     setPanel((current) => ({ ...current, open: false }));
   }
 
-  function handleSaved() {
+  function handleSaved(saved: SavedMovement) {
     closePanel();
-    showToast('Movimiento registrado');
+    showToast(savedMovementMessage(saved));
     refreshAfterAction();
   }
 
@@ -185,6 +186,7 @@ export function DashboardPage() {
           <TransactionForm
             key={panel.formKey}
             walletId={data.walletId}
+            available={data.available}
             onSaved={handleSaved}
             embedded
             initialType={panel.type}
