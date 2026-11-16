@@ -5,12 +5,16 @@ import { FormError } from '../../../components/ui/FormError';
 import { sharedProjectService } from '../services/sharedProjectService';
 import { useFormErrors } from '../../../hooks/useFormErrors';
 import { required } from '../../../utils/validation';
+import type { SharedProjectResponse } from '../../../types/api';
+import './ProjectForms.css';
 
 interface Props {
   adminId: number;
-  onCreated: () => void;
+  /** Recibe el proyecto que devolvió el backend (con su projectId). */
+  onCreated: (project: SharedProjectResponse) => void;
 }
 
+/** Formulario para crear un proyecto, dentro de un Panel (el panel pone el título). */
 export function CreateProjectForm({ adminId, onCreated }: Props) {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
@@ -24,20 +28,16 @@ export function CreateProjectForm({ adminId, onCreated }: Props) {
     if (!valid) return;
     setLoading(true);
     try {
-      await sharedProjectService.create({ name, description, adminId });
-      setName('');
-      setDescription('');
-      onCreated();
+      const { data } = await sharedProjectService.create({ name: name.trim(), description: description.trim(), adminId });
+      onCreated(data);
     } catch (err) {
       showApiError(err, 'No se pudo crear el proyecto.');
-    } finally {
       setLoading(false);
     }
   }
 
   return (
-    <form ref={formRef} onSubmit={handleSubmit} style={{ marginBottom: '2rem' }} noValidate>
-      <h3 style={{ fontSize: '1rem', marginBottom: '0.75rem' }}>Nuevo proyecto compartido</h3>
+    <form ref={formRef} onSubmit={handleSubmit} className="project-form" noValidate>
       <Input
         label="Nombre"
         name="name"
@@ -48,6 +48,8 @@ export function CreateProjectForm({ adminId, onCreated }: Props) {
           setName(e.target.value);
           clearField('name');
         }}
+        autoComplete="off"
+        data-autofocus
         required
       />
       <Input
@@ -60,6 +62,7 @@ export function CreateProjectForm({ adminId, onCreated }: Props) {
           setDescription(e.target.value);
           clearField('description');
         }}
+        autoComplete="off"
       />
       <FormError message={formError} />
       <Button type="submit" loading={loading}>Crear proyecto</Button>

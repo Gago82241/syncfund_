@@ -1,43 +1,134 @@
+import { useState, type ReactNode } from 'react';
 import { AppLayout } from '../components/layout/AppLayout';
+import { Button } from '../components/ui/Button';
+import { EmptyState } from '../components/ui/EmptyState';
+import { Icon } from '../components/ui/Icon';
 import { LoadError } from '../components/ui/LoadError';
-import { LoadingState } from '../components/ui/LoadingState';
 import { PageHeader } from '../components/ui/PageHeader';
+import { Panel } from '../components/ui/Panel';
+import { Sheet } from '../components/ui/Sheet';
+import { Skeleton, SkeletonGroup, SkeletonRows } from '../components/ui/Skeleton';
+import { useToast } from '../components/ui/toast/useToast';
 import { useAuth } from '../context/useAuth';
-import { useSharedProjects } from '../features/shared-project/hooks/useSharedProjects';
-import { ProjectStatusList } from '../features/shared-project/components/ProjectStatusList';
 import { CreateProjectForm } from '../features/shared-project/components/CreateProjectForm';
+import { ProjectStatusList } from '../features/shared-project/components/ProjectStatusList';
+import { useSharedProjects } from '../features/shared-project/hooks/useSharedProjects';
+import { projectsHeadline } from '../features/shared-project/projectLines';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
+import type { SharedProjectResponse } from '../types/api';
+import './SharedProjectsPage.css';
+
+const TITLE = 'Proyectos compartidos';
+const LIST_TITLE = 'Tus proyectos';
+
+/** Aviso cuando faltan saldos: la lista se muestra, pero esos renglones van sin cifra. */
+function missingBalancesMessage(count: number): string {
+  return count === 1
+    ? 'No pudimos cargar tu saldo en 1 proyecto, así que ese renglón va sin cifra.'
+    : `No pudimos cargar tu saldo en ${count} proyectos, así que esos renglones van sin cifra.`;
+}
 
 export function SharedProjectsPage() {
   const { user } = useAuth();
-  const { lines, loading, error, refresh } = useSharedProjects(user!.id);
-  useDocumentTitle('Proyectos compartidos · SyncFund');
+  const { lines, missingBalances, loading, error, refresh, retryBalances, retryingBalances } = useSharedProjects(
+    user!.id,
+  );
+  const { showToast } = useToast();
+  // formKey vuelve a montar el formulario en cada apertura: arranca limpio.
+  const [panel, setPanel] = useState({ open: false, formKey: 0 });
+  useDocumentTitle(`${TITLE} · SyncFund`);
 
-  function renderProjects() {
-    // Con error no se muestra la lista anterior: podría no estar actualizada.
-    if (error) {
-      return (
-        <LoadError
-          message={error.message}
-          onRetry={error.canRetry ? refresh : undefined}
-          retrying={loading}
+  function openPanel() {
+    setPanel((current) => ({ open: true, formKey: current.formKey + 1 }));
+  }
+
+  function closePanel() {
+    setPanel((current) => ({ ...current, open: false }));
+  }
+
+  function handleCreated(project: SharedProjectResponse) {
+    closePanel();
+    showToast(`Proyecto «${project.name}» creado`);
+    refresh();
+  }
+
+  const createButton = (label: string) => (
+    <Button onClick={openPanel}>
+      <Icon name="agregar" />
+      {label}
+    </Button>
+  );
+
+  let content: ReactNode;
+
+  // Con error no se muestra la lista anterior: podría no estar actualizada.
+  if (error) {
+    content = (
+      <>
+        <PageHeader title={TITLE} />
+        <LoadError message={error.message} onRetry={error.canRetry ? refresh : undefined} retrying={loading} />
+      </>
+    );
+  } else if (lines === null) {
+    content = (
+      <>
+        <PageHeader title={TITLE} meta={<Skeleton width="16rem" />} />
+        {/* El anuncio va solo: si envolviera la hoja, el lector leería también su título. */}
+        <SkeletonGroup label="Cargando tus proyectos…">{null}</SkeletonGroup>
+        <Sheet title={LIST_TITLE} className="projects__sheet">
+          <SkeletonRows count={4} />
+        </Sheet>
+      </>
+    );
+  } else if (lines.length === 0) {
+    // Sin proyectos: crear pasa a ser lo principal, y la única acción de la página.
+    content = (
+      <>
+        <PageHeader title={TITLE} />
+        <EmptyState
+          icon="proyectos"
+          title="Aún no tienes proyectos compartidos"
+          description="Un proyecto reúne los aportes de un grupo en un fondo común y calcula quién le debe a quién. Si alguien te agrega por correo, aparecerá aquí."
+          action={createButton('Crea tu primer proyecto')}
         />
-      );
-    }
-    if (lines === null) return <LoadingState message="Cargando tus proyectos…" />;
-    if (lines.length === 0) {
-      return <p style={{ color: 'var(--ink-faint)' }}>Todavía no participas en ningún proyecto compartido.</p>;
-    }
-    return <ProjectStatusList projects={lines} />;
+      </>
+    );
+  } else {
+    content = (
+      <>
+        <PageHeader
+          title={TITLE}
+          meta={<p className="projects__headline">{projectsHeadline(lines)}</p>}
+          fixedActionOnMobile
+          action={createButton('Crear proyecto')}
+        />
+        {missingBalances > 0 && (
+          <div className="projects__notice">
+            <LoadError
+              message={missingBalancesMessage(missingBalances)}
+              onRetry={retryBalances}
+              retrying={retryingBalances}
+            />
+          </div>
+        )}
+        <Sheet title={LIST_TITLE} className="projects__sheet">
+          <ProjectStatusList projects={lines} />
+        </Sheet>
+      </>
+    );
   }
 
   return (
     <AppLayout>
-      <PageHeader title="Proyectos compartidos" />
-      <CreateProjectForm adminId={user!.id} onCreated={refresh} />
-
-      <h2 style={{ fontSize: '1.125rem', marginBottom: '0.5rem' }}>Tus proyectos</h2>
-      {renderProjects()}
+      {content}
+      <Panel
+        open={panel.open}
+        onClose={closePanel}
+        title="Crear proyecto"
+        description="Serás el administrador; después agregas a los integrantes por su correo."
+      >
+        <CreateProjectForm key={panel.formKey} adminId={user!.id} onCreated={handleCreated} />
+      </Panel>
     </AppLayout>
   );
 }

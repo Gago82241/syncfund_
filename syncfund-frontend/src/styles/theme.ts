@@ -105,6 +105,8 @@ export const layout = {
   navBarHeight: 56,
   /** Ancho máximo del contenido. */
   contentMax: 1200,
+  /** Ancho máximo de una lista de renglones, para que nombre y estado no queden lejos. */
+  listMax: 768,
   /** Franja de la acción principal fija en el celular: 44 + 2 × 12 + 1 de línea. */
   actionBarHeight: 69,
 } as const;

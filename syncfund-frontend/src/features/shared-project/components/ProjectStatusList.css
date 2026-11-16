@@ -14,7 +14,7 @@
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: var(--space-xs) var(--space-md);
+  gap: var(--space-xs) var(--space-sm);
   min-height: var(--tap-target);
   padding: var(--space-sm) var(--space-xs);
   margin: 0 calc(var(--space-xs) * -1);
@@ -32,20 +32,29 @@
 
 .project-status-list__text {
   display: grid;
-  flex: 1 1 7rem;
+  /* Si al nombre le quedarían menos de 8.5rem, el estado baja a su propia línea (a la derecha):
+     mejor un renglón más alto que un nombre ilegible. */
+  flex: 1 1 8.5rem;
   min-width: 0;
 }
 
+/* Hasta dos líneas y luego elipsis: en el celular un nombre común ("Apartamento Laureles")
+   se lee entero, y uno larguísimo o sin espacios no empuja el estado. */
 .project-status-list__name {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+  overflow-wrap: anywhere;
   font-size: var(--text-small);
   font-weight: 600;
+  line-height: var(--leading-tight);
   color: var(--ink-900);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .project-status-list__meta {
+  margin-top: calc(var(--space-xs) / 2);
   font-size: var(--text-label);
   color: var(--ink-faint);
 }
