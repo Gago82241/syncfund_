@@ -90,3 +90,50 @@ export async function fetchMonthSpend(
   );
   return new Map(spent);
 }
+
+/** "a", "a y b", "a, b y c". */
+function joinParts(parts: string[]): string {
+  return parts.length <= 1 ? parts.join('') : `${parts.slice(0, -1).join(', ')} y ${parts[parts.length - 1]}`;
+}
+
+/**
+ * Una línea que responde "¿cómo voy?" sin sumar montos: un total de límites distintos escondería
+ * que te pasaste en una categoría si te sobra en otra.
+ * Ej.: "1 categoría pasada, 1 en el límite y 2 cerca del límite, de tus 5 con límite."
+ * null si no hay categorías.
+ */
+export function budgetHeadline(limited: readonly BudgetLine[], unlimitedCount: number): string | null {
+  const total = limited.length;
+  if (total === 0) {
+    return unlimitedCount === 0
+      ? null
+      : 'Ninguna categoría tiene límite: aquí ves cuánto llevas gastado en cada una.';
+  }
+  const statuses = limited.map((line) => budgetStatus(line.spent, line.limit));
+  const over = statuses.filter((s) => s === 'over').length;
+  const atLimit = statuses.filter((s) => s === 'limit').length;
+  const warn = statuses.filter((s) => s === 'warn').length;
+
+  if (over + atLimit + warn === 0) {
+    return total === 1
+      ? 'Vas bien en tu única categoría con límite.'
+      : `Vas bien en tus ${total} categorías con límite.`;
+  }
+
+  if (total === 1) {
+    if (over === 1) return 'Te pasaste en tu única categoría con límite.';
+    if (atLimit === 1) return 'Llegaste al límite en tu única categoría con límite.';
+    return 'Tu única categoría con límite está cerca del límite.';
+  }
+
+  // El sustantivo va solo en la primera parte: "1 categoría pasada y 2 cerca del límite".
+  const parts: string[] = [];
+  const add = (n: number, text: string, plural = text) => {
+    const noun = parts.length === 0 ? (n === 1 ? 'categoría ' : 'categorías ') : '';
+    parts.push(`${n} ${noun}${n === 1 ? text : plural}`);
+  };
+  if (over > 0) add(over, 'pasada', 'pasadas');
+  if (atLimit > 0) add(atLimit, 'en el límite');
+  if (warn > 0) add(warn, 'cerca del límite');
+  return `${joinParts(parts)}, de tus ${total} con límite.`;
+}

@@ -1,46 +1,133 @@
+import { useState, type ReactNode } from 'react';
 import { AppLayout } from '../components/layout/AppLayout';
+import { Button } from '../components/ui/Button';
+import { EmptyState } from '../components/ui/EmptyState';
+import { Icon } from '../components/ui/Icon';
 import { LoadError } from '../components/ui/LoadError';
-import { LoadingState } from '../components/ui/LoadingState';
 import { PageHeader } from '../components/ui/PageHeader';
+import { Panel } from '../components/ui/Panel';
+import { Sheet } from '../components/ui/Sheet';
+import { Skeleton, SkeletonGroup, SkeletonRows } from '../components/ui/Skeleton';
 import { useAuth } from '../context/useAuth';
-import { useCategories } from '../features/categories/hooks/useCategories';
+import { budgetHeadline, sortBudgetLines } from '../features/categories/budget';
 import { CategoryForm } from '../features/categories/components/CategoryForm';
-import { CategoryList } from '../features/categories/components/CategoryList';
-import { formatMonthLabel } from '../utils/formatDate';
+import { LimitedCategoryList, UnlimitedCategoryList } from '../features/categories/components/CategoryBudgetList';
+import { useCategories } from '../features/categories/hooks/useCategories';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
+import { capitalize, formatMonthLabel } from '../utils/formatDate';
+import './CategoriesPage.css';
+
+const TITLE = 'Categorías';
 
 export function CategoriesPage() {
   const { user } = useAuth();
-  const { lines: categories, month, loading, error, refresh, refreshAfterAction } = useCategories(user!.id);
-  useDocumentTitle('Categorías · SyncFund');
+  const { lines, month, loading, error, refresh, refreshAfterAction } = useCategories(user!.id);
+  // formKey vuelve a montar el formulario en cada apertura: arranca limpio.
+  const [panel, setPanel] = useState({ open: false, formKey: 0 });
+  useDocumentTitle(`${TITLE} · SyncFund`);
 
-  function renderCategories() {
-    // Con error no se muestra la lista anterior: podría no estar actualizada.
-    if (error) {
-      return (
-        <LoadError
-          message={error.message}
-          onRetry={error.canRetry ? refresh : undefined}
-          retrying={loading}
+  function openPanel() {
+    setPanel((current) => ({ open: true, formKey: current.formKey + 1 }));
+  }
+
+  function closePanel() {
+    setPanel((current) => ({ ...current, open: false }));
+  }
+
+  function handleCreated() {
+    closePanel();
+    refreshAfterAction();
+  }
+
+  const createButton = (label: string) => (
+    <Button onClick={openPanel}>
+      <Icon name="agregar" />
+      {label}
+    </Button>
+  );
+
+  let content: ReactNode;
+
+  // Con error no se muestra la lista anterior: podría no estar actualizada.
+  if (error) {
+    content = (
+      <>
+        <PageHeader title={TITLE} />
+        <LoadError message={error.message} onRetry={error.canRetry ? refresh : undefined} retrying={loading} />
+      </>
+    );
+  } else if (lines === null || month === null) {
+    content = (
+      <>
+        <PageHeader
+          title={TITLE}
+          meta={
+            <>
+              <Skeleton width="9rem" />
+              <Skeleton width="18rem" />
+            </>
+          }
         />
-      );
-    }
-    if (categories === null) return <LoadingState message="Cargando tus categorías…" />;
-    // CategoryList muestra el mensaje de "sin categorías" cuando la lista llega vacía.
-    return <CategoryList categories={categories} />;
+        {/* El anuncio va solo: si envolviera la hoja, el lector leería también su título. */}
+        <SkeletonGroup label="Cargando tus categorías…">{null}</SkeletonGroup>
+        <Sheet title="Con límite" className="categories__sheet">
+          <SkeletonRows count={3} />
+        </Sheet>
+      </>
+    );
+  } else if (lines.length === 0) {
+    // Sin categorías: crear pasa a ser lo principal, y la única acción de la página.
+    content = (
+      <>
+        <PageHeader title={TITLE} />
+        <EmptyState
+          icon="categorias"
+          title="Aún no tienes categorías"
+          description="Una categoría le pone un tope de gasto mensual a un tipo de gasto (Mercado, Transporte, Salidas) y te avisa cuando te acercas. Al registrar un gasto en tu billetera, eliges su categoría."
+          action={createButton('Crea tu primera categoría')}
+        />
+      </>
+    );
+  } else {
+    const monthLabel = formatMonthLabel(month);
+    const { limited, unlimited } = sortBudgetLines(lines);
+    content = (
+      <>
+        <PageHeader
+          title={TITLE}
+          meta={
+            <>
+              <p className="categories__month">{capitalize(monthLabel)}</p>
+              <p className="categories__headline">{budgetHeadline(limited, unlimited.length)}</p>
+              <p className="categories__scope">
+                Cuenta los gastos de tu billetera personal a los que les pusiste categoría.
+              </p>
+            </>
+          }
+          fixedActionOnMobile
+          action={createButton('Crear categoría')}
+        />
+        {limited.length > 0 && (
+          <Sheet title="Con límite" className="categories__sheet">
+            <LimitedCategoryList lines={limited} />
+          </Sheet>
+        )}
+        {unlimited.length > 0 && (
+          <Sheet title="Sin límite" className="categories__sheet">
+            <p className="categories__sheet-note">Lo que llevas gastado en {monthLabel}, sin tope.</p>
+            <UnlimitedCategoryList lines={unlimited} />
+          </Sheet>
+        )}
+      </>
+    );
   }
 
   return (
     <AppLayout>
-      <PageHeader
-        title="Categorías"
-        // Se nombra el mes consultado; antes de la primera carga todavía no se sabe.
-        meta={`Gasto de ${month ? formatMonthLabel(month) : 'este mes'} en tu billetera personal, por categoría.`}
-      />
-
-      <CategoryForm onCreated={refreshAfterAction} />
-
-      {renderCategories()}
+      {content}
+      <Panel open={panel.open} onClose={closePanel} title="Crear categoría">
+        <CategoryForm key={panel.formKey} onCreated={handleCreated} />
+      </Panel>
     </AppLayout>
   );
 }
