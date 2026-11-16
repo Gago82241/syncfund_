@@ -14,9 +14,4 @@ export const categoryService = {
       params: { walletId, walletType, month },
     });
   },
-  isOverLimit(categoryId: number, currentAmount: number) {
-    return apiClient.get<boolean>(`/categories/${categoryId}/over-limit`, {
-      params: { currentAmount },
-    });
-  },
 };

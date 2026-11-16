@@ -11,7 +11,7 @@ import { useDocumentTitle } from '../hooks/useDocumentTitle';
 
 export function CategoriesPage() {
   const { user } = useAuth();
-  const { categories, month, loading, error, refresh, refreshAfterAction } = useCategories(user!.id);
+  const { lines: categories, month, loading, error, refresh, refreshAfterAction } = useCategories(user!.id);
   useDocumentTitle('Categorías · SyncFund');
 
   function renderCategories() {
