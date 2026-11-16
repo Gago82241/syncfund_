@@ -1,0 +1,72 @@
+/* Revisión antes de crear: un asiento de libro mayor con la categoría tal como quedará. */
+.category-review {
+  display: grid;
+  gap: var(--space-md);
+}
+
+.category-review__title {
+  font-size: var(--text-title);
+}
+
+.category-review__title:focus {
+  outline: none;
+}
+
+.category-review__title:focus-visible {
+  outline: 2px solid var(--ink-600);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+.category-review__ledger {
+  margin: 0;
+  font-size: var(--text-small);
+}
+
+.category-review__row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: calc(var(--space-xs) / 2) var(--space-md);
+  padding: var(--space-sm) 0;
+  border-bottom: 1px solid var(--hairline);
+}
+
+.category-review__row dt {
+  color: var(--ink-muted);
+}
+
+.category-review__row dd {
+  min-width: 0;
+  margin: 0 0 0 auto;
+  text-align: right;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+/* Límite sospechosamente bajo: ámbar, como las alertas de presupuesto (texto en el 700). */
+.category-review__warning {
+  font-size: var(--text-small);
+  font-weight: 600;
+  color: var(--warn-700);
+  text-wrap: pretty;
+}
+
+.category-review__note {
+  font-size: var(--text-small);
+  color: var(--ink-muted);
+  text-wrap: pretty;
+}
+
+.category-review__actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-sm);
+}
+
+@media (max-width: 22rem) {
+  .category-review__actions {
+    grid-template-columns: 1fr;
+  }
+}

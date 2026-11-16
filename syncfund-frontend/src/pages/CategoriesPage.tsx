@@ -8,13 +8,15 @@ import { PageHeader } from '../components/ui/PageHeader';
 import { Panel } from '../components/ui/Panel';
 import { Sheet } from '../components/ui/Sheet';
 import { Skeleton, SkeletonGroup, SkeletonRows } from '../components/ui/Skeleton';
+import { useToast } from '../components/ui/toast/useToast';
 import { useAuth } from '../context/useAuth';
 import { budgetHeadline, sortBudgetLines } from '../features/categories/budget';
-import { CategoryForm } from '../features/categories/components/CategoryForm';
 import { LimitedCategoryList, UnlimitedCategoryList } from '../features/categories/components/CategoryBudgetList';
+import { CreateCategoryForm } from '../features/categories/components/CreateCategoryForm';
 import { useCategories } from '../features/categories/hooks/useCategories';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { capitalize, formatMonthLabel } from '../utils/formatDate';
+import type { CategoryResponse } from '../types/api';
 import './CategoriesPage.css';
 
 const TITLE = 'Categorías';
@@ -23,6 +25,7 @@ export function CategoriesPage() {
   const { user } = useAuth();
   const { lines, month, loading, error, refresh, refreshAfterAction } = useCategories(user!.id);
   // formKey vuelve a montar el formulario en cada apertura: arranca limpio.
+  const { showToast } = useToast();
   const [panel, setPanel] = useState({ open: false, formKey: 0 });
   useDocumentTitle(`${TITLE} · SyncFund`);
 
@@ -34,8 +37,10 @@ export function CategoriesPage() {
     setPanel((current) => ({ ...current, open: false }));
   }
 
-  function handleCreated() {
+  /** Si la recarga falla, el error dice que la categoría sí se creó (afterActionLoadError). */
+  function handleCreated(category: CategoryResponse) {
     closePanel();
+    showToast(`Categoría «${category.name}» creada`);
     refreshAfterAction();
   }
 
@@ -125,8 +130,17 @@ export function CategoriesPage() {
   return (
     <AppLayout>
       {content}
-      <Panel open={panel.open} onClose={closePanel} title="Crear categoría">
-        <CategoryForm key={panel.formKey} onCreated={handleCreated} />
+      <Panel
+        open={panel.open}
+        onClose={closePanel}
+        title="Crear categoría"
+        description="Ponle un tope de gasto mensual a un tipo de gasto; la barra te avisa desde el 80 %."
+      >
+        <CreateCategoryForm
+          key={panel.formKey}
+          existingNames={lines?.map((line) => line.name) ?? []}
+          onCreated={handleCreated}
+        />
       </Panel>
     </AppLayout>
   );
