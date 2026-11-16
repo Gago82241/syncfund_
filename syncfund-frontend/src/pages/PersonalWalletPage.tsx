@@ -2,6 +2,7 @@ import { useState, type ReactNode } from 'react';
 import { AppLayout } from '../components/layout/AppLayout';
 import { PageColumns } from '../components/layout/PageColumns';
 import { Button } from '../components/ui/Button';
+import { EmptyState } from '../components/ui/EmptyState';
 import { Icon } from '../components/ui/Icon';
 import { LoadError } from '../components/ui/LoadError';
 import { PageHeader } from '../components/ui/PageHeader';
@@ -17,6 +18,7 @@ import { SavingsGoalSheet } from '../features/personal-wallet/components/Savings
 import { TransactionForm } from '../features/personal-wallet/components/TransactionForm';
 import { WalletLedger } from '../features/personal-wallet/components/WalletLedger';
 import { savedMovementMessage } from '../features/personal-wallet/movementMessage';
+import { useCategoryNames } from '../features/personal-wallet/hooks/useCategoryNames';
 import { usePersonalWallet } from '../features/personal-wallet/hooks/usePersonalWallet';
 import { walletFigures } from '../features/personal-wallet/walletFigures';
 import { TransactionList } from '../features/transactions/components/TransactionList';
@@ -26,6 +28,8 @@ import './PersonalWalletPage.css';
 
 const TITLE = 'Billetera personal';
 const FIGURE_LABEL = 'Disponible';
+/** Filas por tanda en Movimientos: así meta y colchón no quedan enterrados en el celular. */
+const MOVEMENTS_PAGE = 20;
 
 type MovementType = 'INGRESO' | 'GASTO';
 type PanelKind = 'movement' | 'goal' | 'cushion';
@@ -52,6 +56,7 @@ export function PersonalWalletPage() {
   const { user } = useAuth();
   const { wallet, transactions, loading, error, refresh, refreshAfterAction } = usePersonalWallet(user!.id);
   const { showToast } = useToast();
+  const categories = useCategoryNames();
   const [panel, setPanel] = useState<PanelState>({ open: false, kind: 'movement', type: 'GASTO', formKey: 0 });
   useDocumentTitle(`${TITLE} · SyncFund`);
 
@@ -147,7 +152,31 @@ export function PersonalWalletPage() {
                 y tu total no cambia.
               </p>
             )}
-            <TransactionList transactions={transactions} />
+            {categories.failed && transactions.some((tx) => tx.categoryId !== null) && (
+              <p className="wallet__categories-note" role="status">
+                No pudimos cargar los nombres de tus categorías; los movimientos se muestran sin ellos.{' '}
+                <button
+                  type="button"
+                  className="wallet__retry"
+                  onClick={categories.retry}
+                  disabled={categories.retrying}
+                >
+                  {categories.retrying ? 'Reintentando…' : 'Reintentar'}
+                </button>
+              </p>
+            )}
+            <TransactionList
+              transactions={transactions}
+              categoryNames={categories.names}
+              pageSize={MOVEMENTS_PAGE}
+              empty={
+                <EmptyState
+                  title="Aún no tienes movimientos"
+                  description="Registra lo que recibes y lo que gastas, y aquí verás cada peso que entra y sale de tu billetera."
+                  action={<Button onClick={() => openPanel('movement', 'INGRESO')}>Registra tu primer ingreso</Button>}
+                />
+              }
+            />
           </Sheet>
           <div className="wallet__aside">
             <SavingsGoalSheet
