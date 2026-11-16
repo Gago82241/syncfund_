@@ -14,7 +14,7 @@ import { useToast } from '../components/ui/toast/useToast';
 import { useAuth } from '../context/useAuth';
 import { BudgetAlerts } from '../features/dashboard/components/BudgetAlerts';
 import { DebtNotice } from '../features/dashboard/components/DebtNotice';
-import { ProjectStatusList } from '../features/dashboard/components/ProjectStatusList';
+import { ProjectStatusList } from '../features/shared-project/components/ProjectStatusList';
 import { SummaryLedger } from '../features/dashboard/components/SummaryLedger';
 import { savedMovementMessage } from '../features/personal-wallet/movementMessage';
 import { useDashboard } from '../features/dashboard/hooks/useDashboard';

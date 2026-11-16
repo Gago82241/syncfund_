@@ -1,0 +1,19 @@
+/* La línea que resume la lista: texto, sin montos (los totales viven en el Resumen). */
+.projects__headline {
+  font-size: var(--text-body);
+  color: var(--ink);
+  text-wrap: pretty;
+}
+
+/*
+ * Una lista de renglones no se estira a todo el ancho: en escritorio el nombre y el estado
+ * quedarían a un metro de distancia. El aviso de saldos faltantes sigue el mismo ancho.
+ */
+.projects__sheet,
+.projects__notice {
+  max-width: var(--list-max);
+}
+
+.projects__notice {
+  margin-bottom: var(--space-lg);
+}

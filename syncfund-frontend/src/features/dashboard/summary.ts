@@ -7,7 +7,8 @@
  * No usa User.getGeneralSummary(), que suma el fondo completo de cada proyecto (con el dinero
  * de los compañeros) y deja fuera el colchón.
  */
-import { HALF_CENT } from '../shared-project/balance';
+import { HALF_CENT, settle } from '../shared-project/balance';
+import { sortProjectLines, toProjectLine, type ProjectLine } from '../shared-project/projectLines';
 import { toPesos, walletFigures } from '../personal-wallet/walletFigures';
 import { BUDGET_WARN_PERCENT, budgetPercent } from '../../utils/budget';
 import type {
@@ -16,14 +17,6 @@ import type {
   ProjectBalancesResponse,
   SharedProjectResponse,
 } from '../../types/api';
-
-export interface ProjectLine {
-  projectId: number;
-  name: string;
-  memberCount: number;
-  /** Saldo neto del usuario en el proyecto: positivo = a tu favor, negativo = debes. */
-  net: number;
-}
 
 /** Una deuda del usuario: cuánto le debe pagar a quién, y en qué proyecto. */
 export interface Debt {
@@ -48,14 +41,9 @@ export interface DashboardSummary {
   inYourFavor: number;
   /** Suma de los saldos netos en contra, en positivo. */
   youOwe: number;
-  /** Primero los proyectos donde debes (la deuda mayor arriba); los demás en su orden. */
+  /** En el orden de sortProjectLines: debes, a tu favor y al día. Aquí net nunca es null. */
   projects: ProjectLine[];
   debts: Debt[];
-}
-
-/** Menos de medio centavo cuenta como cero (mismo criterio que el backend y MoneyStatus). */
-function settle(amount: number): number {
-  return Math.abs(amount) < HALF_CENT ? 0 : amount;
 }
 
 /**
@@ -76,18 +64,12 @@ export function computeDashboardSummary(
 
   for (const project of projects) {
     const balances = balancesByProject.get(project.projectId);
-    const me = balances?.members.find((m) => m.userId === userId);
-    if (!balances || !me) {
+    const line = toProjectLine(userId, project, balances);
+    const net = line.net;
+    if (!balances || net === null) {
       throw new Error(`Falta tu saldo en el proyecto ${project.projectId}`);
     }
-
-    const net = settle(me.netBalance);
-    lines.push({
-      projectId: project.projectId,
-      name: project.name,
-      memberCount: project.memberIds.length,
-      net,
-    });
+    lines.push(line);
 
     if (net > 0) inYourFavor += net;
     if (net < 0) {
@@ -111,17 +93,8 @@ export function computeDashboardSummary(
     }
   }
 
-  // Orden estable: las deudas suben (la mayor primero); el resto conserva el orden del backend.
-  const sorted = lines
-    .map((line, index) => ({ line, index }))
-    .sort((a, b) => {
-      const aDebt = a.line.net < 0;
-      const bDebt = b.line.net < 0;
-      if (aDebt && bDebt) return a.line.net - b.line.net || a.index - b.index;
-      if (aDebt !== bDebt) return aDebt ? -1 : 1;
-      return a.index - b.index;
-    })
-    .map(({ line }) => line);
+  // Mismo orden que la lista de Proyectos compartidos.
+  const sorted = sortProjectLines(lines);
   debts.sort((a, b) => b.amount - a.amount);
 
   // Cada parte se redondea a pesos antes de sumar, para que la cuenta que se ve en pantalla

@@ -5,3 +5,8 @@
  * con dos estados distintos.
  */
 export const HALF_CENT = 0.005;
+
+/** Menos de medio centavo cuenta como cero (mismo criterio que el backend y MoneyStatus). */
+export function settle(amount: number): number {
+  return Math.abs(amount) < HALF_CENT ? 0 : amount;
+}

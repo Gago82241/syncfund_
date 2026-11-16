@@ -1,0 +1,111 @@
+.project-status-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.project-status-list li + li {
+  border-top: 1px solid var(--hairline);
+}
+
+/* Renglón de libro mayor: nombre a la izquierda, estado a la derecha (abajo si no cabe). */
+.project-status-list__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-xs) var(--space-sm);
+  min-height: var(--tap-target);
+  padding: var(--space-sm) var(--space-xs);
+  margin: 0 calc(var(--space-xs) * -1);
+  border-radius: var(--radius-sm);
+  color: inherit;
+  text-decoration: none;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  transition: background-color var(--duration-fast) var(--ease-out);
+}
+
+.project-status-list__row:active {
+  background: var(--ink-100);
+}
+
+.project-status-list__text {
+  display: grid;
+  /* Si al nombre le quedarían menos de 8.5rem, el estado baja a su propia línea (a la derecha):
+     mejor un renglón más alto que un nombre ilegible. */
+  flex: 1 1 8.5rem;
+  min-width: 0;
+}
+
+/* Hasta dos líneas y luego elipsis: en el celular un nombre común ("Apartamento Laureles")
+   se lee entero, y uno larguísimo o sin espacios no empuja el estado. */
+.project-status-list__name {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  font-size: var(--text-small);
+  font-weight: 600;
+  line-height: var(--leading-tight);
+  color: var(--ink-900);
+}
+
+.project-status-list__meta {
+  margin-top: calc(var(--space-xs) / 2);
+  font-size: var(--text-label);
+  color: var(--ink-faint);
+}
+
+/* El punto es solo visual; el lector oye la coma oculta ("3 integrantes, Administrador"). */
+.project-status-list__role {
+  color: var(--ink-muted);
+  font-weight: 600;
+}
+
+.project-status-list__role::before {
+  content: ' · ';
+  content: ' · ' / '';
+  font-weight: 400;
+  color: var(--ink-faint);
+}
+
+/* Estado y flecha juntos: si el renglón se parte en dos líneas, bajan a la derecha. */
+.project-status-list__end {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  margin-left: auto;
+}
+
+/* Sin saldo: texto, sin cifra y sin color de dinero; borde punteado = dato pendiente. */
+.project-status-list__unknown {
+  padding: calc(var(--space-xs) / 2) var(--space-xs);
+  border: 1px dashed var(--field-border);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-small);
+  font-weight: 600;
+  line-height: var(--leading-tight);
+  color: var(--ink-muted);
+  white-space: nowrap;
+}
+
+.project-status-list__arrow {
+  color: var(--ink-faint);
+  transition:
+    color var(--duration-fast) var(--ease-out),
+    transform var(--duration-fast) var(--ease-out);
+}
+
+@media (hover: hover) {
+  .project-status-list__row:hover {
+    background: var(--ledger-50);
+  }
+
+  .project-status-list__row:hover .project-status-list__arrow {
+    color: var(--ink-600);
+    transform: translateX(2px);
+  }
+}
