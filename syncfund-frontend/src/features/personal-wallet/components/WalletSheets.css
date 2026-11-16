@@ -59,3 +59,25 @@
   text-align: right;
   overflow-wrap: anywhere;
 }
+
+/* La cuenta del mes, bajo la barra. */
+.wallet-sheet__ledger {
+  margin-top: var(--space-md);
+  max-width: none;
+}
+
+/* Dinero en contra: terracota de texto (≥ 4.5:1) y, además, la frase lo dice. */
+.wallet-sheet__against {
+  margin-top: var(--space-sm);
+  font-size: var(--text-small);
+  font-weight: 600;
+  color: var(--loss-700);
+}
+
+/* Explicación y datos de apoyo: letra de etiqueta, en gris. */
+.wallet-sheet__note {
+  margin-top: var(--space-sm);
+  font-size: var(--text-label);
+  color: var(--ink-muted);
+  text-wrap: pretty;
+}

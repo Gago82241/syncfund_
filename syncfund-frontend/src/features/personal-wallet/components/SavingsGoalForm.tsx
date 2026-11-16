@@ -1,20 +1,30 @@
 import { useState, type FormEvent } from 'react';
-import { Input } from '../../../components/ui/Input';
+import { MoneyInput } from '../../../components/ui/MoneyInput';
 import { Button } from '../../../components/ui/Button';
 import { FormError } from '../../../components/ui/FormError';
 import { personalWalletService } from '../services/personalWalletService';
 import { useFormErrors } from '../../../hooks/useFormErrors';
 import { wholeAmountOrZero } from '../../../utils/validation';
+import { formatCOP } from '../../../styles/theme';
 
 interface Props {
   walletId: number;
   currentGoal: number;
-  onSaved: () => void;
+  /** Recibe la meta guardada (0 = sin meta), para el aviso de éxito. */
+  onSaved: (goal: number) => void;
 }
 
-/** PersonalWallet.adjustPrivateBudget() parte de la meta (monthlySavingsGoal). */
+/** Valor inicial del campo: la meta actual, o vacío si no hay meta (no obliga a borrar un 0). */
+function initialValue(goal: number): string {
+  return goal > 0 && Number.isInteger(goal) ? String(goal) : '';
+}
+
+/**
+ * Meta de ahorro mensual (monthlySavingsGoal). Se monta de nuevo en cada apertura del panel,
+ * así siempre arranca con la meta actual.
+ */
 export function SavingsGoalForm({ walletId, currentGoal, onSaved }: Props) {
-  const [goal, setGoal] = useState(String(currentGoal));
+  const [goal, setGoal] = useState(() => initialValue(currentGoal));
   const [loading, setLoading] = useState(false);
   const { fieldErrors, formError, formRef, validate, showApiError, clearField } =
     useFormErrors(['monthlySavingsGoal']);
@@ -23,7 +33,7 @@ export function SavingsGoalForm({ walletId, currentGoal, onSaved }: Props) {
     e.preventDefault();
     const valid = validate({
       monthlySavingsGoal: wholeAmountOrZero(goal, {
-        required: 'La meta de ahorro es obligatoria; usa 0 si no quieres definirla',
+        required: 'Escribe la meta; usa 0 si no quieres tener una',
         negative: 'La meta de ahorro no puede ser negativa',
       }),
     });
@@ -31,7 +41,7 @@ export function SavingsGoalForm({ walletId, currentGoal, onSaved }: Props) {
     setLoading(true);
     try {
       await personalWalletService.setSavingsGoal(walletId, { monthlySavingsGoal: Number(goal) });
-      onSaved();
+      onSaved(Number(goal));
     } catch (err) {
       showApiError(err, 'No se pudo actualizar la meta de ahorro.');
     } finally {
@@ -41,23 +51,22 @@ export function SavingsGoalForm({ walletId, currentGoal, onSaved }: Props) {
 
   return (
     <form ref={formRef} onSubmit={handleSubmit} noValidate>
-      <Input
-        label="Monto (COP)"
-        type="number"
+      <MoneyInput
+        label="Meta mensual"
         name="monthlySavingsGoal"
-        data-autofocus
-        min="0"
-        placeholder="Ej: 200000 (sin puntos)"
         value={goal}
-        error={fieldErrors.monthlySavingsGoal}
-        onChange={(e) => {
-          setGoal(e.target.value);
+        onValueChange={(raw) => {
+          setGoal(raw);
           clearField('monthlySavingsGoal');
         }}
+        hint="Escribe 0 para quitar la meta."
+        preview={(value) => `Quieres ahorrar ${formatCOP(value)} al mes`}
+        error={fieldErrors.monthlySavingsGoal}
+        data-autofocus
         required
       />
       <FormError message={formError} />
-      <Button type="submit" variant="ghost" loading={loading}>Actualizar meta</Button>
+      <Button type="submit" loading={loading}>Guardar meta</Button>
     </form>
   );
 }

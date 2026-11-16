@@ -132,7 +132,12 @@ export function PersonalWalletPage() {
             <TransactionList transactions={transactions} />
           </Sheet>
           <div className="wallet__aside">
-            <SavingsGoalSheet goal={wallet.monthlySavingsGoal} onEdit={() => openPanel('goal')} />
+            <SavingsGoalSheet
+              walletId={wallet.walletId}
+              goal={wallet.monthlySavingsGoal}
+              transactions={transactions}
+              onEdit={() => openPanel('goal')}
+            />
             <CushionSheet cushion={figures.cushion} onManage={() => openPanel('cushion')} />
           </div>
         </PageColumns>
@@ -165,7 +170,9 @@ export function PersonalWalletPage() {
               key={panel.formKey}
               walletId={wallet.walletId}
               currentGoal={wallet.monthlySavingsGoal}
-              onSaved={() => handleSaved('Meta de ahorro actualizada')}
+              onSaved={(goal) =>
+                handleSaved(goal > 0 ? `Tu meta de ahorro es ${formatCOP(goal)} al mes` : 'Quitaste tu meta de ahorro')
+              }
             />
           )}
           {panel.kind === 'cushion' && (
