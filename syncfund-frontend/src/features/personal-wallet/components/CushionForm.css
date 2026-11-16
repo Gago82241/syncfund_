@@ -1,0 +1,83 @@
+/* Apartar o liberar: un grupo de radio con el aspecto del selector Gasto/Ingreso. */
+.cushion-form__modes {
+  margin: 0 0 var(--space-md);
+  padding: 0;
+  border: none;
+  min-width: 0;
+}
+
+.cushion-form__options {
+  display: flex;
+  gap: var(--space-xs);
+}
+
+.cushion-form__option {
+  position: relative;
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--tap-target);
+  padding: var(--space-xs);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-sm);
+  background: var(--ledger-50);
+  color: var(--ink-muted);
+  font-size: var(--text-small);
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background-color var(--duration-fast) var(--ease-out),
+    border-color var(--duration-fast) var(--ease-out);
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* La casilla real queda oculta a la vista, no al teclado ni al lector de pantalla. */
+.cushion-form__option input {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+  pointer-events: none;
+}
+
+.cushion-form__option.is-active {
+  background: var(--ink-900);
+  border-color: var(--ink-900);
+  color: var(--paper);
+}
+
+.cushion-form__option:has(input:focus-visible) {
+  outline: 2px solid var(--ink-600);
+  outline-offset: 2px;
+}
+
+/* Alto contraste de Windows: el fondo desaparece, así que la opción elegida se marca con borde. */
+@media (forced-colors: active) {
+  .cushion-form__option.is-active {
+    outline: 2px solid CanvasText;
+    outline-offset: -4px;
+  }
+}
+
+.cushion-form__option.is-disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Los límites, antes de escribir. */
+.cushion-form__limits {
+  margin-top: var(--space-xs);
+  font-size: var(--text-small);
+  color: var(--ink-muted);
+}
+
+.cushion-form__limit {
+  white-space: nowrap;
+}
+
+.cushion-form__empty {
+  font-size: var(--text-small);
+  color: var(--ink-muted);
+  text-wrap: pretty;
+}

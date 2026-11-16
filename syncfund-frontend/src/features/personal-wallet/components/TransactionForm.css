@@ -37,26 +37,17 @@
   font-weight: 600;
 }
 
+@media (forced-colors: active) {
+  .tx-form__toggle button.is-active {
+    outline: 2px solid CanvasText;
+    outline-offset: -4px;
+  }
+}
+
 .tx-form__toggle button.is-active {
   background: var(--ink-900);
   color: var(--paper);
   border-color: var(--ink-900);
-}
-
-.tx-form .sf-field__input.tx-form__amount--gasto {
-  border-color: var(--loss-500);
-}
-
-.tx-form .sf-field__input.tx-form__amount--ingreso {
-  border-color: var(--gain-500);
-}
-
-.tx-form .sf-field__input.tx-form__amount--gasto:focus {
-  box-shadow: 0 0 0 1px var(--loss-500);
-}
-
-.tx-form .sf-field__input.tx-form__amount--ingreso:focus {
-  box-shadow: 0 0 0 1px var(--gain-500);
 }
 
 /* Aviso suave: la categoría es opcional, así que no se muestra como error del formulario. */
