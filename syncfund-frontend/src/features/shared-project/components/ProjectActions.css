@@ -1,0 +1,58 @@
+/*
+ * Acciones secundarias del proyecto, justo bajo la línea del encabezado: forman parte de la
+ * respuesta a "¿cómo estoy?", por eso van más cerca de la cifra que de las pestañas.
+ */
+.project-actions {
+  display: grid;
+  gap: var(--space-md);
+  margin-top: calc(var(--space-md) * -1);
+  margin-bottom: var(--space-xl);
+}
+
+.project-actions__payments {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Renglón de libro: la frase a la izquierda y "Pagar" a la derecha, compacto también en el celular. */
+.project-actions__payment {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-sm) 0;
+  border-bottom: 1px solid var(--hairline);
+}
+
+.project-actions__payment:first-child {
+  padding-top: 0;
+}
+
+.project-actions__payment-text {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  text-wrap: pretty;
+}
+
+.project-actions__payment-text strong {
+  font-weight: 600;
+  color: var(--loss-700);
+}
+
+.project-actions__payment .sf-button {
+  flex: none;
+  width: auto;
+}
+
+.project-actions__buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+}
+
+@media (min-width: 480px) {
+  .project-actions__buttons .sf-button {
+    width: auto;
+  }
+}

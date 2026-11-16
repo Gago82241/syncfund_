@@ -43,7 +43,7 @@
   overflow-wrap: anywhere;
 }
 
-/* Con monto, el color dice a favor o en contra; el texto ("Te deben", "Debes") ya lo dice también. */
+/* Con monto, el color dice a favor o en contra; el texto ("A tu favor", "Debes") ya lo dice también. */
 .summary-ledger__amount.amount-gain { color: var(--gain-700); }
 .summary-ledger__amount.amount-loss { color: var(--loss-700); }
 

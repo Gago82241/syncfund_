@@ -565,10 +565,13 @@ de lo que hace. El puntaje de arriba es el de antes de estos ajustes.
 
 ### Pendiente para `style/detalle-proyecto`
 
-- [ ] **Solución completa del [P1]:** que el Detalle del proyecto reciba la intención de pago desde
+- [x] **Solución completa del [P1]:** que el Detalle del proyecto reciba la intención de pago desde
   el Resumen (por ejemplo `/projects/{id}?pagar={toUserId}` o el `state` de la navegación) y abra
   el panel de pago ya lleno con a quién y cuánto, para que "Ir a pagar" termine en el pago y no en
   la tabla. Cuando esté, el botón del Resumen puede volver a decir "Pagar".
+  - Hecho en `style/detalle-proyecto`: el aviso enlaza a `/projects/{id}?pagar={toUserId}` y dice
+    "Pagar"; el Detalle valida que sea una deuda real del usuario (si no, la ignora), abre el panel
+    de pago con el monto sugerido y quita el parámetro de la URL.
 
 ---
 
@@ -1199,6 +1202,229 @@ paneles.
 4. ¿Se acepta que el historial muestre quién aportó y entre quiénes se dividió cada gasto a partir
    de `involvedIdsList` (solo frontend), y que el pago tenga un paso de revisión y un aviso de
    éxito?
+
+---
+
+## Detalle del proyecto — después del rediseño
+
+- **Archivos:** `src/pages/SharedProjectDetailPage.tsx` (+ `.css`) y `src/features/shared-project/`
+  (`ProjectActions`, `ProjectStatusTable`, `SettleDebtForm`, `ExpenseForm`, `ContributionForm`,
+  `MembersList`, `RemoveMemberConfirm`, `AddMemberForm`; reglas del pago en `payment.ts`), más
+  `TransactionList` y el `DebtNotice` del Resumen.
+- **Fecha:** 2026-11-15 · rama `style/detalle-proyecto` (commit `788ebd8`).
+- **Método:** dos evaluaciones aisladas.
+  - **A:** revisión de diseño con el código y capturas de Chrome sin interfaz contra una API simulada.
+    - Anchos: 320, 375 y 1280 px.
+    - Escenarios: debo, me deben, pago completo y parcial, pago desde el Resumen, integrantes, proyecto
+      vacío, error, no encontrado, carga, gasto mayor que el fondo y datos extremos.
+  - **B:** detector de impeccable sobre el código y sobre la página renderizada (`detect --cdp`), en 9
+    escenarios.
+- **Modo de la pantalla:** Operate.
+- **Resultado:** **29/40, Bueno** (antes 24/40, +5). Cumple la meta de 28 del plan.
+
+### Puntaje de heurísticas (Nielsen)
+
+| # | Heurística | Antes | Ahora | Problema clave que queda |
+|---|---|---|---|---|
+| 1 | Visibilidad del estado del sistema | 2 | 3 | Gasto, aporte, agregar, eliminar y salir terminan con aviso, y el pago con un cierre propio; la carga tiene la forma del contenido. Mientras se recarga tras eliminar a alguien, su fila sigue a la vista. |
+| 2 | Coincidencia con el mundo real | 3 | 2 | "Te deben" muestra el saldo neto, que incluye la parte del fondo: Ana ve "Te deben $ 186.667" cuando Carla, la única deudora, debe $ 113.333. |
+| 3 | Control y libertad | 2 | 3 | El pago tiene revisión con "Volver"; los paneles se cierran con Esc, "Cerrar" o el velo; la confirmación de eliminar enfoca "Cancelar". En el celular, "Eliminar" queda arriba de "Cancelar". |
+| 4 | Consistencia y estándares | 2 | 3 | El mismo saldo sale como "$ 113.333" en la página y "$ 113.333,33" en el panel. "Pagar" tiene tres estilos según el lugar. |
+| 5 | Prevención de errores | 2 | 3 | "50.000" se lee bien y los límites se avisan mientras se escribe; quien no está al día ve la razón en lugar de "Eliminar". El gasto mayor que el fondo mostraba una división imposible (ajustado, ver abajo). |
+| 6 | Reconocer antes que recordar | 3 | 3 | El pago llega con a quién y cuánto, también desde el Resumen; el historial dice "Aporte de Beto" y "Entre 3 · $ 80.000 c/u". No dice entre quiénes. |
+| 7 | Flexibilidad y eficiencia | 2 | 3 | "Registrar gasto" fijo al pulgar, la pestaña en la URL y `?pagar=` directo al pago. El historial no se filtra ni se agrupa. |
+| 8 | Estética y diseño minimalista | 2 | 3 | Una sola cifra protagonista y formularios en paneles. En el celular, quien debe ve el monto cuatro veces; en escritorio todo va en una columna. |
+| 9 | Recuperación de errores | 3 | 3 | "Reintentar", "Volver a tus proyectos" en el 404 y aviso de que la acción sí quedó. Si fallan los saldos se pierde el nombre del proyecto. |
+| 10 | Ayuda y documentación | 3 | 3 | Reglas antes del error (fondo en $ 0 → aportar; "Podrás salir cuando estés al día"). En un proyecto vacío, la guía solo está en la pestaña Movimientos. |
+| **Total** | | **24/40** | **29/40** | **Bueno**: el flujo de pago es lo mejor de la app; la cifra "Te deben" mezcla saldo y deuda. |
+
+### Veredicto de especificidad
+
+**Revisión de diseño:** ahora es de SyncFund también por cómo está compuesta.
+- La revisión del pago es un asiento contable que otra app no podría usar sin cambios:
+  - "Sale de: Tu billetera (disponible…)", "Llega a: La billetera de Ana" y "Fondo del proyecto:
+    No cambia";
+  - bajo un filete, "Después del pago: Quedas al día".
+  - Es "lo personal y lo compartido, juntos" convertido en interfaz.
+- La tabla de Situación conserva su pie de libro mayor.
+- Lo genérico está en el escritorio: cifra a la izquierda, botón a la derecha, franja de acciones y
+  pestañas a todo el ancho, como cualquier panel de administración.
+
+**Detector automático:**
+- **Código:** **0 hallazgos** (`detect --json` sobre la página, `features/shared-project`,
+  `features/transactions`, `features/dashboard`, `components/ui` y `components/layout`).
+- **Página renderizada:** 9 escenarios (320, 375 y 1280 px; con deuda, integrantes, movimientos,
+  vacío, extremo, error y el panel de pago abierto).
+  - **Desplazamiento horizontal:** 0 en todos.
+  - **Títulos:** un solo `h1` y ningún salto de nivel.
+  - `cream-palette`: es el fondo ledger-50 aprobado. Falso positivo, como en el Resumen.
+  - `flat-type-hierarchy`: el h1 de `PageHeader` y los h2 miden 18 px. Viene del encabezado que
+    comparten todas las pantallas; se resuelve en `style/pulido-final` (`typeset`), no aquí.
+  - `straggler`:
+    - En la lista "Para quedar al día" con un nombre extremo, y en el mensaje de `LoadError` ("…en
+      unos minutos.").
+    - Los dos se corrigieron con `text-wrap: pretty`.
+- No se usó el overlay en vivo (CLAUDE.md prohíbe el modo live).
+
+### Impresión general
+
+El rediseño resolvió casi todo lo que señaló la crítica anterior:
+- la página se ordena por tareas;
+- hay una sola cifra;
+- los formularios van en paneles;
+- el monto es seguro;
+- el pago tiene revisión y cierre;
+- las reglas se ven antes del error;
+- el historial es trazable;
+- `?pagar=` cierra el ciclo con el Resumen.
+
+Lo que queda es de concepto: para quien tiene saldo a favor, "Te deben" dice un monto que nadie le
+debe. La mayor oportunidad es separar "A tu favor en el fondo" de "Te deben" y darle al cierre del
+pago el alivio que merece.
+
+### Lo que funciona
+
+1. **El flujo de pago.**
+   - Llega lleno desde la línea "Para quedar al día", la tabla o el Resumen, y los tres usan la misma
+     regla (`payment.ts`).
+   - Los tres límites se avisan mientras se escribe.
+   - El foco sigue cada paso.
+   - El cierre usa la respuesta del backend.
+   - Una intención de pago que no es una deuda real se ignora.
+2. **Reglas antes del error.**
+   - "Tiene $ 36.667 a favor. Se podrá eliminar cuando esté al día."
+   - Con el fondo en $ 0, el panel de gasto invita a aportar.
+   - El aporte muestra lo disponible antes de escribir.
+   - "Solo el administrador puede agregar integrantes."
+3. **Robusta con cualquier dato.**
+   - Sin desborde a 320 px con $ 99.999.999.999 y "María Fernanda de los Ángeles Gómez-Restrepo".
+   - Pestañas con el patrón ARIA completo.
+   - Estados propios de carga, error, 404 y vacío.
+
+### Problemas prioritarios
+
+#### [P1] "Te deben" muestra el saldo neto, no lo que te deben
+
+- **Qué:** `situationFigure` (`SharedProjectDetailPage.tsx`) titula "Te deben" todo saldo positivo.
+  - Ana ve "Te deben $ 186.667", pero solo Carla le debe $ 113.333.
+  - Cuando Carla paga, Ana sigue viendo "Te deben $ 73.333" sin ningún deudor.
+  - La diferencia es su parte del fondo.
+- **Por qué importa:** es la cifra protagonista y rompe "cada cifra dice qué es". Quien comparte
+  arriendo puede reclamar de más. El mismo concepto sube al Resumen ("+ Te deben").
+- **Corrección:** decisión de vocabulario del equipo (toca "en paz / te deben / debes"). Por ejemplo:
+  - la cifra "A tu favor" o "Tu saldo en el fondo";
+  - un renglón "Carla te debe $ 113.333" calculado desde `suggestedPayments`.
+  - Es solo frontend.
+- **Comando sugerido:** `/impeccable clarify`.
+- **Resuelto (decisión del equipo, 2026-11-15):**
+  - El saldo neto positivo se llama "A tu favor" en el Detalle, en el Resumen ("Billetera + A tu
+    favor − Debes = Tienes en total") y en `MoneyStatus`. Ese saldo incluye la parte del fondo que
+    aún no se gasta, así que no es una deuda.
+  - "Debes" no cambia.
+  - Se ajustaron los mismos términos en PRODUCT.md, DESIGN.md y el README.
+
+#### [P2] El cierre del pago se queda corto
+
+- **Qué:**
+  - El título y la descripción del panel siguen diciendo "Pagarle a Ana. Sale de tu billetera…".
+  - "Pago registrado" pesa lo mismo que "Revisa el pago", y "Quedaste al día." va en texto corrido.
+  - El bloque es `role="status"` y además recibe el foco (posible doble lectura).
+  - Al cerrar, el anillo de foco cae sobre la cifra.
+- **Corrección:**
+  - En el cierre, título "Pago hecho" y sin descripción.
+  - Titular "Quedaste al día con Ana" en Fraunces y esmeralda, con el monto como renglón secundario.
+  - Foco en el titular, no en el bloque.
+- **Comando sugerido:** `/impeccable delight`, luego `/impeccable polish`.
+
+#### [P2] "Pagar" en tres lugares y "Para quedar al día" en dos
+
+- **Qué:**
+  - Quien debe tiene "Pagar" en la línea de acción y en cada fila con saldo a favor. En el celular,
+    los de la tabla son de ancho completo.
+  - La lista "Para quedar al día" bajo la tabla repite su pago y agrega los de todos (7 viñetas con
+    8 integrantes).
+- **Corrección:**
+  - "Pagar" compacto en la tabla también en el celular, o solo en la fila sugerida.
+  - Quitar de la lista los pagos propios y plegar los del grupo.
+- **Comando sugerido:** `/impeccable distill`, luego `/impeccable layout`.
+
+#### [P2] En escritorio la página es una columna larga
+
+- **Qué:**
+  - A 1280 px, la frase de pago queda a unos 900 px de su botón.
+  - "Aportar al fondo" va sola en una fila.
+  - Las pestañas ocultan el historial mientras se mira la tabla.
+- **Corrección:**
+  - Desde unos 1100 px, Situación y Movimientos lado a lado (pestañas solo en el celular).
+  - La línea de pago compacta y "Aportar al fondo" junto a "Registrar gasto".
+  - Al planear la rama se decidió dejar pestañas en todos los tamaños para no partir la tabla; vale
+    la pena revisarlo con capturas.
+- **Comando sugerido:** `/impeccable layout`, luego `/impeccable adapt`.
+
+### Señales de alerta por persona
+
+- **Usuario distraído en el celular:**
+  - A favor: "Registrar gasto" queda al pulgar, "50.000" ya no cuesta dinero y todos los botones
+    miden al menos 44 px.
+  - En contra: en la confirmación de eliminar, "Eliminar" queda arriba de "Cancelar", donde cae el
+    pulgar; los "Pagar" de ancho completo se tocan al desplazar.
+- **Usuario de lector de pantalla o teclado:**
+  - A favor:
+    - Un solo `h1`.
+    - Pestañas con flechas.
+    - El foco va al monto, luego a la revisión y luego al cierre.
+    - "Cancelar" recibe el foco en la confirmación y la lista lo recibe al eliminar.
+  - En contra:
+    - Posible doble lectura del cierre.
+    - El nuevo saldo de la cifra no se anuncia.
+    - "Fondo" se repite junto a "Fondo disponible" en la tabla del celular.
+- **Primera vez:** el proyecto vacío abre en Situación con "$ 0 / Al día". La guía "Primero aporten…"
+  está en Movimientos; "Registrar gasto" sí lo redirige a aportar.
+- **Estudiante que comparte arriendo:**
+  - Ya tiene "Aporte de Beto", "Entre 3 · $ 80.000 c/u" y paga en tres toques desde el Resumen.
+  - Le falta saber entre quiénes se dividió cada gasto.
+  - Si le deben, "Te deben $ 186.667" le hace reclamar de más.
+
+### Observaciones menores
+
+- La página redondea a pesos ("$ 113.333") y el panel de pago muestra centavos. Conviene una sola
+  regla o decir "exactos $ 113.333,33".
+- En la revisión y el cierre, la descripción del panel repite el asiento; se puede ocultar.
+- Un aporte antiguo sin aportante dice solo "Aporte" en el historial (se decidió no suponer el
+  autor), y en la tabla "Aportes antiguos sin aportante". Conviene unificar el término.
+- Si fallan los saldos, el título queda "Proyecto compartido" y solo se ofrece "Reintentar".
+- A 320 px, la pestaña "Integrantes" toca el borde: se desplaza, pero no se nota que hay más.
+- En la tabla del celular, el saldo queda al centro de la fila con `space-between` (ya estaba antes).
+- "Estás al día" en tamaño Display parece una cifra.
+
+### Preguntas para el equipo
+
+1. ¿El saldo a favor dentro del fondo es "te deben"? Si alguien sale del proyecto con saldo a
+   favor, ¿quién se lo devuelve? Define el vocabulario aquí y en el Resumen.
+2. Si la línea "Para quedar al día… Pagar" ya responde por la usuaria, ¿hace falta "Pagar" en la
+   tabla, y debe permitir pagarle a quien no está en la sugerencia?
+3. ¿El cierre del pago puede permitirse un pequeño gesto (esmeralda, la cifra que cambia a la vista)
+   sin dejar de ser un libro mayor sobrio?
+4. En escritorio, ¿Situación y Movimientos en dos columnas o pestañas como en el celular?
+
+### Ajustes hechos después de la crítica
+
+El puntaje de arriba es el de antes de estos ajustes.
+
+- **Gasto mayor que el fondo:** ya no se muestra una división que no va a ocurrir; en su lugar dice
+  "El fondo alcanza para $ X".
+- **Historial:** "c/u" ya no queda solo en otra línea (espacio duro).
+- **Avisos de una sola palabra:** `text-wrap: pretty` en la lista "Para quedar al día" y en el
+  mensaje de `LoadError`.
+
+### Pendiente (decisiones del equipo, sin hacer en esta rama)
+
+- [x] Vocabulario de "Te deben" contra el saldo a favor en el fondo ([P1]), aquí y en el Resumen:
+  ahora dice "A tu favor".
+- [ ] Cierre del pago más claro y sin doble lectura ([P2]).
+- [ ] Un solo "Pagar" visible por deuda y lista del grupo plegable ([P2]).
+- [ ] Dos columnas en escritorio ([P2]).
+- [ ] Jerarquía tipográfica h1/h2 (`flat-type-hierarchy`), en `style/pulido-final`.
 
 ---
 

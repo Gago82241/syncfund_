@@ -4,7 +4,8 @@ import './SummaryLedger.css';
 
 /**
  * De dónde sale la cifra protagonista, como una suma de libro mayor:
- * Billetera + Te deben − Debes. El lector de pantalla oye "más" y "menos".
+ * Billetera + A tu favor − Debes. El lector de pantalla oye "más" y "menos".
+ * "A tu favor" es el saldo neto positivo en los proyectos (incluye tu parte del fondo), no una deuda.
  */
 export function SummaryLedger({ summary }: { summary: DashboardSummary }) {
   return (
@@ -20,10 +21,10 @@ export function SummaryLedger({ summary }: { summary: DashboardSummary }) {
         <dt className="summary-ledger__term">
           <span className="summary-ledger__op" aria-hidden="true">+</span>
           <span className="visually-hidden">más </span>
-          Te deben
+          A tu favor
         </dt>
-        <dd className={`summary-ledger__amount tabular-nums${summary.owedToYou > 0 ? ' amount-gain' : ''}`}>
-          {formatCOP(summary.owedToYou)}
+        <dd className={`summary-ledger__amount tabular-nums${summary.inYourFavor > 0 ? ' amount-gain' : ''}`}>
+          {formatCOP(summary.inYourFavor)}
         </dd>
       </div>
       <div className="summary-ledger__item">

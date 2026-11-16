@@ -6,6 +6,7 @@ import {
   type MouseEvent,
   type PointerEvent,
   type ReactNode,
+  type RefObject,
   type SyntheticEvent,
 } from 'react';
 import { motion } from '../../styles/theme';
@@ -25,6 +26,11 @@ interface PanelProps {
   children: ReactNode;
   /** Acciones fijas al pie (ej. Cancelar / Guardar). */
   footer?: ReactNode;
+  /**
+   * Dónde poner el foco al cerrar si el botón que abrió el panel ya no existe
+   * (ej. "Pagar" desaparece después de pagar). Debe ser enfocable (tabIndex={-1} si no lo es).
+   */
+  fallbackFocusRef?: RefObject<HTMLElement | null>;
 }
 
 /**
@@ -33,10 +39,11 @@ interface PanelProps {
  * página inerte. Al cerrar, el foco vuelve al botón que lo abrió.
  * Para empezar en un campo, márcalo con data-autofocus.
  */
-export function Panel({ open, onClose, title, description, children, footer }: PanelProps) {
+export function Panel({ open, onClose, title, description, children, footer, fallbackFocusRef }: PanelProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const returnFocusRef = useRef<HTMLElement | null>(null);
   const pressStartedOnBackdrop = useRef(false);
+  const closedByUnmount = useRef(false);
   const titleId = useId();
   const descriptionId = useId();
 
@@ -79,10 +86,16 @@ export function Panel({ open, onClose, title, description, children, footer }: P
   }, [open]);
 
   // Si el componente se desmonta abierto, cierra el diálogo para no dejar la página inerte.
+  // Ese cierre no es del usuario: su evento "close" (que llega después) no debe avisar al padre.
+  // Importa cuando el panel se monta ya abierto (ej. el pago que llega con ?pagar=) y React,
+  // en modo estricto, simula desmontar y volver a montar.
   useEffect(() => {
     const dialog = dialogRef.current;
     return () => {
-      if (dialog?.open) dialog.close();
+      if (dialog?.open) {
+        closedByUnmount.current = true;
+        dialog.close();
+      }
     };
   }, []);
 
@@ -93,9 +106,15 @@ export function Panel({ open, onClose, title, description, children, footer }: P
   }
 
   function handleClose() {
+    if (closedByUnmount.current) {
+      closedByUnmount.current = false;
+      return;
+    }
     const target = returnFocusRef.current;
     returnFocusRef.current = null;
-    if (target?.isConnected) target.focus();
+    // Safari no enfoca un botón al tocarlo: entonces el foco "de origen" es el body, y tampoco sirve.
+    if (target && target !== document.body && target.isConnected) target.focus();
+    else fallbackFocusRef?.current?.focus();
     // Si el navegador lo cerró por su cuenta (p. ej. Esc repetido), avisa al padre.
     if (open) onClose();
   }

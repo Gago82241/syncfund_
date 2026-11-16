@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Button } from '../../../components/ui/Button';
 import { Icon } from '../../../components/ui/Icon';
 import { Input } from '../../../components/ui/Input';
+import { Tabs } from '../../../components/ui/Tabs';
 import { CatalogCase, CatalogSection } from '../CatalogSection';
 
 const VARIANTS = [
@@ -10,8 +11,17 @@ const VARIANTS = [
   { variant: 'danger', label: 'Peligro', text: 'Salir del proyecto' },
 ] as const;
 
+const TABS = [
+  { id: 'situacion', label: 'Situación' },
+  { id: 'movimientos', label: 'Movimientos' },
+  { id: 'integrantes', label: 'Integrantes' },
+] as const;
+
+type CatalogTab = (typeof TABS)[number]['id'];
+
 export function ControlsSection() {
   const [loading, setLoading] = useState(false);
+  const [tab, setTab] = useState<CatalogTab>('situacion');
 
   function simulateLoading() {
     setLoading(true);
@@ -54,6 +64,20 @@ export function ControlsSection() {
             </div>
           </CatalogCase>
         </div>
+      </CatalogSection>
+
+      <CatalogSection
+        id="pestanas"
+        title="Pestañas"
+        description="Patrón WAI-ARIA: Tab entra a la pestaña activa; las flechas, Inicio y Fin cambian de pestaña. A 320 px, si no caben, la fila se desplaza sola."
+      >
+        <CatalogCase label="Secciones del detalle de un proyecto">
+          <Tabs label="Secciones del proyecto" tabs={TABS} active={tab} onChange={setTab}>
+            <p className="catalog__section-description">
+              Contenido de «{TABS.find((t) => t.id === tab)?.label}».
+            </p>
+          </Tabs>
+        </CatalogCase>
       </CatalogSection>
 
       <CatalogSection

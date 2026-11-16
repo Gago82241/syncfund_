@@ -6,7 +6,7 @@ export type MoneyTone = 'gain' | 'loss' | 'neutral';
 interface PageHeaderProps {
   /** Título de la página: es el único h1. */
   title: string;
-  /** Cifra protagonista. Siempre con etiqueta que diga qué es ("Disponible", "Te deben"…). */
+  /** Cifra protagonista. Siempre con etiqueta que diga qué es ("Disponible", "A tu favor"…). */
   figure?: {
     label: string;
     value: ReactNode;

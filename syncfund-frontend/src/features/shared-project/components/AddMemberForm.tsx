@@ -5,13 +5,17 @@ import { FormError } from '../../../components/ui/FormError';
 import { sharedProjectService } from '../services/sharedProjectService';
 import { useFormErrors } from '../../../hooks/useFormErrors';
 import { email as validateEmail } from '../../../utils/validation';
+import './ProjectForms.css';
 
 interface Props {
   projectId: number;
-  onSaved: () => void;
+  onSaved: (email: string) => void;
 }
 
-/** SharedProject.addMember(): identifica al usuario por su correo registrado. */
+/**
+ * SharedProject.addMember(): identifica al usuario por su correo registrado.
+ * Solo el administrador lo ve (el backend también lo exige). Va dentro de un Panel.
+ */
 export function AddMemberForm({ projectId, onSaved }: Props) {
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
@@ -23,9 +27,8 @@ export function AddMemberForm({ projectId, onSaved }: Props) {
     if (!validate({ email: validateEmail(email) })) return;
     setLoading(true);
     try {
-      await sharedProjectService.addMember(projectId, { email });
-      setEmail('');
-      onSaved();
+      await sharedProjectService.addMember(projectId, { email: email.trim() });
+      onSaved(email.trim());
     } catch (err) {
       showApiError(err, 'No se pudo agregar al integrante.');
     } finally {
@@ -34,13 +37,13 @@ export function AddMemberForm({ projectId, onSaved }: Props) {
   }
 
   return (
-    <form ref={formRef} onSubmit={handleSubmit} noValidate>
-      <h3 style={{ fontSize: '1rem', marginBottom: '0.75rem' }}>Agregar integrante</h3>
+    <form ref={formRef} onSubmit={handleSubmit} noValidate className="project-form">
       <Input
-        label="Correo del usuario"
+        label="Correo"
         type="email"
         name="email"
-        placeholder="Correo con el que se registró"
+        autoComplete="off"
+        hint="Debe tener una cuenta en SyncFund."
         value={email}
         error={fieldErrors.email}
         onChange={(e) => {
@@ -48,9 +51,10 @@ export function AddMemberForm({ projectId, onSaved }: Props) {
           clearField('email');
         }}
         required
+        data-autofocus
       />
       <FormError message={formError} />
-      <Button type="submit" variant="ghost" loading={loading}>Agregar</Button>
+      <Button type="submit" loading={loading}>Agregar integrante</Button>
     </form>
   );
 }

@@ -9,6 +9,8 @@
 .sf-load-error__message {
   color: var(--loss-700);
   font-weight: 500;
+  /* Que la última línea no quede con una sola palabra ("…en unos minutos."). */
+  text-wrap: pretty;
 }
 
 .sf-load-error__actions {

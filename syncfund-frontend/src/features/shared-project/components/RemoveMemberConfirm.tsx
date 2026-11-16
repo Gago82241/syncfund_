@@ -17,7 +17,8 @@ interface Props {
 
 /**
  * Confirmación dentro de la página (sin window.confirm) para SharedProject.removeParticipant.
- * Solo se permite si la persona está al día: si el backend lo rechaza, su mensaje explica por qué.
+ * MembersList solo la ofrece si la persona está al día; si el backend igual lo rechaza (los saldos
+ * cambiaron mientras tanto), su mensaje explica por qué.
  * El botón se deshabilita mientras se envía para evitar dos peticiones por doble clic.
  */
 export function RemoveMemberConfirm({ projectId, projectName, member, leaving, onCancel, onDone }: Props) {
@@ -49,8 +50,8 @@ export function RemoveMemberConfirm({ projectId, projectName, member, leaving, o
       </p>
       <p className="remove-member__text">
         {leaving
-          ? 'Dejarás de ver el proyecto. Tus aportes, gastos y pagos se conservan en el historial. Solo puedes salir si estás al día.'
-          : 'Sus aportes, gastos y pagos se conservan en el historial. Solo se puede eliminar a quien está al día.'}
+          ? 'Dejarás de ver el proyecto. Tus aportes, gastos y pagos se conservan en el historial.'
+          : 'Dejará de ver el proyecto. Sus aportes, gastos y pagos se conservan en el historial.'}
       </p>
       <FormError message={formError} />
       <div className="remove-member__actions">
