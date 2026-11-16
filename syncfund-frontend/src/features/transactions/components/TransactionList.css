@@ -6,9 +6,10 @@
 
 .tx-list__row {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
   align-items: center;
-  gap: var(--space-md);
+  gap: calc(var(--space-xs) / 2) var(--space-md);
   padding: 0.9rem 0;
   border-bottom: 1px solid var(--hairline);
 }
@@ -17,7 +18,12 @@
   border-bottom: none;
 }
 
+/*
+ * La descripción guarda al menos 9rem: si un monto enorme no cabe al lado en una pantalla
+ * angosta, el monto baja a su propia línea (alineado a la derecha) en vez de aplastar el texto.
+ */
 .tx-list__text {
+  flex: 1 1 9rem;
   min-width: 0;
 }
 
@@ -31,6 +37,7 @@
 /* El monto nunca se parte en dos líneas. */
 .tx-list__amount {
   flex: none;
+  margin-left: auto;
   white-space: nowrap;
 }
 

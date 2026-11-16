@@ -52,6 +52,14 @@
   outline-offset: 2px;
 }
 
+/* Alto contraste de Windows: el fondo desaparece, así que la opción elegida se marca con borde. */
+@media (forced-colors: active) {
+  .cushion-form__option.is-active {
+    outline: 2px solid CanvasText;
+    outline-offset: -4px;
+  }
+}
+
 .cushion-form__option.is-disabled {
   opacity: 0.6;
   cursor: not-allowed;
