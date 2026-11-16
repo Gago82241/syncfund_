@@ -4,13 +4,13 @@ import { LoadingState } from '../components/ui/LoadingState';
 import { PageHeader } from '../components/ui/PageHeader';
 import { useAuth } from '../context/useAuth';
 import { useSharedProjects } from '../features/shared-project/hooks/useSharedProjects';
-import { ProjectCard } from '../features/shared-project/components/ProjectCard';
+import { ProjectStatusList } from '../features/shared-project/components/ProjectStatusList';
 import { CreateProjectForm } from '../features/shared-project/components/CreateProjectForm';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 
 export function SharedProjectsPage() {
   const { user } = useAuth();
-  const { projects, loading, error, refresh, refreshAfterAction } = useSharedProjects(user!.id);
+  const { lines, loading, error, refresh } = useSharedProjects(user!.id);
   useDocumentTitle('Proyectos compartidos · SyncFund');
 
   function renderProjects() {
@@ -24,17 +24,17 @@ export function SharedProjectsPage() {
         />
       );
     }
-    if (projects === null) return <LoadingState message="Cargando tus proyectos…" />;
-    if (projects.length === 0) {
+    if (lines === null) return <LoadingState message="Cargando tus proyectos…" />;
+    if (lines.length === 0) {
       return <p style={{ color: 'var(--ink-faint)' }}>Todavía no participas en ningún proyecto compartido.</p>;
     }
-    return projects.map((p) => <ProjectCard key={p.projectId} project={p} />);
+    return <ProjectStatusList projects={lines} />;
   }
 
   return (
     <AppLayout>
       <PageHeader title="Proyectos compartidos" />
-      <CreateProjectForm adminId={user!.id} onCreated={refreshAfterAction} />
+      <CreateProjectForm adminId={user!.id} onCreated={refresh} />
 
       <h2 style={{ fontSize: '1.125rem', marginBottom: '0.5rem' }}>Tus proyectos</h2>
       {renderProjects()}

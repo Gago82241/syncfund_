@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { walletFigures } from '../../personal-wallet/walletFigures';
 import { personalWalletService } from '../../personal-wallet/services/personalWalletService';
-import { sharedProjectService } from '../../shared-project/services/sharedProjectService';
+import { fetchProjectsWithBalances } from '../../shared-project/projectBalances';
 import { categoryService } from '../../categories/services/categoryService';
 import { transactionService } from '../../transactions/services/transactionService';
 import { afterActionLoadError, describeLoadError, type LoadErrorInfo } from '../../../utils/apiError';
@@ -14,7 +14,7 @@ import {
   type BudgetAlert,
   type DashboardSummary,
 } from '../summary';
-import type { CategoryResponse, PersonalWalletResponse, ProjectBalancesResponse } from '../../../types/api';
+import type { CategoryResponse, PersonalWalletResponse } from '../../../types/api';
 
 export interface DashboardData {
   walletId: number;
@@ -36,27 +36,25 @@ async function fetchSummary(
   userId: number,
   walletPromise: Promise<PersonalWalletResponse>,
 ): Promise<DashboardData> {
-  const [wallet, projects] = await Promise.all([
+  // Billetera y proyectos (con la situación de cada uno) en paralelo.
+  const [wallet, { projects, balances, failedIds, firstError }] = await Promise.all([
     walletPromise,
-    sharedProjectService.getByMember(userId).then((r) => r.data),
+    fetchProjectsWithBalances(userId),
   ]);
+  // La cifra es todo o nada: sin el saldo de un proyecto, el total no sería cierto.
+  if (failedIds.length > 0) throw firstError;
 
-  // Segunda ronda, en paralelo: la situación de cada proyecto y, solo si podría ser un usuario
-  // nuevo, su historial (para no confundir "nuevo" con "gastó todo lo que tenía").
-  const checkHistory = needsHistoryCheck(wallet, projects);
-  const [balances, transactionCount] = await Promise.all([
-    Promise.all(projects.map((p) => sharedProjectService.getBalances(p.projectId).then((r) => r.data))),
-    checkHistory
-      ? transactionService.getByWallet(wallet.walletId, 'PERSONAL').then((r) => r.data.length)
-      : Promise.resolve(null),
-  ]);
+  // Solo si podría ser un usuario nuevo (sin proyectos ni saldo) se pide su historial, para no
+  // confundir "nuevo" con "gastó todo lo que tenía". Sin proyectos, no hubo saldos que esperar.
+  const transactionCount = needsHistoryCheck(wallet, projects)
+    ? await transactionService.getByWallet(wallet.walletId, 'PERSONAL').then((r) => r.data.length)
+    : null;
 
-  const balancesByProject = new Map<number, ProjectBalancesResponse>(balances.map((b) => [b.projectId, b]));
   return {
     walletId: wallet.walletId,
     available: walletFigures(wallet).available,
     isNewUser: isNewUser(wallet, projects, transactionCount),
-    summary: computeDashboardSummary(userId, wallet, projects, balancesByProject),
+    summary: computeDashboardSummary(userId, wallet, projects, balances),
   };
 }
 
@@ -80,7 +78,8 @@ async function fetchBudget(
 /**
  * Datos del Resumen. Hace las peticiones en dos rondas en paralelo:
  *   1. billetera, proyectos y categorías;
- *   2. la situación de cada proyecto y el gasto del mes de cada categoría con límite.
+ *   2. la situación de cada proyecto y el gasto del mes de cada categoría con límite
+ *      (el historial, solo para un posible usuario nuevo, que no tiene proyectos).
  * La cifra es todo o nada: si falla cualquiera de sus peticiones, `data` queda en null y se
  * muestra el error (nunca un total parcial). El presupuesto tiene su propio error, porque no
  * cambia cuánto tienes.

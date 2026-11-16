@@ -68,3 +68,35 @@ export function sortProjectLines(lines: readonly ProjectLine[]): ProjectLine[] {
     })
     .map(({ line }) => line);
 }
+
+function projectsWord(count: number): string {
+  return count === 1 ? 'proyecto' : 'proyectos';
+}
+
+/**
+ * Una línea que resume la lista sin montos (los totales ya están en el Resumen, y sumar lo que
+ * tienes a favor en un grupo con lo que debes en otro daría una cifra engañosa).
+ * Nunca dice "no debes nada" si falta el saldo de algún proyecto.
+ * null si no hay proyectos.
+ */
+export function projectsHeadline(lines: readonly ProjectLine[]): string | null {
+  const total = lines.length;
+  if (total === 0) return null;
+  const owe = lines.filter((l) => l.net !== null && l.net < 0).length;
+  const inFavor = lines.filter((l) => l.net !== null && l.net > 0).length;
+  const unknown = lines.filter((l) => l.net === null).length;
+  const missing = unknown > 0 ? ` Falta cargar tu saldo en ${unknown} ${projectsWord(unknown)}.` : '';
+
+  if (owe > 0) {
+    return total === 1 ? 'Debes en tu único proyecto.' : `Debes en ${owe} de tus ${total} proyectos.${missing}`;
+  }
+  if (unknown > 0) {
+    return total === 1
+      ? 'Falta cargar tu saldo en tu único proyecto.'
+      : `Falta cargar tu saldo en ${unknown} de tus ${total} proyectos.`;
+  }
+  if (inFavor > 0) {
+    return `No debes nada; tienes saldo a tu favor en ${inFavor} ${projectsWord(inFavor)}.`;
+  }
+  return total === 1 ? 'Estás al día en tu único proyecto.' : `Estás al día en tus ${total} proyectos.`;
+}
