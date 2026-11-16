@@ -10,7 +10,7 @@ import { Sheet } from '../components/ui/Sheet';
 import { Skeleton, SkeletonGroup, SkeletonRows } from '../components/ui/Skeleton';
 import { useToast } from '../components/ui/toast/useToast';
 import { useAuth } from '../context/useAuth';
-import { CushionForm } from '../features/personal-wallet/components/CushionForm';
+import { CushionForm, type CushionResult } from '../features/personal-wallet/components/CushionForm';
 import { CushionSheet } from '../features/personal-wallet/components/CushionSheet';
 import { SavingsGoalForm } from '../features/personal-wallet/components/SavingsGoalForm';
 import { SavingsGoalSheet } from '../features/personal-wallet/components/SavingsGoalSheet';
@@ -61,6 +61,16 @@ export function PersonalWalletPage() {
 
   function closePanel() {
     setPanel((current) => ({ ...current, open: false }));
+  }
+
+  function handleCushionSaved({ type, amount, wallet: updated }: CushionResult) {
+    // Las cifras del aviso son las que devolvió el backend, no un cálculo de la pantalla.
+    const { available } = walletFigures(updated);
+    handleSaved(
+      type === 'APARTAR'
+        ? `Apartaste ${formatCOP(amount)}. Tu disponible quedó en ${formatCOP(available)}`
+        : `Liberaste ${formatCOP(amount)}. Tu disponible quedó en ${formatCOP(available)}`,
+    );
   }
 
   function handleSaved(message: string) {
@@ -129,6 +139,14 @@ export function PersonalWalletPage() {
 
         <PageColumns variant="main-aside">
           <Sheet title="Movimientos">
+            {figures.cushion > 0 && (
+              // No es un movimiento: explica por qué el disponible no cuadra con la lista, sin inventar filas.
+              <p className="wallet__cushion-note">
+                Tienes <strong className="tabular-nums">{formatCOP(figures.cushion)}</strong> en el colchón.
+                Apartar y liberar no aparecen en esta lista: mueven dinero entre tu disponible y tu colchón,
+                y tu total no cambia.
+              </p>
+            )}
             <TransactionList transactions={transactions} />
           </Sheet>
           <div className="wallet__aside">
@@ -179,7 +197,9 @@ export function PersonalWalletPage() {
             <CushionForm
               key={panel.formKey}
               walletId={wallet.walletId}
-              onSaved={() => handleSaved('Colchón actualizado')}
+              available={walletFigures(wallet).available}
+              cushion={walletFigures(wallet).cushion}
+              onSaved={handleCushionSaved}
             />
           )}
         </Panel>
