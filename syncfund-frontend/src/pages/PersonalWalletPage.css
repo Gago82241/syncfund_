@@ -1,0 +1,12 @@
+/* Columna lateral (meta y colchón): hojas apiladas con el mismo aire que entre columnas. */
+.wallet__aside {
+  display: grid;
+  gap: var(--space-lg);
+  min-width: 0;
+}
+
+.wallet__ledger-skeleton {
+  display: grid;
+  gap: var(--space-xs);
+  max-width: 100%;
+}

@@ -35,11 +35,11 @@ export function CushionForm({ walletId, onSaved }: Props) {
 
   return (
     <form ref={formRef} onSubmit={(e: FormEvent) => e.preventDefault()} noValidate>
-      <h3 style={{ fontSize: '1rem', marginBottom: '0.75rem' }}>Colchón de seguridad</h3>
       <Input
         label="Monto (COP)"
         type="number"
         name="amount"
+        data-autofocus
         min="1"
         placeholder="Ej: 100000 (sin puntos)"
         value={amount}

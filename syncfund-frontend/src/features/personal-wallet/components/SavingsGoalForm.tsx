@@ -41,11 +41,11 @@ export function SavingsGoalForm({ walletId, currentGoal, onSaved }: Props) {
 
   return (
     <form ref={formRef} onSubmit={handleSubmit} noValidate>
-      <h3 style={{ fontSize: '1rem', marginBottom: '0.75rem' }}>Meta de ahorro mensual</h3>
       <Input
         label="Monto (COP)"
         type="number"
         name="monthlySavingsGoal"
+        data-autofocus
         min="0"
         placeholder="Ej: 200000 (sin puntos)"
         value={goal}
