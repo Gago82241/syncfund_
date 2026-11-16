@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { AppLayout } from '../components/layout/AppLayout';
 import { Button } from '../components/ui/Button';
 import { EmptyState } from '../components/ui/EmptyState';
@@ -84,8 +84,12 @@ export function SharedProjectDetailPage() {
   const projectId = Number(id);
   const figureRef = useRef<HTMLSpanElement>(null);
 
+  const location = useLocation();
+  // Se llega aquí justo después de crear el proyecto (ver SharedProjectsPage). Se lee una sola vez.
+  const [justCreated] = useState(() => (location.state as { created?: boolean } | null)?.created === true);
+
   const { project, members, balances, transactions, loading, error, refresh, refreshAfterAction } =
-    useSharedProjectDetail(projectId, user!.id);
+    useSharedProjectDetail(projectId, user!.id, justCreated);
   useDocumentTitle(project ? `${project.name} · SyncFund` : `${FALLBACK_TITLE} · SyncFund`);
 
   const [panel, setPanel] = useState<PanelState>(CLOSED);

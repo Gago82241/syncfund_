@@ -36,7 +36,11 @@ async function fetchProjectDetail(projectId: number) {
  * Todo se guarda junto solo si todas las peticiones llegan bien: una falla parcial
  * no deja la pantalla a medias (ej. proyecto con "sin movimientos").
  */
-export function useSharedProjectDetail(projectId: number, currentUserId: number) {
+/**
+ * @param afterAction true si se llega justo después de una acción ya guardada (crear el
+ *        proyecto): si la primera carga falla, el error dice que el cambio sí quedó.
+ */
+export function useSharedProjectDetail(projectId: number, currentUserId: number, afterAction = false) {
   const [project, setProject] = useState<SharedProjectResponse | null>(null);
   const [members, setMembers] = useState<UserResponse[]>([]);
   const [balances, setBalances] = useState<ProjectBalancesResponse | null>(null);
@@ -102,6 +106,9 @@ export function useSharedProjectDetail(projectId: number, currentUserId: number)
   }, [refresh]);
 
   useEffect(() => {
+    // Se marca aquí y no al crear la referencia: el modo estricto desmonta y vuelve a montar, y la
+    // limpieza de abajo la pondría en false.
+    if (afterAction) unconfirmedAction.current = true;
     load();
     // Al cambiar de proyecto o salir de la pantalla, la carga en curso queda obsoleta.
     return () => {
@@ -109,7 +116,7 @@ export function useSharedProjectDetail(projectId: number, currentUserId: number)
       // Una acción del proyecto anterior no se anuncia en el siguiente.
       unconfirmedAction.current = false;
     };
-  }, [load]);
+  }, [load, afterAction]);
 
   // Saldo del usuario actual para la tarjeta resumen: el mismo cálculo de la tabla de situación.
   const myBalance = balances?.members.find((m) => m.userId === currentUserId);

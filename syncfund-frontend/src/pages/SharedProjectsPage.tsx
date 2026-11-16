@@ -1,4 +1,5 @@
 import { useState, type ReactNode } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '../components/layout/AppLayout';
 import { Button } from '../components/ui/Button';
 import { EmptyState } from '../components/ui/EmptyState';
@@ -34,6 +35,7 @@ export function SharedProjectsPage() {
     user!.id,
   );
   const { showToast } = useToast();
+  const navigate = useNavigate();
   // formKey vuelve a montar el formulario en cada apertura: arranca limpio.
   const [panel, setPanel] = useState({ open: false, formKey: 0 });
   useDocumentTitle(`${TITLE} · SyncFund`);
@@ -46,10 +48,14 @@ export function SharedProjectsPage() {
     setPanel((current) => ({ ...current, open: false }));
   }
 
+  /**
+   * El siguiente paso lógico es agregar a los integrantes: se abre el Detalle en esa pestaña.
+   * `created` hace que, si esa primera carga falla, el error diga que el proyecto sí se creó.
+   */
   function handleCreated(project: SharedProjectResponse) {
     closePanel();
-    showToast(`Proyecto «${project.name}» creado`);
-    refresh();
+    showToast(`Proyecto «${project.name}» creado. Ahora agrega a los integrantes`);
+    navigate(`/projects/${project.projectId}?pestana=integrantes`, { state: { created: true } });
   }
 
   const createButton = (label: string) => (

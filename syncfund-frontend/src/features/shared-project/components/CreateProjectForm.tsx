@@ -8,6 +8,13 @@ import { required } from '../../../utils/validation';
 import type { SharedProjectResponse } from '../../../types/api';
 import './ProjectForms.css';
 
+/**
+ * Límites del frontend. El backend aún no tiene @Size (pendiente en fix/limites-longitud): la
+ * columna del nombre admite 255 y la descripción es TEXT, así que estos topes nunca chocan con él.
+ */
+const NAME_MAX = 100;
+const DESCRIPTION_MAX = 500;
+
 interface Props {
   adminId: number;
   /** Recibe el proyecto que devolvió el backend (con su projectId). */
@@ -49,6 +56,7 @@ export function CreateProjectForm({ adminId, onCreated }: Props) {
           clearField('name');
         }}
         autoComplete="off"
+        maxLength={NAME_MAX}
         data-autofocus
         required
       />
@@ -63,6 +71,7 @@ export function CreateProjectForm({ adminId, onCreated }: Props) {
           clearField('description');
         }}
         autoComplete="off"
+        maxLength={DESCRIPTION_MAX}
       />
       <FormError message={formError} />
       <Button type="submit" loading={loading}>Crear proyecto</Button>
