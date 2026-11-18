@@ -190,6 +190,7 @@ Estos cambios tocan el backend o el diseño UML, así que van en ramas propias c
 | Cambio | Qué toca | Cuándo |
 | --- | --- | --- |
 | Límites de longitud en registro y nombre de proyecto (`@Size`). En `RegisterUserRequest`: nombre ≤ 100 y correo ≤ 150 (columnas de `users`) y contraseña ≤ 72 (límite de BCrypt, que ignora lo que pasa de 72 bytes) | Backend (DTO) | Ya, en paralelo al rediseño |
+| Mínimo de contraseña de 8 caracteres (decisión del equipo, 2026-11-18): `@Size(min = 8)` en `RegisterUserRequest`, con el mensaje del backend y la ayuda "Mínimo 8 caracteres" del Registro en el mismo cambio | Backend (DTO) y texto del Registro | En la rama de `@Size` (`fix/limites-longitud`) |
 | Editar y eliminar categorías | Backend y diagrama UML | Después del rediseño |
 | Movimiento en el historial al apartar o liberar colchón | Dominio y base de datos | Después del rediseño |
 | Guardar quién pagó cada gasto compartido | Base de datos y backend | Después del rediseño |

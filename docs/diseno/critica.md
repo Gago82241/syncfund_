@@ -134,6 +134,8 @@ Se pueden corregir antes del rediseño o en paralelo.
 19. Al cambiar entre Gasto e Ingreso, el formulario reinicia monto y descripción (decisión del
     equipo en una rama anterior). La crítica de la Billetera propone conservarlos para no
     obligar a escribir de nuevo. ¿Se mantiene la decisión o se revisa en el rediseño?
+    - **Resuelta (decisión del equipo, 2026-11-18):** se mantiene; cambiar de tipo sigue
+      reiniciando los campos.
 19. ¿Hace falta un aviso de tratamiento de datos (Ley 1581 de 2012)?
 
 ---
@@ -950,6 +952,8 @@ dos veces) y hacer que la meta se vea sin bajar 20 filas en el celular.
 
 1. ¿Aportar al fondo es "no ahorrar"? El Resumen trata ese dinero como "A tu favor". Si la meta lo
    resta, ¿qué le decimos al estudiante que aporta para el arriendo?
+   - **Resuelta (decisión del equipo, 2026-11-18):** el aporte al fondo sigue contando como salida
+     en el ahorro del mes.
 2. La pantalla pregunta "¿Cuánto puedo gastar?". ¿Debería existir "Puedes gastar $ X este mes sin
    romper tu meta" como renglón de la suma?
 3. ¿La nota del colchón se queda en el libro hasta que el backend registre esos movimientos, o
@@ -959,6 +963,10 @@ dos veces) y hacer que la meta se vea sin bajar 20 filas en el celular.
 
 - Los cuatro P2 y el P3 de arriba, para `style/pulido-final` o según lo que decida el equipo (la
   pregunta 1 cambia la definición del ahorro, que aprobó el usuario en esta rama).
+  - En `style/pulido-final`: cuota como ritmo fijo y oculta con la meta cumplida; nota del colchón
+    plana en su hoja y suma solo con colchón; primera visita con una sola acción primaria; tandas de
+    8 filas en el celular y fechas sin el año en curso; titular de meta cumplida. Agrupar por mes
+    queda descartado.
 - Backend, anotado en "Fuera del rediseño" de `plan-rediseno.md`:
   - Cuota semanal errónea.
   - Marca de origen de los movimientos.
@@ -1339,10 +1347,18 @@ información que la pantalla dedicada) y que no espere al saldo más lento.
 
 1. Si el Resumen ya muestra los mismos renglones con "a quién" y "Pagar", ¿la lista debe ser la
    versión completa (a quién, pagar y grupos)?
+   - **Resuelta (decisión del equipo, 2026-11-18):** la lista dice "a quién" en los renglones con
+     deuda, pero no se agrega "Pagar" ni cortes por grupo.
 2. ¿Puede la respuesta de la lista traer el saldo neto del usuario, para evitar N peticiones?
+   - **Resuelta (decisión del equipo, 2026-11-18):** sin cambiar el backend; la lista se muestra
+     apenas llega y cada saldo se completa al llegar, sin esperar al más lento.
 3. "A tu favor" mezcla lo que te deben con tu parte del fondo sin gastar. ¿Se distinguen en el
    renglón o basta con explicarlo en el Detalle?
+   - **Resuelta (decisión del equipo, 2026-11-18):** no se separa; el Detalle agrega una línea que
+     explica que incluye tu parte del fondo que aún no se gasta.
 4. Tras crear, ¿qué debe empujar el Detalle: agregar integrantes o aportar primero?
+   - **Resuelta (decisión del equipo, 2026-11-18):** agregar integrantes; con un solo integrante el
+     Detalle guía con "Agregar integrante".
 5. Con 15 o más proyectos, muchos terminados, ¿hace falta archivar o filtrar "con saldo
    pendiente"? (El ciclo de vida del proyecto aún no está decidido.)
 
@@ -1350,6 +1366,9 @@ información que la pantalla dedicada) y que no espere al saldo más lento.
 
 - Los tres P2 y los dos P3 de arriba, para `style/pulido-final` o según lo que decida el equipo.
   El tercer P2 es del Detalle.
+  - En `style/pulido-final`: carga sin esperar al saldo más lento, "a quién" en los renglones con
+    deuda, guía de "Agregar integrante" en el Detalle, aviso neutro de la falla parcial y jerarquía
+    tipográfica. "Pagar" en la lista y subtítulos por grupo quedan descartados.
 - Backend: `@Size` en el nombre del proyecto (`fix/limites-longitud`) y, si el equipo lo aprueba,
   el saldo neto del usuario en la respuesta de la lista.
 
@@ -1786,11 +1805,15 @@ pago el alivio que merece.
 
 1. ¿El saldo a favor dentro del fondo es "te deben"? Si alguien sale del proyecto con saldo a
    favor, ¿quién se lo devuelve? Define el vocabulario aquí y en el Resumen.
+   - **Resuelta (decisión del equipo, 2026-11-15 y 2026-11-18):** se llama "A tu favor" y no se
+     separa; bajo la cifra una línea explica que incluye tu parte del fondo que aún no se gasta.
 2. Si la línea "Para quedar al día… Pagar" ya responde por la usuaria, ¿hace falta "Pagar" en la
    tabla, y debe permitir pagarle a quien no está en la sugerencia?
 3. ¿El cierre del pago puede permitirse un pequeño gesto (esmeralda, la cifra que cambia a la vista)
    sin dejar de ser un libro mayor sobrio?
 4. En escritorio, ¿Situación y Movimientos en dos columnas o pestañas como en el celular?
+   - **Resuelta (decisión del equipo, 2026-11-18):** se mantienen las pestañas en todos los
+     tamaños; en `style/pulido-final` solo se compacta la franja de acciones.
 
 ### Ajustes hechos después de la crítica
 
@@ -1806,9 +1829,10 @@ El puntaje de arriba es el de antes de estos ajustes.
 
 - [x] Vocabulario de "Te deben" contra el saldo a favor en el fondo ([P1]), aquí y en el Resumen:
   ahora dice "A tu favor".
-- [ ] Cierre del pago más claro y sin doble lectura ([P2]).
-- [ ] Un solo "Pagar" visible por deuda y lista del grupo plegable ([P2]).
-- [ ] Dos columnas en escritorio ([P2]).
+- [ ] Cierre del pago más claro y sin doble lectura ([P2]). En `style/pulido-final`.
+- [ ] Un solo "Pagar" visible por deuda y lista del grupo plegable ([P2]). En `style/pulido-final`.
+- [x] Dos columnas en escritorio ([P2]): descartado, se mantienen las pestañas (decisión del equipo,
+  2026-11-18).
 - [ ] Jerarquía tipográfica h1/h2 (`flat-type-hierarchy`), en `style/pulido-final`.
 
 ---
@@ -2168,12 +2192,18 @@ lleve a los gastos de esa categoría.
 ### Preguntas para el equipo
 
 1. ¿La línea de resumen debe nombrar las categorías en problema y pesar más que el mes?
+   - **Resuelta (plan de `style/pulido-final`, 2026-11-18):** nombra hasta tres y pesa más que el mes.
 2. ¿Se aprueba el enlace de una categoría a la Billetera filtrada (solo frontend)?
+   - **Resuelta (decisión del equipo, 2026-11-18):** sí. El filtro es por categoría y por el mes
+     actual, para que coincida con lo gastado que muestra Categorías; un chip "Mercado · Noviembre
+     de 2026" con el total filtrado y "Quitar filtro", aplicado a todos los movimientos cargados.
 3. ¿Se sube el umbral del aviso de límite bajo, o se muestra siempre el límite en palabras?
 
 ### Pendiente (sin hacer en esta rama)
 
 - Los tres P2 y los dos P3 de arriba, para `style/pulido-final` o según lo que decida el equipo.
+  - En `style/pulido-final`: los cinco, incluido el enlace a la Billetera filtrada por categoría y
+    mes. Queda descartado que el mes se actualice solo con la pestaña abierta.
 - Backend: un límite mayor que `DECIMAL(12,2)` responde 500 en vez de 400 (falta `@Max` o
   `@Digits` en `CreateCategoryRequest`); el frontend ya lo impide.
 - Backend y UML: editar y eliminar categorías; `alertExcess` diría "excedido" con límite 0; una
@@ -2532,14 +2562,20 @@ usuario queda sin contexto: la espera larga y la sesión vencida.
 
 1. ¿Se quiere un correo de contacto de soporte para quien olvida la contraseña? Si se define uno
    real, se agrega a la nota del Login; hoy la nota solo dice que no se puede recuperar desde la app.
+   - **Resuelta (decisión del equipo, 2026-11-18):** no habrá correo de soporte por ahora.
 2. ¿"Un solo saldo real" es exacto? Billetera y fondo son saldos separados, aunque el Resumen los
    sume en una cifra.
+   - **Resuelta (decisión del equipo, 2026-11-18):** el titular es "Tu billetera y tus proyectos, un
+     solo saldo real." (rama 8) y es exacto, porque el Resumen suma billetera y proyectos.
 3. ¿Se aprueban el aviso de sesión vencida y el de demora? Tocan `apiClient` (toda la app), así que
    irían en `style/pulido-final`.
+   - **Resuelta (decisión del equipo, 2026-11-18):** se aprueban los dos. "Tu sesión venció" solo
+     sale si había una sesión guardada, nunca por una respuesta de `/auth/login` o `/auth/register`.
 
 ### Pendiente (sin hacer en esta rama)
 
 - Los dos P2 (sesión vencida y aviso de demora) y el P3 de composición, para `style/pulido-final`.
+  Los dos avisos quedaron aprobados por el equipo (2026-11-18).
 - Recuperación de contraseña: fuera de alcance por ahora.
 
 ---
@@ -2863,10 +2899,15 @@ confirma y dice qué hacer. El mayor salto está en el final del recorrido.
 
 1. ¿Se sube el mínimo de la contraseña (cambio de backend) en una app que maneja saldos y no
    permite recuperar la clave?
+   - **Resuelta (decisión del equipo, 2026-11-18):** sí, a 8 caracteres. Es backend: va en la rama
+     de `@Size` (anotado en "Fuera del rediseño" de `plan-rediseno.md`).
 2. ¿Sobra el enlace "Inicia sesión" del pie mientras se muestra "Inicia sesión con este correo"?
+   - **Resuelta (plan de `style/pulido-final`, 2026-11-18):** sí; el del pie se oculta mientras se
+     ve el del error.
 
 ### Pendiente (sin hacer en esta rama)
 
 - El P2 de demora (junto con el del Login) y los dos P3, para `style/pulido-final`.
-- Backend: `@Size` en `RegisterUserRequest` (anotado en `plan-rediseno.md`).
+- Backend: `@Size` en `RegisterUserRequest` (anotado en `plan-rediseno.md`), con el mínimo de la
+  contraseña en 8 caracteres.
 - Aviso de tratamiento de datos (Ley 1581 de 2012): fuera de esta rama.
