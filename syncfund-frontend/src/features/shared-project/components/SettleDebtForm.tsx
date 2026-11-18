@@ -146,11 +146,11 @@ export function SettleDebtForm({
   if (step === 'done' && closing) {
     // Sin role="status": el titular recibe el foco y se lee una sola vez.
     return (
-      <div className="settle-done">
+      <div className="settle-done sf-enter">
         <h3
           ref={doneRef}
           tabIndex={-1}
-          className={`settle-done__title sf-enter${closing.settled ? ' settle-done__title--settled' : ''}`}
+          className={`settle-done__title${closing.settled ? ' settle-done__title--settled' : ''}`}
         >
           {closing.headline}
         </h3>

@@ -10,6 +10,9 @@ interface Props {
   /** Muestra a quién le debes en los renglones con deuda (la lista de Proyectos; el Resumen ya
    *  lo dice en su aviso de deuda). */
   showPayees?: boolean;
+  /** El saldo entra con un fundido al reemplazar a "Cargando saldo". Solo en la lista de Proyectos:
+   *  en el Resumen los saldos llegan con la página y el fundido no reemplazaría nada. */
+  fadeInBalances?: boolean;
 }
 
 /** "Le debes a Laura Gómez" o "Le debes a 2 integrantes". */
@@ -23,7 +26,8 @@ function payeesText(payees: readonly string[]): string {
  * Si tu saldo no cargó, el renglón lo dice en texto y no muestra ninguna cifra; mientras llega,
  * dice "Cargando saldo".
  */
-export function ProjectStatusList({ projects, showPayees }: Props) {
+export function ProjectStatusList({ projects, showPayees, fadeInBalances }: Props) {
+  const fadeClass = fadeInBalances ? 'sf-fade-in' : undefined;
   return (
     <ul className="project-status-list">
       {projects.map((project) => (
@@ -53,10 +57,10 @@ export function ProjectStatusList({ projects, showPayees }: Props) {
                   <Skeleton width="6rem" />
                 </span>
               ) : project.net === null ? (
-                <span className="project-status-list__unknown sf-fade-in">Saldo sin cargar</span>
+                <span className={['project-status-list__unknown', fadeClass].filter(Boolean).join(' ')}>Saldo sin cargar</span>
               ) : (
-                // El monto reemplaza a "Cargando saldo" con un fundido corto, sin mover el renglón.
-                <span className="sf-fade-in">
+                // En Proyectos, el monto reemplaza a "Cargando saldo" con un fundido corto, sin mover el renglón.
+                <span className={fadeClass}>
                   <MoneyStatus amount={project.net} />
                 </span>
               )}

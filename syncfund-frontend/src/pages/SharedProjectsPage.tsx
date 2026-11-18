@@ -125,7 +125,7 @@ export function SharedProjectsPage() {
           </div>
         )}
         <Sheet title={LIST_TITLE} titleHidden className="projects__sheet">
-          <ProjectStatusList projects={lines} showPayees />
+          <ProjectStatusList projects={lines} showPayees fadeInBalances />
         </Sheet>
       </>
     );
