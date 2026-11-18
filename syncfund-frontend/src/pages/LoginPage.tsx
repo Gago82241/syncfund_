@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { AuthLayout } from '../components/layout/AuthLayout';
 import { Input } from '../components/ui/Input';
+import { PasswordInput } from '../components/ui/PasswordInput';
 import { Button } from '../components/ui/Button';
 import { FormError } from '../components/ui/FormError';
 import { authService } from '../features/auth/services/authService';
@@ -52,7 +53,10 @@ export function LoginPage() {
           label="Correo"
           type="email"
           name="email"
-          placeholder="nombre@correo.com"
+          inputMode="email"
+          autoComplete="email"
+          autoCapitalize="none"
+          spellCheck={false}
           value={email}
           error={fieldErrors.email}
           onChange={(e) => {
@@ -61,10 +65,10 @@ export function LoginPage() {
           }}
           required
         />
-        <Input
+        <PasswordInput
           label="Contraseña"
-          type="password"
           name="password"
+          autoComplete="current-password"
           value={password}
           error={fieldErrors.password}
           onChange={(e) => {

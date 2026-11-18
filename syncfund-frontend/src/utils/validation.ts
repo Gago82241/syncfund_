@@ -27,6 +27,26 @@ export function minLength(value: string, min: number, message: string): string |
   return value.length < min ? message : undefined;
 }
 
+/** Texto que no supera el largo de su columna en la base (se cuenta ya sin espacios al borde). */
+export function maxLength(value: string, max: number, message: string): string | undefined {
+  return value.trim().length > max ? message : undefined;
+}
+
+/** Límites del registro: columnas de users (nombre 100, correo 150) y BCrypt (72 bytes). */
+export const NAME_MAX = 100;
+export const EMAIL_MAX = 150;
+export const PASSWORD_MAX_BYTES = 72;
+
+/**
+ * Contraseña nueva: BCrypt solo usa los primeros 72 bytes, así que lo que pase de ahí no
+ * protegería nada. Se cuentan bytes (UTF-8), no letras: una tilde o una ñ ocupan dos.
+ */
+export function passwordBytes(value: string): string | undefined {
+  return new TextEncoder().encode(value).length > PASSWORD_MAX_BYTES
+    ? 'La contraseña puede tener máximo 72 caracteres (las tildes y la ñ cuentan doble)'
+    : undefined;
+}
+
 /** Monto mayor que cero, sin decimales. */
 export function wholeAmount(value: string): string | undefined {
   const amount = Number(value);
