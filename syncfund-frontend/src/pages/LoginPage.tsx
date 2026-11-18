@@ -118,7 +118,9 @@ export function LoginPage() {
         <FormError ref={formErrorRef} message={formError} />
         <Button type="submit" loading={loading} loadingText="Entrando…">Entrar</Button>
         {/* Región viva siempre presente: si naciera con el texto, el lector podría no anunciarlo. */}
-        <p className="auth-form__slow" aria-live="polite">{slow ? SLOW_HINT_MESSAGE : ''}</p>
+        <p className="auth-form__slow" aria-live="polite">
+          {slow && <span className="auth-form__slow-text sf-enter">{SLOW_HINT_MESSAGE}</span>}
+        </p>
       </form>
       <p className="auth-form__switch">
         ¿No tienes cuenta? <Link to="/register">Regístrate</Link>

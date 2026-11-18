@@ -181,6 +181,11 @@
   margin-top: var(--space-sm);
 }
 
+/* En bloque para que la entrada (transform) se aplique. */
+.auth-form__slow-text {
+  display: block;
+}
+
 /* Campo con la salida bajo el error: el enlace ya trae su alto táctil, así que el margen del
    campo se reduce para no dejar un hueco mayor antes del siguiente. */
 .sf-field:has(> .auth-form__error-link) {

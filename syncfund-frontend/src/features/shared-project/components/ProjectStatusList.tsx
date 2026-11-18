@@ -53,9 +53,12 @@ export function ProjectStatusList({ projects, showPayees }: Props) {
                   <Skeleton width="6rem" />
                 </span>
               ) : project.net === null ? (
-                <span className="project-status-list__unknown">Saldo sin cargar</span>
+                <span className="project-status-list__unknown sf-fade-in">Saldo sin cargar</span>
               ) : (
-                <MoneyStatus amount={project.net} />
+                // El monto reemplaza a "Cargando saldo" con un fundido corto, sin mover el renglón.
+                <span className="sf-fade-in">
+                  <MoneyStatus amount={project.net} />
+                </span>
               )}
               <Icon name="flecha" size="1rem" className="project-status-list__arrow" />
             </span>

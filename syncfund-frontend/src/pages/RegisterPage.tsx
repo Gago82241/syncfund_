@@ -152,7 +152,9 @@ export function RegisterPage() {
         />
         <FormError ref={formErrorRef} message={formError} />
         <Button type="submit" loading={loading} loadingText="Creando tu cuenta…">Crear cuenta</Button>
-        <p className="auth-form__slow" aria-live="polite">{slow ? SLOW_HINT_MESSAGE : ''}</p>
+        <p className="auth-form__slow" aria-live="polite">
+          {slow && <span className="auth-form__slow-text sf-enter">{SLOW_HINT_MESSAGE}</span>}
+        </p>
       </form>
       {/* Mientras se ve "Inicia sesión con este correo", un segundo "Inicia sesión" sobra. */}
       {!(takenEmail && fieldErrors.email) && (

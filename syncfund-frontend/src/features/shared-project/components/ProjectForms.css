@@ -130,6 +130,8 @@
 /* Quedar al día es el momento del pago: titular en Fraunces y esmeralda, un paso más grande. */
 .settle-done__title {
   text-wrap: balance;
+  /* El cierre del pago entra con el paso de panel: un gesto mínimo que marca el final. */
+  --enter-duration: var(--duration-panel);
 }
 
 .settle-done__title--settled {

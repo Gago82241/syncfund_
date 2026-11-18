@@ -117,7 +117,7 @@ export function SharedProjectsPage() {
         />
         {/* Nota neutra (no alerta): la lista sí cargó; solo faltan algunas cifras. */}
         {missingBalances > 0 && (
-          <div className="projects__notice" role="status">
+          <div className="projects__notice sf-enter" role="status">
             <p>{missingBalancesMessage(missingBalances)}</p>
             <Button variant="ghost" loading={retryingBalances} onClick={retryBalances}>
               Reintentar

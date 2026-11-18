@@ -150,7 +150,7 @@ export function SettleDebtForm({
         <h3
           ref={doneRef}
           tabIndex={-1}
-          className={`settle-done__title${closing.settled ? ' settle-done__title--settled' : ''}`}
+          className={`settle-done__title sf-enter${closing.settled ? ' settle-done__title--settled' : ''}`}
         >
           {closing.headline}
         </h3>
