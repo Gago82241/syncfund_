@@ -9,6 +9,7 @@
  * Una lista de renglones no se estira a todo el ancho: en escritorio el nombre y el estado
  * quedarían a un metro de distancia. El aviso de saldos faltantes sigue el mismo ancho.
  */
+.projects__header,
 .projects__sheet,
 .projects__notice {
   max-width: var(--list-max);

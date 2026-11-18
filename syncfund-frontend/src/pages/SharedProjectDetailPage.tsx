@@ -69,11 +69,16 @@ interface PanelState {
 const CLOSED: PanelState = { open: false, kind: 'expense', formKey: 0 };
 
 /** La cifra protagonista: tu situación en el proyecto, con el mismo umbral que la tabla. */
-function situationFigure(net: number): { label: string; value: string; tone: MoneyTone } {
-  if (net < -HALF_CENT) return { label: 'Debes', value: formatCOP(-net), tone: 'loss' };
+function situationFigure(net: number): {
+  label: string;
+  value: string;
+  tone: MoneyTone;
+  kind: 'amount' | 'status';
+} {
+  if (net < -HALF_CENT) return { label: 'Debes', value: formatCOP(-net), tone: 'loss', kind: 'amount' };
   // Saldo neto positivo: incluye tu parte del fondo que aún no se gasta; no es una deuda de nadie.
-  if (net > HALF_CENT) return { label: 'A tu favor', value: formatCOP(net), tone: 'gain' };
-  return { label: 'Tu situación', value: 'Estás al día', tone: 'neutral' };
+  if (net > HALF_CENT) return { label: 'A tu favor', value: formatCOP(net), tone: 'gain', kind: 'amount' };
+  return { label: 'Tu situación', value: 'Estás al día', tone: 'neutral', kind: 'status' };
 }
 
 export function SharedProjectDetailPage() {
@@ -212,6 +217,7 @@ export function SharedProjectDetailPage() {
               </span>
             ),
             tone: figure.tone,
+            kind: figure.kind,
           }}
           meta={
             <div className="project-detail__meta">

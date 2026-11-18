@@ -13,8 +13,12 @@
   min-width: 0;
 }
 
+/*
+ * El h1 va en headline: un paso claro por encima de los títulos de las hojas (title) y uno
+ * por debajo de la cifra protagonista (display), que es la que manda.
+ */
 .sf-page-header__title {
-  font-size: var(--text-title);
+  font-size: var(--text-headline);
   line-height: var(--leading-tight);
   text-wrap: balance;
 }
@@ -38,6 +42,13 @@
   line-height: var(--leading-tight);
   color: var(--ink-900);
   overflow-wrap: anywhere;
+}
+
+/* Una frase en el lugar de la cifra ("Estás al día"): no debe leerse como un monto. */
+.sf-page-header__figure-value--status {
+  font-size: var(--text-title);
+  font-family: var(--font-body);
+  font-weight: 600;
 }
 
 .sf-page-header__figure-value--gain { color: var(--gain-700); }

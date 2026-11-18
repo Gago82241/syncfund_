@@ -76,6 +76,7 @@ export function CategoriesPage() {
       <>
         <PageHeader
           title={TITLE}
+          className="categories__header"
           meta={
             <>
               <Skeleton width="9rem" />
@@ -110,6 +111,7 @@ export function CategoriesPage() {
       <>
         <PageHeader
           title={TITLE}
+          className="categories__header"
           meta={
             <>
               <p className="categories__month">{capitalize(monthLabel)}</p>

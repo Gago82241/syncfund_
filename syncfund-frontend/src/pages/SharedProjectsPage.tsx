@@ -78,10 +78,10 @@ export function SharedProjectsPage() {
   } else if (lines === null) {
     content = (
       <>
-        <PageHeader title={TITLE} meta={<Skeleton width="16rem" />} />
+        <PageHeader title={TITLE} meta={<Skeleton width="16rem" />} className="projects__header" />
         {/* El anuncio va solo: si envolviera la hoja, el lector leería también su título. */}
         <SkeletonGroup label="Cargando tus proyectos…">{null}</SkeletonGroup>
-        <Sheet title={LIST_TITLE} className="projects__sheet">
+        <Sheet title={LIST_TITLE} titleHidden className="projects__sheet">
           <SkeletonRows count={4} />
         </Sheet>
       </>
@@ -104,6 +104,7 @@ export function SharedProjectsPage() {
       <>
         <PageHeader
           title={TITLE}
+          className="projects__header"
           meta={<p className="projects__headline">{projectsHeadline(lines)}</p>}
           fixedActionOnMobile
           action={createButton('Crear proyecto')}
@@ -117,7 +118,7 @@ export function SharedProjectsPage() {
             />
           </div>
         )}
-        <Sheet title={LIST_TITLE} className="projects__sheet">
+        <Sheet title={LIST_TITLE} titleHidden className="projects__sheet">
           <ProjectStatusList projects={lines} />
         </Sheet>
       </>

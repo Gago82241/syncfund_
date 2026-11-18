@@ -22,6 +22,7 @@
 }
 
 /* Una lista de barras no se estira a todo el ancho: nombre y cifras quedan cerca. */
+.categories__header,
 .categories__sheet {
   max-width: var(--list-max);
 }
