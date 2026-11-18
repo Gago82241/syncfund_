@@ -14,6 +14,9 @@ export const colors = {
   ink700: '#1F3A5F',
   ink600: '#2C5F8A',   // azul acero — estados interactivos/hover
   ink100: '#E4EAF1',   // azul muy claro — fondos de estados activos sutiles
+  onInkMuted: '#C7D2DF',   // texto secundario sobre ink900 (panel de marca), 9.4:1
+  motifStrokeA: '#2C5F8A', // motivo del acceso: círculo en azul acero
+  motifStrokeB: '#8FA9C6', // motivo del acceso: círculo en azul tinta claro
 
   ledger50: '#F6F4EF', // papel cálido — fondo de página (no blanco puro)
   ledger100: '#EEEAE0',

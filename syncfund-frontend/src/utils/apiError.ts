@@ -1,6 +1,10 @@
 import axios from 'axios';
 import type { ApiErrorResponse } from '../types/api';
 
+/** Sin respuesta del servidor: el mismo texto en toda la app. */
+export const CONNECTION_ERROR_MESSAGE =
+  'No pudimos conectar con SyncFund. Revisa tu conexión e inténtalo de nuevo.';
+
 export interface ParsedApiError {
   fieldErrors: Record<string, string>;
   formError: string;
@@ -58,7 +62,7 @@ export function describeLoadError(err: unknown, what: string): LoadErrorInfo {
     const status = err.response?.status;
     if (status === undefined) {
       return {
-        message: 'No pudimos conectar con SyncFund. Revisa tu conexión e inténtalo de nuevo.',
+        message: CONNECTION_ERROR_MESSAGE,
         canRetry: true,
       };
     }
