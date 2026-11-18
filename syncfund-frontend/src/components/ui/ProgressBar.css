@@ -28,7 +28,8 @@
 
 .sf-progress__track {
   height: var(--space-xs);
-  background: var(--ledger-100);
+  /* Carril visible también vacío (1.6:1 sobre papel); el texto lleva la información. */
+  background: var(--track);
   border-radius: var(--radius-sm);
   overflow: hidden;
 }
@@ -85,3 +86,15 @@
 
 .sf-progress--done .sf-progress__fill { background: var(--gain-500); }
 .sf-progress--done .sf-progress__alert { color: var(--gain-700); }
+
+/*
+ * Celular angosto: cifras y "Te quedan" siempre en su propia línea, a la derecha. Así todas las
+ * filas tienen la misma forma y se leen en columna, como un libro mayor.
+ */
+@media (max-width: 24rem) {
+  .sf-progress__amounts,
+  .sf-progress__detail {
+    flex-basis: 100%;
+    text-align: right;
+  }
+}

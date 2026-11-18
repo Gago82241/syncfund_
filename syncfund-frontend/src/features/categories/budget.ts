@@ -92,14 +92,18 @@ export async function fetchMonthSpend(
 }
 
 /** "a", "a y b", "a, b y c". */
-function joinParts(parts: string[]): string {
+function joinParts(parts: readonly string[]): string {
   return parts.length <= 1 ? parts.join('') : `${parts.slice(0, -1).join(', ')} y ${parts[parts.length - 1]}`;
 }
 
+/** Hasta este número de categorías en problema, la línea las nombra; con más, las cuenta. */
+const NAME_UP_TO = 3;
+
 /**
  * Una línea que responde "¿cómo voy?" sin sumar montos: un total de límites distintos escondería
- * que te pasaste en una categoría si te sobra en otra.
- * Ej.: "1 categoría pasada, 1 en el límite y 2 cerca del límite, de tus 5 con límite."
+ * que te pasaste en una categoría si te sobra en otra. Nombra las categorías en problema (hasta
+ * tres), en el orden de la lista; con más, las cuenta.
+ * Ej.: "Te pasaste en Mercado; Transporte llegó al límite y Salidas va cerca del límite."
  * null si no hay categorías.
  */
 export function budgetHeadline(limited: readonly BudgetLine[], unlimitedCount: number): string | null {
@@ -109,31 +113,39 @@ export function budgetHeadline(limited: readonly BudgetLine[], unlimitedCount: n
       ? null
       : 'Ninguna categoría tiene límite: aquí ves cuánto llevas gastado en cada una.';
   }
-  const statuses = limited.map((line) => budgetStatus(line.spent, line.limit));
-  const over = statuses.filter((s) => s === 'over').length;
-  const atLimit = statuses.filter((s) => s === 'limit').length;
-  const warn = statuses.filter((s) => s === 'warn').length;
+  const byStatus = (status: ReturnType<typeof budgetStatus>) =>
+    limited.filter((line) => budgetStatus(line.spent, line.limit) === status).map((line) => line.name);
+  const over = byStatus('over');
+  const atLimit = byStatus('limit');
+  const warn = byStatus('warn');
+  const problems = over.length + atLimit.length + warn.length;
 
-  if (over + atLimit + warn === 0) {
+  if (problems === 0) {
     return total === 1
       ? 'Vas bien en tu única categoría con límite.'
       : `Vas bien en tus ${total} categorías con límite.`;
   }
 
-  if (total === 1) {
-    if (over === 1) return 'Te pasaste en tu única categoría con límite.';
-    if (atLimit === 1) return 'Llegaste al límite en tu única categoría con límite.';
-    return 'Tu única categoría con límite está cerca del límite.';
+  const parts: string[] = [];
+  if (problems <= NAME_UP_TO) {
+    if (over.length > 0) parts.push(`Te pasaste en ${joinParts(over)}`);
+    if (atLimit.length > 0) {
+      parts.push(`${joinParts(atLimit)} ${atLimit.length === 1 ? 'llegó' : 'llegaron'} al límite`);
+    }
+    if (warn.length > 0) parts.push(`${joinParts(warn)} ${warn.length === 1 ? 'va' : 'van'} cerca del límite`);
+    return `${parts.join('; ')}.`;
   }
 
-  // El sustantivo va solo en la primera parte: "1 categoría pasada y 2 cerca del límite".
-  const parts: string[] = [];
-  const add = (n: number, text: string, plural = text) => {
-    const noun = parts.length === 0 ? (n === 1 ? 'categoría ' : 'categorías ') : '';
-    parts.push(`${n} ${noun}${n === 1 ? text : plural}`);
-  };
-  if (over > 0) add(over, 'pasada', 'pasadas');
-  if (atLimit > 0) add(atLimit, 'en el límite');
-  if (warn > 0) add(warn, 'cerca del límite');
-  return `${joinParts(parts)}, de tus ${total} con límite.`;
+  // Muchas: se cuentan. El sustantivo va en la primera parte que lo necesita.
+  const categories = (n: number) => `${n} ${n === 1 ? 'categoría' : 'categorías'}`;
+  if (over.length > 0) parts.push(`Te pasaste en ${categories(over.length)}`);
+  if (atLimit.length > 0) {
+    const who = parts.length === 0 ? categories(atLimit.length) : String(atLimit.length);
+    parts.push(`${who} ${atLimit.length === 1 ? 'llegó' : 'llegaron'} al límite`);
+  }
+  if (warn.length > 0) {
+    const who = parts.length === 0 ? categories(warn.length) : String(warn.length);
+    parts.push(`${who} ${warn.length === 1 ? 'va' : 'van'} cerca del límite`);
+  }
+  return `${parts.join('; ')}, de tus ${total} con límite.`;
 }

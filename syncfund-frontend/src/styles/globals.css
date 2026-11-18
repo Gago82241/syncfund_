@@ -21,6 +21,8 @@
   /* Fechas, metadatos y ayudas: 5.1:1 sobre papel y 4.6:1 sobre ink-100 y loss-100. */
   --ink-faint: #6A6860;
   --hairline: #DEDAD0;
+  /* Carril de las barras de progreso: 1.6:1 sobre papel, se ve aunque esté vacío. */
+  --track: #D3CDBE;
   /* Borde de campos: 3.4:1 sobre blanco (WCAG pide 3:1 para controles). */
   --field-border: #8F8B80;
 

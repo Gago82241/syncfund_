@@ -23,7 +23,8 @@ type Status = 'normal' | 'warn' | 'limit' | 'over' | 'done';
 
 /**
  * Barra de progreso accesible: el estado se dice en texto (porcentaje y aviso), no solo con
- * el color, y el lector de pantalla recibe el mismo resumen por aria-valuetext.
+ * el color, y el lector de pantalla recibe porcentaje y estado por aria-valuetext (sin repetir
+ * los montos, que ya lee en el texto).
  */
 export function ProgressBar({ label, value, max, kind = 'budget', format = formatCOP }: ProgressBarProps) {
   const labelId = useId();
@@ -62,7 +63,8 @@ export function ProgressBar({ label, value, max, kind = 'budget', format = forma
         aria-valuemin={0}
         aria-valuemax={100}
         aria-valuenow={fill}
-        aria-valuetext={[percentText, amounts, alert, detail].filter(Boolean).join(', ')}
+        // Solo porcentaje y estado: los montos y "Te quedan" ya se leen en el texto visible.
+        aria-valuetext={[percentText, alert].filter(Boolean).join(', ')}
       >
         <span className="sf-progress__fill" style={{ width: `${fill}%` }} />
       </div>
