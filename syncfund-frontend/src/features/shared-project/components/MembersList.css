@@ -129,10 +129,13 @@
   gap: var(--space-sm);
 }
 
-/* Móvil: las acciones de confirmación se apilan para que sean fáciles de tocar. */
+/*
+ * Móvil: las acciones de confirmación se apilan para que sean fáciles de tocar. "Cancelar" va
+ * primero (arriba) y "Eliminar" debajo, separado de donde cae el pulgar al confirmar por reflejo.
+ */
 @media (max-width: 640px) {
   .remove-member__actions {
-    flex-direction: column-reverse;
+    flex-direction: column;
   }
 }
 

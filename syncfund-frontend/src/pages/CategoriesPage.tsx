@@ -27,6 +27,9 @@ export function CategoriesPage() {
   const { showToast } = useToast();
   // formKey vuelve a montar el formulario en cada apertura: arranca limpio.
   const [panel, setPanel] = useState({ open: false, formKey: 0 });
+  const [reviewing, setReviewing] = useState(false);
+  // Categoría recién creada: la lista la resalta un momento y la trae a la vista (con 0 % va al final).
+  const [createdId, setCreatedId] = useState<number | null>(null);
   // La primera categoría se crea desde el estado vacío, cuyo botón desaparece con la lista nueva:
   // el foco pasa al contenido en vez de perderse en la página.
   const focusContentOnLoad = useRef(false);
@@ -39,6 +42,7 @@ export function CategoriesPage() {
   }, [lines]);
 
   function openPanel() {
+    setReviewing(false);
     setPanel((current) => ({ open: true, formKey: current.formKey + 1 }));
   }
 
@@ -49,6 +53,7 @@ export function CategoriesPage() {
   /** Si la recarga falla, el error dice que la categoría sí se creó (afterActionLoadError). */
   function handleCreated(category: CategoryResponse) {
     if (lines?.length === 0) focusContentOnLoad.current = true;
+    setCreatedId(category.categoryId);
     closePanel();
     showToast(`Categoría «${category.name}» creada`);
     refreshAfterAction();
@@ -76,6 +81,7 @@ export function CategoriesPage() {
       <>
         <PageHeader
           title={TITLE}
+          className="categories__header"
           meta={
             <>
               <Skeleton width="9rem" />
@@ -110,6 +116,7 @@ export function CategoriesPage() {
       <>
         <PageHeader
           title={TITLE}
+          className="categories__header"
           meta={
             <>
               <p className="categories__month">{capitalize(monthLabel)}</p>
@@ -124,13 +131,13 @@ export function CategoriesPage() {
         />
         {limited.length > 0 && (
           <Sheet title="Con límite" className="categories__sheet">
-            <LimitedCategoryList lines={limited} />
+            <LimitedCategoryList lines={limited} highlightId={createdId} month={month} />
           </Sheet>
         )}
         {unlimited.length > 0 && (
           <Sheet title="Sin límite" className="categories__sheet">
-            <p className="categories__sheet-note">Lo que llevas gastado en {monthLabel}, sin tope.</p>
-            <UnlimitedCategoryList lines={unlimited} />
+            <p className="categories__sheet-note">Lo que llevas gastado este mes, sin tope.</p>
+            <UnlimitedCategoryList lines={unlimited} highlightId={createdId} />
           </Sheet>
         )}
       </>
@@ -144,12 +151,15 @@ export function CategoriesPage() {
         open={panel.open}
         onClose={closePanel}
         title="Crear categoría"
-        description="Ponle un tope de gasto mensual a un tipo de gasto; la barra te avisa desde el 80 %."
+        description={
+          reviewing ? undefined : 'Ponle un tope de gasto mensual a un tipo de gasto; la barra te avisa desde el 80 %.'
+        }
       >
         <CreateCategoryForm
           key={panel.formKey}
           existingNames={lines?.map((line) => line.name) ?? []}
           onCreated={handleCreated}
+          onStepChange={setReviewing}
         />
       </Panel>
     </AppLayout>

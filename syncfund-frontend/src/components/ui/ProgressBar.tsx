@@ -11,7 +11,8 @@ interface ProgressBarProps {
   /**
    * budget: presupuesto de categoría ("Cerca del límite" desde 80 %, "Llegaste al límite" justo en
    *         el límite y "Te pasaste" al superarlo), con lo que te queda o cuánto te pasaste.
-   * goal: meta de ahorro (avanza en esmeralda; "Meta cumplida" al llegar al 100 %).
+   * goal: meta de ahorro (avanza en azul tinta; al llegar al 100 % pasa a esmeralda y dice
+   *       "Meta cumplida").
    */
   kind?: 'budget' | 'goal';
   /** Formato de los montos. Por defecto pesos colombianos. */
@@ -22,7 +23,8 @@ type Status = 'normal' | 'warn' | 'limit' | 'over' | 'done';
 
 /**
  * Barra de progreso accesible: el estado se dice en texto (porcentaje y aviso), no solo con
- * el color, y el lector de pantalla recibe el mismo resumen por aria-valuetext.
+ * el color, y el lector de pantalla recibe porcentaje y estado por aria-valuetext (sin repetir
+ * los montos, que ya lee en el texto).
  */
 export function ProgressBar({ label, value, max, kind = 'budget', format = formatCOP }: ProgressBarProps) {
   const labelId = useId();
@@ -61,7 +63,8 @@ export function ProgressBar({ label, value, max, kind = 'budget', format = forma
         aria-valuemin={0}
         aria-valuemax={100}
         aria-valuenow={fill}
-        aria-valuetext={[percentText, amounts, alert, detail].filter(Boolean).join(', ')}
+        // Solo porcentaje y estado: los montos y "Te quedan" ya se leen en el texto visible.
+        aria-valuetext={[percentText, alert].filter(Boolean).join(', ')}
       >
         <span className="sf-progress__fill" style={{ width: `${fill}%` }} />
       </div>

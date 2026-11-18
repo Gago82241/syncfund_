@@ -33,7 +33,8 @@ export function SummaryLedger({ summary }: { summary: DashboardSummary }) {
           <span className="visually-hidden">menos </span>
           Debes
         </dt>
-        <dd className={`summary-ledger__amount tabular-nums${summary.youOwe > 0 ? ' amount-loss' : ''}`}>
+        {/* En cero, atenuado: no debes nada y el renglón no debe pesar como una deuda. */}
+        <dd className={`summary-ledger__amount tabular-nums${summary.youOwe > 0 ? ' amount-loss' : ' summary-ledger__amount--zero'}`}>
           {formatCOP(summary.youOwe)}
         </dd>
       </div>

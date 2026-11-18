@@ -21,6 +21,8 @@ interface Props {
   /** Nombres de las categorías que ya existen: no se permite repetir uno. */
   existingNames: readonly string[];
   onCreated: (category: CategoryResponse) => void;
+  /** true en el paso de revisión: el panel oculta su descripción para no repetir el asiento. */
+  onStepChange?: (reviewing: boolean) => void;
 }
 
 type Step = 'form' | 'review';
@@ -40,7 +42,7 @@ function limitText(limit: number): string {
  * puede editar ni eliminar una categoría, la revisión muestra el límite tal como quedará.
  * Límite vacío = sin límite: se envía 0, que la app muestra como "Sin límite" (ver budget.ts).
  */
-export function CreateCategoryForm({ existingNames, onCreated }: Props) {
+export function CreateCategoryForm({ existingNames, onCreated, onStepChange }: Props) {
   const [step, setStep] = useState<Step>('form');
   const [name, setName] = useState('');
   const [limit, setLimit] = useState('');
@@ -60,9 +62,10 @@ export function CreateCategoryForm({ existingNames, onCreated }: Props) {
   useEffect(() => {
     if (previousStep.current === step) return;
     previousStep.current = step;
+    onStepChange?.(step === 'review');
     if (step === 'review') reviewTitleRef.current?.focus();
     if (step === 'form') formRef.current?.querySelector<HTMLInputElement>('input[name="name"]')?.focus();
-  }, [step, formRef]);
+  }, [step, formRef, onStepChange]);
 
   function nameError(): string | undefined {
     const missing = required(name, 'Escribe el nombre de la categoría');

@@ -4,6 +4,7 @@
  * Sin React ni peticiones: reciben lo que ya respondió el backend.
  */
 import { settle } from './balance';
+import { paymentsToSettle } from './payment';
 import type { ProjectBalancesResponse, SharedProjectResponse } from '../../types/api';
 
 export interface ProjectLine {
@@ -17,6 +18,10 @@ export interface ProjectLine {
    * null si no se pudo cargar: nunca se reemplaza por un cero ni por una cifra estimada.
    */
   net: number | null;
+  /** A quién le pagas para quedar al día (misma regla que el Detalle); vacío si no debes. */
+  payees: string[];
+  /** El saldo todavía no llega (la lista de Proyectos no espera a todos). */
+  balanceLoading?: boolean;
 }
 
 /**
@@ -35,6 +40,7 @@ export function toProjectLine(
     memberCount: project.memberIds.length,
     isAdmin: project.adminId === userId,
     net: me ? settle(me.netBalance) : null,
+    payees: balances ? paymentsToSettle(balances, userId).map((option) => option.payee.name) : [],
   };
 }
 
@@ -76,8 +82,8 @@ function projectsWord(count: number): string {
 /**
  * Una línea que resume la lista sin montos (los totales ya están en el Resumen, y sumar lo que
  * tienes a favor en un grupo con lo que debes en otro daría una cifra engañosa).
- * Nunca dice "no debes nada" si falta el saldo de algún proyecto.
- * null si no hay proyectos.
+ * Nunca dice "no debes nada" si falta el saldo de algún proyecto, ni repite el aviso de los
+ * saldos que no cargaron. null si no hay proyectos o si no cargó ningún saldo.
  */
 export function projectsHeadline(lines: readonly ProjectLine[]): string | null {
   const total = lines.length;
@@ -85,15 +91,13 @@ export function projectsHeadline(lines: readonly ProjectLine[]): string | null {
   const owe = lines.filter((l) => l.net !== null && l.net < 0).length;
   const inFavor = lines.filter((l) => l.net !== null && l.net > 0).length;
   const unknown = lines.filter((l) => l.net === null).length;
-  const missing = unknown > 0 ? ` Falta cargar tu saldo en ${unknown} ${projectsWord(unknown)}.` : '';
 
   if (owe > 0) {
-    return total === 1 ? 'Debes en tu único proyecto.' : `Debes en ${owe} de tus ${total} proyectos.${missing}`;
+    return total === 1 ? 'Debes en tu único proyecto.' : `Debes en ${owe} de tus ${total} proyectos.`;
   }
+  // Falta algún saldo: el aviso de abajo lo dice; aquí solo no se promete "no debes nada".
   if (unknown > 0) {
-    return total === 1
-      ? 'Falta cargar tu saldo en tu único proyecto.'
-      : `Falta cargar tu saldo en ${unknown} de tus ${total} proyectos.`;
+    return unknown === total ? null : 'No debes en los proyectos cuyo saldo cargó.';
   }
   if (inFavor > 0) {
     return `No debes nada; tienes saldo a tu favor en ${inFavor} ${projectsWord(inFavor)}.`;

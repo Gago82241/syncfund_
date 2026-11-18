@@ -71,7 +71,7 @@ export function describeLoadError(err: unknown, what: string): LoadErrorInfo {
     }
     if (status >= 500) {
       return {
-        message: `No pudimos cargar ${what} en este momento. Inténtalo de nuevo en unos minutos.`,
+        message: `No pudimos cargar ${what} en este momento. Vuelve a intentarlo.`,
         canRetry: true,
       };
     }

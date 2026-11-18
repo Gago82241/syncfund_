@@ -23,9 +23,19 @@ interface Props {
   onPaid: () => void;
   /** "Listo" en el aviso de cierre. */
   onFinish: () => void;
+  /** Avisa el paso actual: el panel cambia su título y su descripción según el paso. */
+  onStepChange?: (step: PayStep) => void;
 }
 
-type Step = 'amount' | 'review' | 'done';
+export type PayStep = 'amount' | 'review' | 'done';
+type Step = PayStep;
+
+/** Monto como en la página (sin centavos) y, si los tiene, también exacto. */
+function withExact(amount: number): string {
+  const rounded = formatCOP(amount);
+  const exact = formatCOPExact(amount);
+  return rounded === exact || Math.round(amount * 100) % 100 === 0 ? rounded : `${rounded} (exactos ${exact})`;
+}
 
 /** Monto para el campo: sin decimales si es entero, con 2 si tiene centavos. */
 function toInputValue(amount: number): string {
@@ -33,14 +43,28 @@ function toInputValue(amount: number): string {
   return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(2);
 }
 
-/** Aviso de cierre con la situación que devolvió el backend (no una cuenta del frontend). */
-function closingMessage(amount: number, payee: MemberBalance, after: ProjectBalancesResponse, payerId: number) {
+/**
+ * Cierre con la situación que devolvió el backend (no una cuenta del frontend): un titular que
+ * dice cómo quedaste y un renglón con el monto pagado.
+ */
+function closingMessage(
+  amount: number,
+  payee: MemberBalance,
+  after: ProjectBalancesResponse,
+  payerId: number,
+): { headline: string; detail: string; settled: boolean } {
   const paid = `Le pagaste ${formatCOPExact(amount)} a ${payee.name}.`;
-  if (!after.members.some((m) => m.userId === payerId)) return paid;
+  if (!after.members.some((m) => m.userId === payerId)) {
+    return { headline: `Le pagaste a ${payee.name}`, detail: paid, settled: false };
+  }
   const stillOwes = debtOf(after, payerId);
   return stillOwes > 0
-    ? `${paid} Aún debes ${formatCOPExact(stillOwes)} en este proyecto.`
-    : `${paid} Quedaste al día.`;
+    ? {
+        headline: `Le pagaste a ${payee.name}`,
+        detail: `${paid} Aún debes ${formatCOPExact(stillOwes)} en este proyecto.`,
+        settled: false,
+      }
+    : { headline: `Quedaste al día con ${payee.name}`, detail: paid, settled: true };
 }
 
 /**
@@ -48,14 +72,23 @@ function closingMessage(amount: number, payee: MemberBalance, after: ProjectBala
  * monto (con el sugerido ya puesto), revisión (de qué billetera a cuál; el fondo no cambia)
  * y aviso de cierre. El dinero solo se mueve al confirmar en la revisión.
  */
-export function SettleDebtForm({ projectId, payerId, debt, payee, suggestedAmount, onPaid, onFinish }: Props) {
+export function SettleDebtForm({
+  projectId,
+  payerId,
+  debt,
+  payee,
+  suggestedAmount,
+  onPaid,
+  onFinish,
+  onStepChange,
+}: Props) {
   const [step, setStep] = useState<Step>('amount');
   const [amount, setAmount] = useState(() => toInputValue(suggestedAmount));
   const [loading, setLoading] = useState(false);
-  const [closing, setClosing] = useState('');
+  const [closing, setClosing] = useState<ReturnType<typeof closingMessage> | null>(null);
   const sending = useRef(false);
   const reviewTitleRef = useRef<HTMLHeadingElement>(null);
-  const doneRef = useRef<HTMLDivElement>(null);
+  const doneRef = useRef<HTMLHeadingElement>(null);
   const previousStep = useRef<Step>(step);
   const { wallet } = usePersonalWallet(payerId);
   const { fieldErrors, formError, formRef, validate, showApiError, clearField } = useFormErrors(['amount']);
@@ -76,10 +109,11 @@ export function SettleDebtForm({ projectId, payerId, debt, payee, suggestedAmoun
   useEffect(() => {
     if (previousStep.current === step) return;
     previousStep.current = step;
+    onStepChange?.(step);
     if (step === 'review') reviewTitleRef.current?.focus();
     if (step === 'done') doneRef.current?.focus();
     if (step === 'amount') formRef.current?.querySelector<HTMLInputElement>('input[name="amount"]')?.focus();
-  }, [step, formRef]);
+  }, [step, formRef, onStepChange]);
 
   function handleReview(e: FormEvent) {
     e.preventDefault();
@@ -109,11 +143,18 @@ export function SettleDebtForm({ projectId, payerId, debt, payee, suggestedAmoun
     }
   }
 
-  if (step === 'done') {
+  if (step === 'done' && closing) {
+    // Sin role="status": el titular recibe el foco y se lee una sola vez.
     return (
-      <div ref={doneRef} className="settle-done" role="status" tabIndex={-1}>
-        <h3 className="settle-done__title">Pago registrado</h3>
-        <p className="settle-done__message tabular-nums">{closing}</p>
+      <div className="settle-done sf-enter">
+        <h3
+          ref={doneRef}
+          tabIndex={-1}
+          className={`settle-done__title${closing.settled ? ' settle-done__title--settled' : ''}`}
+        >
+          {closing.headline}
+        </h3>
+        <p className="settle-done__message tabular-nums">{closing.detail}</p>
         <Button onClick={onFinish}>Listo</Button>
       </div>
     );
@@ -170,7 +211,7 @@ export function SettleDebtForm({ projectId, payerId, debt, payee, suggestedAmoun
   return (
     <form ref={formRef} onSubmit={handleReview} noValidate className="project-form">
       <p className="project-form__note">
-        Debes <strong className="tabular-nums">{formatCOPExact(debt)}</strong> en el proyecto.
+        Debes <strong className="tabular-nums">{withExact(debt)}</strong> en el proyecto.
         {available !== undefined && (
           <>
             {' '}

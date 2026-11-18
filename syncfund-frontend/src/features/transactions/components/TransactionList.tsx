@@ -22,13 +22,17 @@ interface Props {
 /**
  * Detalle de un movimiento del proyecto a partir de involvedIdsList. Nunca supone un autor:
  * si el dato no está (aportes antiguos sin aportante) o la persona ya no es integrante, se
- * dice solo qué fue ("Aporte"), sin nombre.
+ * dice qué fue ("Aporte sin aportante", "Aporte de un exintegrante"), sin nombre.
  */
 function projectDetail(tx: TransactionResponse, names: ReadonlyMap<number, string>): string | null {
   const ids = tx.involvedIdsList ?? [];
   const firstName = ids.length > 0 ? names.get(ids[0]) : undefined;
 
-  if (tx.type === 'INGRESO') return firstName ? `Aporte de ${firstName}` : 'Aporte';
+  if (tx.type === 'INGRESO') {
+    if (firstName) return `Aporte de ${firstName}`;
+    // Mismo término que la tabla de situación; si hay aportante pero ya no está, se dice así.
+    return ids.length === 0 ? 'Aporte sin aportante' : 'Aporte de un exintegrante';
+  }
   if (tx.type === 'ABONO') return firstName ? `Pago de ${firstName}` : null;
   if (tx.type === 'GASTO') {
     if (ids.length === 0) return null;

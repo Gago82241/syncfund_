@@ -7,21 +7,30 @@ interface SheetProps {
   headingLevel?: 2 | 3;
   /** Acción secundaria a la derecha del título (ej. "Ver todo"). */
   action?: ReactNode;
+  /**
+   * Oculta el título a la vista (sigue para el lector de pantalla y para el orden de títulos).
+   * Para una hoja única cuyo título repetiría el h1 de la página.
+   */
+  titleHidden?: boolean;
   children: ReactNode;
   className?: string;
 }
 
 /** Hoja de papel blanco con título de sección y línea fina. Sin sombra: es plana. */
-export function Sheet({ title, headingLevel = 2, action, children, className }: SheetProps) {
+export function Sheet({ title, headingLevel = 2, action, titleHidden, children, className }: SheetProps) {
   const titleId = useId();
   const Heading = headingLevel === 3 ? 'h3' : 'h2';
 
   return (
     <section className={['sf-sheet', className].filter(Boolean).join(' ')} aria-labelledby={titleId}>
-      <div className="sf-sheet__header">
-        <Heading id={titleId} className="sf-sheet__title">{title}</Heading>
-        {action && <div className="sf-sheet__action">{action}</div>}
-      </div>
+      {titleHidden ? (
+        <Heading id={titleId} className="visually-hidden">{title}</Heading>
+      ) : (
+        <div className="sf-sheet__header">
+          <Heading id={titleId} className="sf-sheet__title">{title}</Heading>
+          {action && <div className="sf-sheet__action">{action}</div>}
+        </div>
+      )}
       <div className="sf-sheet__body">{children}</div>
     </section>
   );

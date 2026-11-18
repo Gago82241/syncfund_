@@ -27,8 +27,10 @@
   text-underline-offset: 2px;
 }
 
-.sf-chips__toggle:hover {
-  color: var(--ink-900);
+@media (hover: hover) {
+  .sf-chips__toggle:hover {
+    color: var(--ink-900);
+  }
 }
 
 .sf-chips__list {
@@ -48,13 +50,18 @@
   border-radius: var(--radius-lg);
   background: var(--paper);
   color: var(--ink);
-  font-size: 0.9375rem;
+  font-size: var(--text-small);
   cursor: pointer;
-  transition: background-color 0.15s ease, border-color 0.15s ease;
+  transition:
+    background-color var(--duration-fast) var(--ease-out),
+    border-color var(--duration-fast) var(--ease-out);
 }
 
-.sf-chip:hover {
-  border-color: var(--ink-600);
+/* Solo con cursor: en el celular el hover quedaría pegado tras tocar. */
+@media (hover: hover) {
+  .sf-chip:hover {
+    border-color: var(--ink-600);
+  }
 }
 
 .sf-chip--selected {

@@ -11,7 +11,7 @@ interface FormErrorProps {
 export function FormError({ message, ref }: FormErrorProps) {
   if (!message) return null;
   return (
-    <p ref={ref} className="sf-form-error" role="alert" tabIndex={-1}>
+    <p ref={ref} className="sf-form-error sf-enter" role="alert" tabIndex={-1}>
       {message}
     </p>
   );

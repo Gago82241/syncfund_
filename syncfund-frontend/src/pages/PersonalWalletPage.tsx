@@ -1,4 +1,5 @@
-import { useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { AppLayout } from '../components/layout/AppLayout';
 import { PageColumns } from '../components/layout/PageColumns';
 import { Button } from '../components/ui/Button';
@@ -20,16 +21,26 @@ import { WalletLedger } from '../features/personal-wallet/components/WalletLedge
 import { savedMovementMessage } from '../features/personal-wallet/movementMessage';
 import { useCategoryNames } from '../features/personal-wallet/hooks/useCategoryNames';
 import { usePersonalWallet } from '../features/personal-wallet/hooks/usePersonalWallet';
-import { walletFigures } from '../features/personal-wallet/walletFigures';
+import {
+  filterByCategoryMonth,
+  parseCategoryMonthFilter,
+  walletFigures,
+} from '../features/personal-wallet/walletFigures';
 import { TransactionList } from '../features/transactions/components/TransactionList';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
+import { useMediaQuery } from '../hooks/useMediaQuery';
 import { formatCOP } from '../styles/theme';
+import { capitalize, formatMonthLabel } from '../utils/formatDate';
 import './PersonalWalletPage.css';
 
 const TITLE = 'Billetera personal';
 const FIGURE_LABEL = 'Disponible';
-/** Filas por tanda en Movimientos: así meta y colchón no quedan enterrados en el celular. */
+/**
+ * Filas por tanda en Movimientos. En el celular la meta y el colchón van debajo de la lista:
+ * con 8 filas quedan a poca distancia; en escritorio van en la columna de al lado.
+ */
 const MOVEMENTS_PAGE = 20;
+const MOVEMENTS_PAGE_MOBILE = 8;
 
 type MovementType = 'INGRESO' | 'GASTO';
 type PanelKind = 'movement' | 'goal' | 'cushion';
@@ -59,6 +70,35 @@ export function PersonalWalletPage() {
   const categories = useCategoryNames();
   const [panel, setPanel] = useState<PanelState>({ open: false, kind: 'movement', type: 'GASTO', formKey: 0 });
   useDocumentTitle(`${TITLE} · SyncFund`);
+  const isMobile = useMediaQuery('(max-width: 639px)');
+  const pageSize = isMobile ? MOVEMENTS_PAGE_MOBILE : MOVEMENTS_PAGE;
+
+  // Filtro que llega desde Categorías ("Ver gastos de Mercado"): categoría y mes en la URL, para
+  // que "Atrás" vuelva a Categorías y recargar no lo pierda.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const filter = parseCategoryMonthFilter(searchParams.get('categoria'), searchParams.get('mes'));
+  const hasFilterParams = searchParams.has('categoria') || searchParams.has('mes');
+  // Una categoría que no existe (o parámetros mal formados) no filtra nada: se quitan de la URL.
+  const unknownCategory = filter !== null && categories.loaded && !categories.names.has(filter.categoryId);
+  const invalidFilter = hasFilterParams && (filter === null || unknownCategory);
+
+  useEffect(() => {
+    if (invalidFilter) clearFilter();
+    // clearFilter solo usa setSearchParams, que es estable.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [invalidFilter]);
+
+  function clearFilter() {
+    setSearchParams(
+      (params) => {
+        const next = new URLSearchParams(params);
+        next.delete('categoria');
+        next.delete('mes');
+        return next;
+      },
+      { replace: true },
+    );
+  }
 
   function openPanel(kind: PanelKind, type: MovementType = 'GASTO') {
     setPanel((current) => ({ open: true, kind, type, formKey: current.formKey + 1 }));
@@ -127,12 +167,21 @@ export function PersonalWalletPage() {
     );
   } else {
     const figures = walletFigures(wallet);
+    const activeFilter = filter && !invalidFilter ? filter : null;
+    const filtered = activeFilter ? filterByCategoryMonth(transactions, activeFilter) : null;
+    const filterCategoryName = activeFilter
+      ? (categories.names.get(activeFilter.categoryId) ?? 'esta categoría')
+      : '';
+    const filterMonthLabel = activeFilter ? formatMonthLabel(activeFilter.month) : '';
+    // Primera visita: sin nada que sumar ni que mover, la suma y el colchón no aportan.
+    const allZero = figures.available === 0 && figures.cushion === 0;
     content = (
       <>
         <PageHeader
           title={TITLE}
           figure={{ label: FIGURE_LABEL, value: formatCOP(figures.available) }}
-          meta={<WalletLedger figures={figures} />}
+          // Sin colchón, Disponible y Total son la misma cifra: la suma solo repetiría.
+          meta={figures.cushion > 0 ? <WalletLedger figures={figures} /> : undefined}
           fixedActionOnMobile
           action={
             <Button onClick={() => openPanel('movement')}>
@@ -144,14 +193,6 @@ export function PersonalWalletPage() {
 
         <PageColumns variant="main-aside">
           <Sheet title="Movimientos">
-            {figures.cushion > 0 && (
-              // No es un movimiento: explica por qué el disponible no cuadra con la lista, sin inventar filas.
-              <p className="wallet__cushion-note">
-                Tienes <strong className="tabular-nums">{formatCOP(figures.cushion)}</strong> en el colchón.
-                Apartar y liberar no aparecen en esta lista: mueven dinero entre tu disponible y tu colchón,
-                y tu total no cambia.
-              </p>
-            )}
             {categories.failed && transactions.some((tx) => tx.categoryId !== null) && (
               <p className="wallet__categories-note" role="status">
                 No pudimos cargar los nombres de tus categorías; los movimientos se muestran sin ellos.{' '}
@@ -165,16 +206,46 @@ export function PersonalWalletPage() {
                 </button>
               </p>
             )}
+            {activeFilter && filtered && (
+              <div className="wallet__filter" role="status">
+                <p className="wallet__filter-text">
+                  <span className="wallet__filter-name">
+                    {filterCategoryName} · {capitalize(filterMonthLabel)}
+                  </span>
+                  <span className="wallet__filter-total tabular-nums">
+                    Total: {formatCOP(filtered.total)}
+                  </span>
+                </p>
+                <button type="button" className="wallet__retry" onClick={clearFilter}>
+                  Quitar filtro
+                </button>
+              </div>
+            )}
             <TransactionList
-              transactions={transactions}
+              // Al cambiar de celular a escritorio (o al revés), o al poner o quitar el filtro, la
+              // lista arranca con la primera tanda.
+              key={`${pageSize}-${activeFilter ? `${activeFilter.categoryId}-${activeFilter.month}` : 'todo'}`}
+              transactions={filtered ? filtered.transactions : transactions}
               categoryNames={categories.names}
-              pageSize={MOVEMENTS_PAGE}
+              pageSize={pageSize}
               empty={
-                <EmptyState
-                  title="Aún no tienes movimientos"
-                  description="Registra lo que recibes y lo que gastas, y aquí verás cada peso que entra y sale de tu billetera."
-                  action={<Button onClick={() => openPanel('movement', 'INGRESO')}>Registra tu primer ingreso</Button>}
-                />
+                filtered ? (
+                  <EmptyState
+                    title={`No hay gastos de ${filterCategoryName} en ${filterMonthLabel}`}
+                    description="Aquí aparecen los gastos de tu billetera personal con esta categoría."
+                  />
+                ) : (
+                  <EmptyState
+                    title="Aún no tienes movimientos"
+                    description="Registra lo que recibes y lo que gastas, y aquí verás cada peso que entra y sale de tu billetera."
+                    // Secundario: "Registrar movimiento" ya es la acción principal de la página.
+                    action={
+                      <Button variant="ghost" onClick={() => openPanel('movement', 'INGRESO')}>
+                        Registra tu primer ingreso
+                      </Button>
+                    }
+                  />
+                )
               }
             />
           </Sheet>
@@ -185,7 +256,10 @@ export function PersonalWalletPage() {
               transactions={transactions}
               onEdit={() => openPanel('goal')}
             />
-            <CushionSheet cushion={figures.cushion} onManage={() => openPanel('cushion')} />
+            <CushionSheet
+              cushion={figures.cushion}
+              onManage={allZero ? undefined : () => openPanel('cushion')}
+            />
           </div>
         </PageColumns>
       </>

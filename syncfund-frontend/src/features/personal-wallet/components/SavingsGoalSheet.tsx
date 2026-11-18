@@ -88,6 +88,8 @@ export function SavingsGoalSheet({ walletId, goal, transactions, onEdit }: Props
 
   const monthKey = currentMonthKey();
   const savings = monthSavings(transactions, monthKey);
+  const reached = savings.total >= goal;
+  const monthName = formatMonthLabel(monthKey).split(' de ')[0];
 
   return (
     <Sheet
@@ -98,18 +100,16 @@ export function SavingsGoalSheet({ walletId, goal, transactions, onEdit }: Props
         </button>
       }
     >
+      {reached && (
+        // El momento de la meta: un titular corto, en esmeralda; la barra dice "Meta cumplida".
+        <p className="wallet-sheet__reached">Cumpliste tu meta de {monthName}</p>
+      )}
       <ProgressBar
         label={capitalize(formatMonthLabel(monthKey))}
         value={Math.max(savings.total, 0)}
         max={goal}
         kind="goal"
       />
-
-      {savings.total < 0 && (
-        <p className="wallet-sheet__against">
-          Este mes salió <span className="tabular-nums">{formatCOP(-savings.total)}</span> más de lo que entró.
-        </p>
-      )}
 
       {savings.lines.length > 0 ? (
         <dl className="wallet-ledger wallet-sheet__ledger">
@@ -128,7 +128,8 @@ export function SavingsGoalSheet({ walletId, goal, transactions, onEdit }: Props
               Ahorro del mes
             </dt>
             <dd className="wallet-ledger__amount tabular-nums">
-              {savings.total < 0 ? `−${formatCOP(-savings.total)}` : formatCOP(savings.total)}
+              {/* Mismo signo con espacio que los renglones de la cuenta ("− $ 25.000"). */}
+              {savings.total < 0 ? `−\u00a0${formatCOP(-savings.total)}` : formatCOP(savings.total)}
             </dd>
           </div>
         </dl>
@@ -136,12 +137,12 @@ export function SavingsGoalSheet({ walletId, goal, transactions, onEdit }: Props
         <p className="wallet-sheet__note">Aún no hay movimientos este mes.</p>
       )}
 
-      <p className="wallet-sheet__note">
-        Cuenta todo lo que entró y salió de tu billetera este mes. El colchón no cuenta: no es un movimiento.
-      </p>
-      {quota && (
+      <p className="wallet-sheet__note">Cuenta todo lo que entró y salió de tu billetera este mes.</p>
+      {/* La cuota es la meta repartida en el mes (cálculo del backend), no lo que te falta: se
+          nombra como ritmo y se oculta cuando la meta ya está cumplida. */}
+      {quota && !reached && (
         <p className="wallet-sheet__note tabular-nums">
-          Para lograrla: {formatCOP(quota.biweekly)} por quincena · {formatCOP(quota.daily)} por día.
+          Ritmo de la meta: {formatCOP(quota.biweekly)} por quincena · {formatCOP(quota.daily)} por día.
         </p>
       )}
     </Sheet>

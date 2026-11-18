@@ -4,6 +4,9 @@ import { HALF_CENT } from '../balance';
 import { payableMember } from '../payment';
 import './ProjectStatusTable.css';
 
+/** Con más pagos sugeridos que estos, la lista del grupo se pliega. */
+const FOLD_AFTER = 3;
+
 interface Props {
   currentUserId: number;
   balances: ProjectBalancesResponse;
@@ -40,6 +43,18 @@ function PaymentsNote({ member }: { member: MemberBalance }) {
 export function ProjectStatusTable({ currentUserId, balances, onPay }: Props) {
   const nameOf = (userId: number) => balances.members.find((m) => m.userId === userId)?.name ?? 'Integrante';
   const hasUnassigned = Math.abs(balances.unassigned) > HALF_CENT;
+  // Tus propios pagos ya están en la línea "Para quedar al día… Pagar" del encabezado: aquí no se repiten.
+  const others = balances.suggestedPayments.filter((p) => p.fromUserId !== currentUserId);
+  const suggestionList = (
+    <ul>
+      {others.map((p) => (
+        <li key={`${p.fromUserId}-${p.toUserId}`}>
+          {nameOf(p.fromUserId)} le paga <span className="tabular-nums">{formatCOP(p.amount)}</span> a{' '}
+          {p.toUserId === currentUserId ? 'ti' : nameOf(p.toUserId)}
+        </li>
+      ))}
+    </ul>
+  );
 
   return (
     <div className="status-table">
@@ -94,7 +109,7 @@ export function ProjectStatusTable({ currentUserId, balances, onPay }: Props) {
         <tfoot>
           {hasUnassigned && (
             <tr className="status-table__row status-table__row--total">
-              <th scope="row" colSpan={3}>Aportes antiguos sin aportante</th>
+              <th scope="row" colSpan={3}>Aportes sin aportante</th>
               <td className="status-table__num tabular-nums" data-label="Monto">{formatCOP(balances.unassigned)}</td>
               <td />
             </tr>
@@ -116,18 +131,17 @@ export function ProjectStatusTable({ currentUserId, balances, onPay }: Props) {
         </tfoot>
       </table>
 
-      {balances.suggestedPayments.length > 0 && (
+      {others.length > 0 && (
         <div className="status-table__suggestions">
           <h2 className="status-table__suggestions-title">Para quedar al día</h2>
-          <ul>
-            {balances.suggestedPayments.map((p) => (
-              <li key={`${p.fromUserId}-${p.toUserId}`}>
-                {p.fromUserId === currentUserId ? 'Tú le pagas' : `${nameOf(p.fromUserId)} le paga`}{' '}
-                <span className="tabular-nums">{formatCOP(p.amount)}</span> a{' '}
-                {p.toUserId === currentUserId ? 'ti' : nameOf(p.toUserId)}
-              </li>
-            ))}
-          </ul>
+          {others.length > FOLD_AFTER ? (
+            <details className="status-table__fold">
+              <summary>Ver los {others.length} pagos sugeridos entre integrantes</summary>
+              {suggestionList}
+            </details>
+          ) : (
+            suggestionList
+          )}
         </div>
       )}
     </div>

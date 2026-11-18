@@ -26,6 +26,7 @@ export const colors = {
   inkMuted: '#5B5A54',  // texto secundario
   inkFaint: '#6A6860',  // fechas y metadatos — 5.1:1 sobre papel, 4.6:1 sobre ink100
   hairline: '#DEDAD0',  // líneas divisorias finas
+  track: '#D3CDBE',     // carril de las barras de progreso — 1.6:1 sobre papel
   fieldBorder: '#8F8B80', // borde de campos — 3.4:1 sobre blanco (controles: 3:1)
 
   gain700: '#1E7259',  // texto de montos a favor e ingresos (5.3:1)

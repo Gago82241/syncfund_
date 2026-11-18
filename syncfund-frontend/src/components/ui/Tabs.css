@@ -17,6 +17,14 @@
   display: none;
 }
 
+/* A 320 px las tres pestañas del Detalle se pasaban 3 px y "Integrantes" quedaba cortada:
+   con menos espacio entre ellas caben enteras. */
+@media (max-width: 360px) {
+  .sf-tabs__list {
+    gap: var(--space-md);
+  }
+}
+
 .sf-tabs__tab {
   flex: none;
   min-height: var(--tap-target);

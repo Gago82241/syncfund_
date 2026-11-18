@@ -20,7 +20,9 @@ export function PasswordInput({ label, error, hint, id, className, ...rest }: Pa
   const errorId = `${inputId}-error`;
   const [visible, setVisible] = useState(false);
 
-  const describedBy = [hint && hintId, error && errorId].filter(Boolean).join(' ');
+  // Con error se oculta la ayuda: el error ya dice qué corregir y los dos apilados se leían doble.
+  const showHint = hint && !error;
+  const describedBy = [showHint && hintId, error && errorId].filter(Boolean).join(' ');
   const inputClassName = ['sf-field__input', 'sf-password__input', error && 'sf-field__input--error', className]
     .filter(Boolean)
     .join(' ');
@@ -50,7 +52,7 @@ export function PasswordInput({ label, error, hint, id, className, ...rest }: Pa
           {visible ? 'Ocultar' : 'Mostrar'}
         </button>
       </div>
-      {hint && <span id={hintId} className="sf-field__hint">{hint}</span>}
+      {showHint && <span id={hintId} className="sf-field__hint">{hint}</span>}
       <FieldError id={errorId} message={error} />
     </div>
   );

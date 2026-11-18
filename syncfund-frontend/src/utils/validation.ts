@@ -43,7 +43,7 @@ export const PASSWORD_MAX_BYTES = 72;
  */
 export function passwordBytes(value: string): string | undefined {
   return new TextEncoder().encode(value).length > PASSWORD_MAX_BYTES
-    ? 'La contraseña puede tener máximo 72 caracteres (las tildes y la ñ cuentan doble)'
+    ? 'Es demasiado larga. Usa una más corta (máximo 72; las tildes, la ñ y los emojis ocupan más).'
     : undefined;
 }
 

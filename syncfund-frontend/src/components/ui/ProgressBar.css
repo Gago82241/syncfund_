@@ -23,12 +23,14 @@
   margin-left: auto;
   font-size: var(--text-small);
   color: var(--ink-muted);
-  white-space: nowrap;
+  text-align: right;
+  /* Cada monto lleva espacio duro tras el "$": con cifras enormes parte solo en " de ". */
 }
 
 .sf-progress__track {
   height: var(--space-xs);
-  background: var(--ledger-100);
+  /* Carril visible también vacío (1.6:1 sobre papel); el texto lleva la información. */
+  background: var(--track);
   border-radius: var(--radius-sm);
   overflow: hidden;
 }
@@ -59,17 +61,26 @@
 .sf-progress__state {
   display: flex;
   flex-wrap: wrap;
-  gap: calc(var(--space-xs) / 2) var(--space-sm);
+  gap: calc(var(--space-xs) / 2) var(--space-lg);
+  /* El "·" vive en el hueco, a la izquierda de su elemento: si el aviso baja de línea, queda
+     fuera de la caja y se recorta (antes colgaba al inicio de la segunda línea). */
+  overflow: hidden;
 }
 
 .sf-progress__detail {
   margin-left: auto;
-  white-space: nowrap;
+  text-align: right;
+}
+
+.sf-progress__state > * + * {
+  position: relative;
 }
 
 .sf-progress__state > * + *::before {
   content: '·';
-  margin-right: var(--space-sm);
+  position: absolute;
+  left: calc(var(--space-lg) / -2);
+  transform: translateX(-50%);
   color: var(--ink-muted);
   font-weight: 400;
 }
@@ -85,3 +96,15 @@
 
 .sf-progress--done .sf-progress__fill { background: var(--gain-500); }
 .sf-progress--done .sf-progress__alert { color: var(--gain-700); }
+
+/*
+ * Celular angosto: cifras y "Te quedan" siempre en su propia línea, a la derecha. Así todas las
+ * filas tienen la misma forma y se leen en columna, como un libro mayor.
+ */
+@media (max-width: 24rem) {
+  .sf-progress__amounts,
+  .sf-progress__detail {
+    flex-basis: 100%;
+    text-align: right;
+  }
+}

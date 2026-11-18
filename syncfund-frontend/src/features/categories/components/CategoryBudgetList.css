@@ -23,6 +23,17 @@
   border-top: 1px solid var(--hairline);
 }
 
+/* Enlace a los gastos de la categoría: secundario, con área táctil de 44 px. */
+.category-budget-list__link {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--tap-target);
+  margin-bottom: calc(var(--space-sm) * -1);
+  font-size: var(--text-small);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
 /* Renglón sin límite: nombre a la izquierda, lo gastado a la derecha (abajo si no cabe). */
 .category-spend-list__row {
   display: flex;
@@ -52,4 +63,23 @@
   margin-left: auto;
   font-size: var(--text-small);
   white-space: nowrap;
+}
+
+/*
+ * Categoría recién creada: un fondo esmeralda claro que se desvanece en algo más de un segundo,
+ * para encontrarla en la lista. Con "reducir movimiento" no se anima (globals.css) y no se ve.
+ */
+.category-row--new {
+  animation: sf-row-new 1.2s var(--ease-out);
+  /* Al traerla a la vista, que no quede debajo de la acción fija y la barra del celular. */
+  scroll-margin-bottom: calc(var(--action-bar-height) + var(--nav-bar-height) + var(--space-md));
+}
+
+@keyframes sf-row-new {
+  from {
+    background-color: var(--gain-100);
+  }
+  to {
+    background-color: transparent;
+  }
 }

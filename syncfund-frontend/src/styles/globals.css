@@ -21,6 +21,8 @@
   /* Fechas, metadatos y ayudas: 5.1:1 sobre papel y 4.6:1 sobre ink-100 y loss-100. */
   --ink-faint: #6A6860;
   --hairline: #DEDAD0;
+  /* Carril de las barras de progreso: 1.6:1 sobre papel, se ve aunque esté vacío. */
+  --track: #D3CDBE;
   /* Borde de campos: 3.4:1 sobre blanco (WCAG pide 3:1 para controles). */
   --field-border: #8F8B80;
 
@@ -159,6 +161,32 @@ button {
 :focus-visible {
   outline: 2px solid var(--ink-600);
   outline-offset: 2px;
+}
+
+/*
+ * Entradas cortas para lo que aparece en su lugar (avisos, el cierre de un pago, un saldo que
+ * llega). Solo opacidad y transform; con "reducir movimiento", la regla de abajo las deja en el
+ * estado final al instante. --enter-duration permite el paso de panel (200 ms) donde haga falta.
+ */
+.sf-enter {
+  animation: sf-enter var(--enter-duration, var(--duration-fast)) var(--ease-out) both;
+}
+
+.sf-fade-in {
+  animation: sf-fade-in var(--duration-fast) var(--ease-out) both;
+}
+
+@keyframes sf-enter {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+
+@keyframes sf-fade-in {
+  from {
+    opacity: 0;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

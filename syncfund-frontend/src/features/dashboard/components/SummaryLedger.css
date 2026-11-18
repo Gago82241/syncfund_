@@ -46,6 +46,7 @@
 /* Con monto, el color dice a favor o en contra; el texto ("A tu favor", "Debes") ya lo dice también. */
 .summary-ledger__amount.amount-gain { color: var(--gain-700); }
 .summary-ledger__amount.amount-loss { color: var(--loss-700); }
+.summary-ledger__amount--zero { font-weight: 400; color: var(--ink-muted); }
 
 .summary-ledger__note {
   grid-column: 1 / -1;

@@ -12,6 +12,8 @@ import { useFormErrors } from '../hooks/useFormErrors';
 import { email as validateEmail, required } from '../utils/validation';
 import { CONNECTION_ERROR_MESSAGE } from '../utils/apiError';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
+import { SLOW_HINT_MESSAGE, useSlowHint } from '../hooks/useSlowHint';
+import { clearSessionExpired, isSessionExpiredMarked } from '../utils/authStorage';
 
 /** El backend responde 422 "Credenciales inválidas" sin decir cuál de los dos falló, a propósito. */
 const WRONG_CREDENTIALS_MESSAGE = 'Correo o contraseña incorrectos. Revisa los dos e inténtalo de nuevo.';
@@ -31,6 +33,13 @@ export function LoginPage() {
   const [email, setEmail] = useState(prefilledEmail);
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const slow = useSlowHint(loading);
+  // Llegó aquí porque el backend rechazó una sesión guardada: se dice una vez, sin tono de error.
+  // Se lee al montar y se borra en el efecto (el inicializador puede correr dos veces en desarrollo).
+  const [sessionExpired] = useState(isSessionExpiredMarked);
+  useEffect(() => {
+    clearSessionExpired();
+  }, []);
   const formErrorRef = useRef<HTMLParagraphElement>(null);
   const { fieldErrors, formError, formRef, validate, showApiError, showFormError, clearField } =
     useFormErrors(['email', 'password']);
@@ -69,9 +78,12 @@ export function LoginPage() {
     <AuthLayout>
       <h1 className="auth-form__title">Inicia sesión</h1>
       <p className="auth-form__lead">Usa el correo con el que te registraste.</p>
+      {sessionExpired && (
+        <p className="auth-form__notice">Tu sesión venció. Vuelve a entrar para seguir.</p>
+      )}
       <form ref={formRef} onSubmit={handleSubmit} noValidate aria-busy={loading || undefined}>
         <Input
-          label="Correo"
+          label="Correo electrónico"
           type="email"
           name="email"
           inputMode="email"
@@ -105,12 +117,18 @@ export function LoginPage() {
         />
         <FormError ref={formErrorRef} message={formError} />
         <Button type="submit" loading={loading} loadingText="Entrando…">Entrar</Button>
+        {/* Región viva siempre presente: si naciera con el texto, el lector podría no anunciarlo. */}
+        <p className="auth-form__slow" aria-live="polite">
+          {/* El botón se desactiva al enviar y el foco se pierde: el lector oye la espera aquí. */}
+          {loading && !slow && <span className="visually-hidden">Entrando…</span>}
+          {slow && <span className="auth-form__slow-text sf-enter">{SLOW_HINT_MESSAGE}</span>}
+        </p>
       </form>
-      <p className="auth-form__note">
-        ¿Olvidaste tu contraseña? Por ahora SyncFund no permite recuperarla desde la app.
-      </p>
       <p className="auth-form__switch">
         ¿No tienes cuenta? <Link to="/register">Regístrate</Link>
+      </p>
+      <p className="auth-form__note">
+        ¿Olvidaste tu contraseña? Por ahora SyncFund no permite recuperarla desde la app.
       </p>
     </AuthLayout>
   );

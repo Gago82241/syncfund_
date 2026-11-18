@@ -137,6 +137,16 @@
   text-wrap: pretty;
 }
 
+/* Lista del grupo plegada: el resumen es un control de 44 px, como cualquier botón. */
+.status-table__fold summary {
+  display: flex;
+  align-items: center;
+  min-height: var(--tap-target);
+  font-weight: 600;
+  color: var(--ink-600);
+  cursor: pointer;
+}
+
 /* Móvil: cada integrante se apila como una tarjeta con sus etiquetas. */
 @media (max-width: 640px) {
   .status-table__table thead {
@@ -168,16 +178,26 @@
     padding: 0.25rem 0.5rem;
   }
 
+  /* La etiqueta empuja el monto a la derecha; si la etiqueta ocupa la línea, el monto baja y
+     sigue a la derecha (con space-between quedaba suelto a la izquierda). */
   .status-table__table td[data-label] {
     display: flex;
-    justify-content: space-between;
-    gap: 1rem;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 0 var(--space-md);
+  }
+
+  /* "Pagó…" o "Recibió…" en su propio renglón, a la derecha: el saldo no queda al centro. */
+  .status-table__table td[data-label] .status-table__note {
+    flex-basis: 100%;
+    text-align: right;
   }
 
   .status-table__table td[data-label]::before {
     content: attr(data-label);
+    margin-right: auto;
     color: var(--ink-muted);
-    font-size: 0.8125rem;
+    font-size: var(--text-label);
     text-align: left;
   }
 
@@ -185,13 +205,10 @@
     display: none;
   }
 
+  /* "Pagar" compacto a la derecha también en el celular: no se toca sin querer al desplazar. */
   .status-table__action {
     width: 100%;
-    text-align: left;
-  }
-
-  .status-table__pay {
-    width: 100%;
+    text-align: right;
   }
 
   .status-table__row--total {

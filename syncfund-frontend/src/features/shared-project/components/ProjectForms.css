@@ -40,12 +40,12 @@
 }
 
 .settle-review__title:focus,
-.settle-done:focus {
+.settle-done__title:focus {
   outline: none;
 }
 
 .settle-review__title:focus-visible,
-.settle-done:focus-visible {
+.settle-done__title:focus-visible {
   outline: 2px solid var(--ink-600);
   outline-offset: 2px;
   border-radius: var(--radius-sm);
@@ -125,6 +125,19 @@
 .settle-done {
   display: grid;
   gap: var(--space-md);
+  /* El cierre del pago entra completo (titular, detalle y "Listo") con el paso de panel:
+     un solo cambio de paso, sin que el titular quede más tenue que el texto de abajo. */
+  --enter-duration: var(--duration-panel);
+}
+
+/* Quedar al día es el momento del pago: titular en Fraunces y esmeralda, un paso más grande. */
+.settle-done__title {
+  text-wrap: balance;
+}
+
+.settle-done__title--settled {
+  font-size: var(--text-headline);
+  color: var(--gain-700);
 }
 
 .settle-done__message {

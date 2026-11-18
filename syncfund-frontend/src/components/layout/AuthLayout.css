@@ -1,4 +1,6 @@
 .auth-layout {
+  /* Escritorio: las dos columnas arrancan a la misma altura (el nombre a la par del h1). */
+  --auth-start: clamp(3rem, 18vh, 10rem);
   min-height: 100vh;
   min-height: 100dvh;
   display: grid;
@@ -8,10 +10,10 @@
 .auth-layout__brand {
   background: var(--ink-900);
   color: var(--ledger-50);
-  padding: 3rem;
+  padding: var(--auth-start) 3rem 3rem;
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  justify-content: flex-start;
   position: relative;
   overflow: hidden;
 }
@@ -74,9 +76,9 @@
 .auth-layout__panel {
   background: var(--ledger-50);
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
-  padding: 2rem;
+  padding: var(--auth-start) 2rem 2rem;
 }
 
 .auth-layout__panel-inner {
@@ -156,7 +158,41 @@
   font-weight: 600;
 }
 
-/* Nota bajo el botón (ej. qué pasa si se olvidó la contraseña): informativa, no un enlace. */
+/* "Tu sesión venció": informativa, en tinta y no en terracota (no es un error de quien entra). */
+.auth-form__notice {
+  margin: 0 0 var(--space-lg);
+  padding: var(--space-sm) var(--space-md);
+  font-size: var(--text-small);
+  line-height: var(--leading-body);
+  color: var(--ink-900);
+  background: var(--ink-100);
+  border-radius: var(--radius-sm);
+}
+
+/* Aviso de demora bajo el botón. La región existe siempre; solo ocupa lugar con el aviso visible. */
+.auth-form__slow {
+  margin: 0;
+  font-size: var(--text-small);
+  line-height: var(--leading-body);
+  color: var(--ink-muted);
+}
+
+.auth-form__slow:has(.auth-form__slow-text) {
+  margin-top: var(--space-sm);
+}
+
+/* En bloque para que la entrada (transform) se aplique. */
+.auth-form__slow-text {
+  display: block;
+}
+
+/* Campo con la salida bajo el error: el enlace ya trae su alto táctil, así que el margen del
+   campo se reduce para no dejar un hueco mayor antes del siguiente. */
+.sf-field:has(> .auth-form__error-link) {
+  margin-bottom: var(--space-xs);
+}
+
+/* Nota al pie (qué pasa si se olvidó la contraseña): informativa, no un enlace. */
 .auth-form__note {
   margin: var(--space-md) 0 0;
   font-size: var(--text-label);

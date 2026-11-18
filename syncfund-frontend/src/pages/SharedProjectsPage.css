@@ -9,11 +9,28 @@
  * Una lista de renglones no se estira a todo el ancho: en escritorio el nombre y el estado
  * quedarían a un metro de distancia. El aviso de saldos faltantes sigue el mismo ancho.
  */
+.projects__header,
 .projects__sheet,
 .projects__notice {
   max-width: var(--list-max);
 }
 
 .projects__notice {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-xs) var(--space-md);
   margin-bottom: var(--space-lg);
+  font-size: var(--text-small);
+  color: var(--ink-muted);
+}
+
+.projects__notice p {
+  flex: 1 1 14rem;
+  text-wrap: pretty;
+}
+
+.projects__notice .sf-button {
+  width: auto;
 }
