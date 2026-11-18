@@ -126,30 +126,32 @@ export function DashboardPage() {
     const { summary } = data;
     content = (
       <>
-        <PageHeader
-          title="Resumen"
-          figure={{
-            label: FIGURE_LABEL,
-            value: formatCOP(summary.total),
-            tone: summary.total < 0 ? 'loss' : 'neutral',
-          }}
-          meta={<SummaryLedger summary={summary} />}
-          fixedActionOnMobile
-          action={
-            <Button onClick={() => openPanel('GASTO')}>
-              <Icon name="agregar" />
-              Registrar movimiento
-            </Button>
-          }
-        />
+        <div className="dashboard__top">
+          <PageHeader
+            title="Resumen"
+            figure={{
+              label: FIGURE_LABEL,
+              value: formatCOP(summary.total),
+              tone: summary.total < 0 ? 'loss' : 'neutral',
+            }}
+            meta={<SummaryLedger summary={summary} />}
+            fixedActionOnMobile
+            action={
+              <Button onClick={() => openPanel('GASTO')}>
+                <Icon name="agregar" />
+                Registrar movimiento
+              </Button>
+            }
+          />
 
-        {summary.debts.length > 0 && <DebtNotice debts={summary.debts} />}
-        {/* "Al día" solo si todo está en cero; con saldo a favor, no debes nada pero tampoco estás al día. */}
-        {summary.debts.length === 0 && summary.projects.length > 0 && (
-          <p className="dashboard__even">
-            {summary.inYourFavor > 0 ? 'No debes nada en tus proyectos.' : 'Estás al día en todos tus proyectos.'}
-          </p>
-        )}
+          {summary.debts.length > 0 && <DebtNotice debts={summary.debts} />}
+          {/* "Al día" solo si todo está en cero; con saldo a favor, no debes nada pero tampoco estás al día. */}
+          {summary.debts.length === 0 && summary.projects.length > 0 && (
+            <p className="dashboard__even">
+              {summary.inYourFavor > 0 ? 'No debes nada en tus proyectos.' : 'Estás al día en todos tus proyectos.'}
+            </p>
+          )}
+        </div>
 
         <PageColumns>
           <Sheet

@@ -1,7 +1,20 @@
+/*
+ * Encabezado + aviso de deuda (o línea "al día"): el aviso queda más cerca de la cifra que de las
+ * hojas, porque es parte de la respuesta a "¿cuánto tengo?". La distancia la pone el gap.
+ */
+.dashboard__top {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+  margin-bottom: var(--space-xl);
+}
+
+.dashboard__top > .sf-page-header {
+  margin-bottom: 0;
+}
+
 /* Línea discreta cuando no hay deudas: confirma sin competir con la cifra. */
 .dashboard__even {
-  margin-top: calc(var(--space-md) * -1);
-  margin-bottom: var(--space-xl);
   font-size: var(--text-small);
   color: var(--ink-muted);
 }
