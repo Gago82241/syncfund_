@@ -119,6 +119,8 @@ export function LoginPage() {
         <Button type="submit" loading={loading} loadingText="Entrando…">Entrar</Button>
         {/* Región viva siempre presente: si naciera con el texto, el lector podría no anunciarlo. */}
         <p className="auth-form__slow" aria-live="polite">
+          {/* El botón se desactiva al enviar y el foco se pierde: el lector oye la espera aquí. */}
+          {loading && !slow && <span className="visually-hidden">Entrando…</span>}
           {slow && <span className="auth-form__slow-text sf-enter">{SLOW_HINT_MESSAGE}</span>}
         </p>
       </form>

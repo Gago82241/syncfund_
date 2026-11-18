@@ -169,7 +169,7 @@
   border-radius: var(--radius-sm);
 }
 
-/* Aviso de demora bajo el botón. La región existe siempre (vacía no ocupa lugar). */
+/* Aviso de demora bajo el botón. La región existe siempre; solo ocupa lugar con el aviso visible. */
 .auth-form__slow {
   margin: 0;
   font-size: var(--text-small);
@@ -177,7 +177,7 @@
   color: var(--ink-muted);
 }
 
-.auth-form__slow:not(:empty) {
+.auth-form__slow:has(.auth-form__slow-text) {
   margin-top: var(--space-sm);
 }
 

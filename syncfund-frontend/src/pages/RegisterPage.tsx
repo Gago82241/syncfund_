@@ -153,6 +153,8 @@ export function RegisterPage() {
         <FormError ref={formErrorRef} message={formError} />
         <Button type="submit" loading={loading} loadingText="Creando tu cuenta…">Crear cuenta</Button>
         <p className="auth-form__slow" aria-live="polite">
+          {/* El botón se desactiva al enviar y el foco se pierde: el lector oye la espera aquí. */}
+          {loading && !slow && <span className="visually-hidden">Creando tu cuenta…</span>}
           {slow && <span className="auth-form__slow-text sf-enter">{SLOW_HINT_MESSAGE}</span>}
         </p>
       </form>
