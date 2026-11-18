@@ -1,5 +1,5 @@
-import { useState, type ReactNode } from 'react';
-import { Link } from 'react-router-dom';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { AppLayout } from '../components/layout/AppLayout';
 import { PageColumns } from '../components/layout/PageColumns';
 import { Button } from '../components/ui/Button';
@@ -39,6 +39,18 @@ export function DashboardPage() {
     formKey: 0,
   });
   useDocumentTitle('Resumen · SyncFund');
+
+  // Recién registrado (ver RegisterPage): confirma la cuenta una sola vez y limpia el estado,
+  // para que recargar o volver no repita el aviso. El ref evita el doble aviso del StrictMode.
+  const location = useLocation();
+  const navigate = useNavigate();
+  const welcomed = useRef(false);
+  useEffect(() => {
+    if (welcomed.current || (location.state as { welcome?: boolean } | null)?.welcome !== true) return;
+    welcomed.current = true;
+    showToast('Tu cuenta quedó creada.');
+    navigate(location.pathname, { replace: true, state: null });
+  }, [location, navigate, showToast]);
 
   function openPanel(type: MovementType) {
     setPanel((current) => ({ open: true, type, formKey: current.formKey + 1 }));

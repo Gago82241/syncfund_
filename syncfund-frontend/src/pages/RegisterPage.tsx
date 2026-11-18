@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { flushSync } from 'react-dom';
 import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import { AuthLayout } from '../components/layout/AuthLayout';
@@ -61,9 +62,13 @@ export function RegisterPage() {
     const cleanEmail = email.trim();
     try {
       const { data } = await authService.register({ name: name.trim(), email: cleanEmail, password });
-      login(data);
+      // Con la sesión iniciada, PublicOnlyRoute redirige solo al Resumen, sin estado. flushSync
+      // deja que esa redirección ocurra primero, y la navegación de abajo, con welcome, queda
+      // como la última.
+      flushSync(() => login(data));
       // replace: con "Atrás" no se vuelve al formulario de registro estando dentro.
-      navigate('/dashboard', { replace: true });
+      // welcome: el Resumen confirma que la cuenta quedó creada (Toast).
+      navigate('/dashboard', { replace: true, state: { welcome: true } });
     } catch (err) {
       // En el registro, el único 422 del backend es el correo ya registrado (UserAppService.register).
       // Llega sin errors.email, así que la pantalla lo pone bajo el campo con una salida al Login.
