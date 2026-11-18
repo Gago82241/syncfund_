@@ -44,8 +44,8 @@ export function LoginPage() {
   return (
     <AuthLayout>
       <h1 className="auth-form__title">Inicia sesión</h1>
-      <p style={{ color: 'var(--ink-muted)', marginTop: '0.5rem', marginBottom: '2rem' }}>
-        Entra para ver el saldo de tus billeteras y proyectos.
+      <p className="auth-form__lead">
+        Entra para ver tu billetera y tus proyectos.
       </p>
       <form ref={formRef} onSubmit={handleSubmit} noValidate>
         <Input
@@ -76,7 +76,7 @@ export function LoginPage() {
         <FormError message={formError} />
         <Button type="submit" loading={loading}>Entrar</Button>
       </form>
-      <p style={{ marginTop: '1.5rem', fontSize: '0.875rem', color: 'var(--ink-muted)' }}>
+      <p className="auth-form__switch">
         ¿No tienes cuenta? <Link to="/register">Regístrate</Link>
       </p>
     </AuthLayout>

@@ -13,13 +13,13 @@ export function AuthLayout({ children }: { children: ReactNode }) {
     <div className="auth-layout">
       <aside className="auth-layout__brand">
         <span className="auth-layout__wordmark">SyncFund</span>
-        <p className="auth-layout__tagline">Tu billetera y tus gastos compartidos, en un solo lugar.</p>
+        <p className="auth-layout__tagline">Tu billetera y tus proyectos, en un solo lugar.</p>
         <p className="auth-layout__headline">
-          Dos cuentas,<br />un solo saldo real.
+          Tu billetera y tus proyectos,<br />un solo saldo real.
         </p>
         <p className="auth-layout__sub">
-          Lleva tus finanzas personales y los gastos compartidos con tus
-          proyectos en un mismo lugar, sincronizados al instante.
+          Registra tus ingresos y gastos, aporta al fondo de tus proyectos
+          compartidos y mira quién le debe a quién, sin hacer cuentas a mano.
         </p>
         {/* Dos círculos entrelazados en tonos de tinta: la billetera y el fondo común. */}
         <svg className="auth-layout__motif" viewBox="0 0 200 120" aria-hidden="true">

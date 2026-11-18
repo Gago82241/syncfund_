@@ -189,7 +189,7 @@ Estos cambios tocan el backend o el diseño UML, así que van en ramas propias c
 
 | Cambio | Qué toca | Cuándo |
 | --- | --- | --- |
-| Límites de longitud en registro y nombre de proyecto (`@Size`) | Backend (DTO) | Ya, en paralelo al rediseño |
+| Límites de longitud en registro y nombre de proyecto (`@Size`). En `RegisterUserRequest`: nombre ≤ 100 y correo ≤ 150 (columnas de `users`) y contraseña ≤ 72 (límite de BCrypt, que ignora lo que pasa de 72 bytes) | Backend (DTO) | Ya, en paralelo al rediseño |
 | Editar y eliminar categorías | Backend y diagrama UML | Después del rediseño |
 | Movimiento en el historial al apartar o liberar colchón | Dominio y base de datos | Después del rediseño |
 | Guardar quién pagó cada gasto compartido | Base de datos y backend | Después del rediseño |

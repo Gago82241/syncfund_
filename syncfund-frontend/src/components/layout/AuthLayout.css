@@ -30,7 +30,7 @@
 
 .auth-layout__headline {
   margin: 2rem 0 0;
-  max-width: 14ch;
+  max-width: 16ch;
   font-family: var(--font-display);
   font-size: 2.75rem;
   font-weight: 500;
@@ -121,4 +121,24 @@
 /* Formularios de acceso: título y textos compartidos por Login y Registro. */
 .auth-form__title {
   font-size: var(--text-headline);
+}
+
+.auth-form__lead {
+  margin: var(--space-xs) 0 var(--space-lg);
+  color: var(--ink-muted);
+  line-height: var(--leading-body);
+}
+
+/* "¿No tienes cuenta? Regístrate": el enlace tiene 44 px de alto para el dedo. */
+.auth-form__switch {
+  margin: var(--space-md) 0 0;
+  font-size: var(--text-small);
+  color: var(--ink-muted);
+}
+
+.auth-form__switch a {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--tap-target);
+  font-weight: 600;
 }

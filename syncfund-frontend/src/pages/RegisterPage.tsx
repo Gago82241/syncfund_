@@ -49,8 +49,8 @@ export function RegisterPage() {
   return (
     <AuthLayout>
       <h1 className="auth-form__title">Crea tu cuenta</h1>
-      <p style={{ color: 'var(--ink-muted)', marginTop: '0.5rem', marginBottom: '2rem' }}>
-        Te creamos tu billetera personal automáticamente.
+      <p className="auth-form__lead">
+        Te creamos una billetera personal para tus ingresos y gastos; luego puedes crear proyectos o unirte a uno.
       </p>
       <form ref={formRef} onSubmit={handleSubmit} noValidate>
         <Input
@@ -95,7 +95,7 @@ export function RegisterPage() {
         <FormError message={formError} />
         <Button type="submit" loading={loading}>Crear cuenta</Button>
       </form>
-      <p style={{ marginTop: '1.5rem', fontSize: '0.875rem', color: 'var(--ink-muted)' }}>
+      <p className="auth-form__switch">
         ¿Ya tienes cuenta? <Link to="/login">Inicia sesión</Link>
       </p>
     </AuthLayout>
