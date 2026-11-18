@@ -43,7 +43,7 @@ export function LoginPage() {
 
   return (
     <AuthLayout>
-      <h2>Inicia sesión</h2>
+      <h1 className="auth-form__title">Inicia sesión</h1>
       <p style={{ color: 'var(--ink-muted)', marginTop: '0.5rem', marginBottom: '2rem' }}>
         Entra para ver el saldo de tus billeteras y proyectos.
       </p>

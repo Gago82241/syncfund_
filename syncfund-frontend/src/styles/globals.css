@@ -6,6 +6,11 @@
   --ink-700: #1F3A5F;
   --ink-600: #2C5F8A;
   --ink-100: #E4EAF1;
+  /* Sobre azul tinta (panel de marca del acceso): texto secundario, 9.4:1 sobre ink-900. */
+  --on-ink-muted: #C7D2DF;
+  /* Motivo del acceso: dos círculos de trazo fino en tonos de tinta (nunca esmeralda). */
+  --motif-stroke-a: #2C5F8A;
+  --motif-stroke-b: #8FA9C6;
 
   --ledger-50: #F6F4EF;
   --ledger-100: #EEEAE0;

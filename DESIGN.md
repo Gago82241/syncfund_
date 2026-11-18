@@ -6,6 +6,9 @@ colors:
   ink-700: "#1F3A5F"
   ink-600: "#2C5F8A"
   ink-100: "#E4EAF1"
+  on-ink-muted: "#C7D2DF"
+  motif-stroke-a: "#2C5F8A"
+  motif-stroke-b: "#8FA9C6"
   ledger-50: "#F6F4EF"
   ledger-100: "#EEEAE0"
   paper: "#FFFFFF"
@@ -217,15 +220,15 @@ todo el ancho sobre papel blanco, con línea fina inferior y 1.25rem × 2rem de 
 **Dirección del rediseño:** la columna única se reemplaza por una estructura más amplia: menú
 lateral en escritorio, barra de navegación inferior en móvil y páginas organizadas en hojas.
 Lo que se conserva es el papel, la tinta, los renglones y las cifras, no el ancho de la columna. Login y registro usan pantalla dividida (panel de marca en azul tinta
-a la izquierda, formulario de 360px a la derecha) que se apila en una columna por debajo de
-860px.
+a la izquierda, formulario de 360px a la derecha). Por debajo de 860px el panel se reduce a una
+franja corta con el nombre y una línea, y el formulario queda a la vista sin desplazarse.
 
 El ritmo vertical sale de la escala de espaciado (0.5 / 0.75 / 1 / 1.5 / 2.5 / 4rem). Las listas
 son renglones: 0.9–1.1rem de relleno vertical y línea fina entre filas, sin línea en la última.
 
 Puntos de quiebre en uso: 480px (los botones del aviso de error dejan de ocupar todo el
 ancho), 640px (la tabla de situación se apila en tarjetas con etiquetas y las acciones de
-confirmación se apilan) y 860px (login/registro pasa a una columna). La cabecera de la app
+confirmación se apilan) y 860px (login/registro pasa a una columna con la franja de marca arriba). La cabecera de la app
 todavía no tiene tratamiento móvil.
 
 Se permite organizar una página en "hojas" (papel blanco sobre el fondo cálido, con línea fina)
@@ -250,8 +253,10 @@ Esquinas apenas suavizadas y geometría rectilínea. Tres radios: 4px para boton
 avisos de confirmación; 8px para hojas y avisos de error; 14px para los chips de participantes,
 lo único casi redondeado del sistema. Los bordes son de 1px en línea de renglón; el énfasis de
 totales usa un filete superior de 2px en azul tinta, como el doble subrayado de un libro
-contable. El único motivo gráfico son dos círculos entrelazados de trazo fino (azul acero y
-esmeralda) en el panel de marca del login.
+contable. El único motivo gráfico son dos círculos entrelazados de trazo fino en tonos de tinta
+(azul acero, `motif-stroke-a`, y azul tinta claro, `motif-stroke-b`) en el panel de marca del
+login y el registro, solo en escritorio. No usa esmeralda: la Money-Only Color Rule no tiene
+excepciones. El texto secundario sobre azul tinta usa `on-ink-muted` (9.4:1).
 
 ## Components
 

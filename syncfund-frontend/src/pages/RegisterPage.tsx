@@ -48,7 +48,7 @@ export function RegisterPage() {
 
   return (
     <AuthLayout>
-      <h2>Crea tu cuenta</h2>
+      <h1 className="auth-form__title">Crea tu cuenta</h1>
       <p style={{ color: 'var(--ink-muted)', marginTop: '0.5rem', marginBottom: '2rem' }}>
         Te creamos tu billetera personal automáticamente.
       </p>
