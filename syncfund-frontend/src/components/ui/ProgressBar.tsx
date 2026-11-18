@@ -11,7 +11,8 @@ interface ProgressBarProps {
   /**
    * budget: presupuesto de categoría ("Cerca del límite" desde 80 %, "Llegaste al límite" justo en
    *         el límite y "Te pasaste" al superarlo), con lo que te queda o cuánto te pasaste.
-   * goal: meta de ahorro (avanza en esmeralda; "Meta cumplida" al llegar al 100 %).
+   * goal: meta de ahorro (avanza en azul tinta; al llegar al 100 % pasa a esmeralda y dice
+   *       "Meta cumplida").
    */
   kind?: 'budget' | 'goal';
   /** Formato de los montos. Por defecto pesos colombianos. */

@@ -11,23 +11,6 @@
   max-width: 100%;
 }
 
-/* Nota fija sobre el colchón al inicio de Movimientos: papel envejecido, sin color de dinero. */
-.wallet__cushion-note {
-  margin-bottom: var(--space-sm);
-  padding: var(--space-sm) var(--space-md);
-  border-radius: var(--radius-sm);
-  background: var(--ledger-50);
-  border: 1px solid var(--hairline);
-  font-size: var(--text-label);
-  color: var(--ink-muted);
-  text-wrap: pretty;
-}
-
-.wallet__cushion-note strong {
-  font-weight: 600;
-  color: var(--ink);
-}
-
 /* Las categorías no cargaron: aviso suave, la lista se ve igual. */
 .wallet__categories-note {
   margin-bottom: var(--space-sm);

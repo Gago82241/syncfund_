@@ -23,13 +23,18 @@ import { usePersonalWallet } from '../features/personal-wallet/hooks/usePersonal
 import { walletFigures } from '../features/personal-wallet/walletFigures';
 import { TransactionList } from '../features/transactions/components/TransactionList';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
+import { useMediaQuery } from '../hooks/useMediaQuery';
 import { formatCOP } from '../styles/theme';
 import './PersonalWalletPage.css';
 
 const TITLE = 'Billetera personal';
 const FIGURE_LABEL = 'Disponible';
-/** Filas por tanda en Movimientos: así meta y colchón no quedan enterrados en el celular. */
+/**
+ * Filas por tanda en Movimientos. En el celular la meta y el colchón van debajo de la lista:
+ * con 8 filas quedan a poca distancia; en escritorio van en la columna de al lado.
+ */
 const MOVEMENTS_PAGE = 20;
+const MOVEMENTS_PAGE_MOBILE = 8;
 
 type MovementType = 'INGRESO' | 'GASTO';
 type PanelKind = 'movement' | 'goal' | 'cushion';
@@ -59,6 +64,8 @@ export function PersonalWalletPage() {
   const categories = useCategoryNames();
   const [panel, setPanel] = useState<PanelState>({ open: false, kind: 'movement', type: 'GASTO', formKey: 0 });
   useDocumentTitle(`${TITLE} · SyncFund`);
+  const isMobile = useMediaQuery('(max-width: 639px)');
+  const pageSize = isMobile ? MOVEMENTS_PAGE_MOBILE : MOVEMENTS_PAGE;
 
   function openPanel(kind: PanelKind, type: MovementType = 'GASTO') {
     setPanel((current) => ({ open: true, kind, type, formKey: current.formKey + 1 }));
@@ -127,12 +134,15 @@ export function PersonalWalletPage() {
     );
   } else {
     const figures = walletFigures(wallet);
+    // Primera visita: sin nada que sumar ni que mover, la suma y el colchón no aportan.
+    const allZero = figures.available === 0 && figures.cushion === 0;
     content = (
       <>
         <PageHeader
           title={TITLE}
           figure={{ label: FIGURE_LABEL, value: formatCOP(figures.available) }}
-          meta={<WalletLedger figures={figures} />}
+          // Sin colchón, Disponible y Total son la misma cifra: la suma solo repetiría.
+          meta={figures.cushion > 0 ? <WalletLedger figures={figures} /> : undefined}
           fixedActionOnMobile
           action={
             <Button onClick={() => openPanel('movement')}>
@@ -144,14 +154,6 @@ export function PersonalWalletPage() {
 
         <PageColumns variant="main-aside">
           <Sheet title="Movimientos">
-            {figures.cushion > 0 && (
-              // No es un movimiento: explica por qué el disponible no cuadra con la lista, sin inventar filas.
-              <p className="wallet__cushion-note">
-                Tienes <strong className="tabular-nums">{formatCOP(figures.cushion)}</strong> en el colchón.
-                Apartar y liberar no aparecen en esta lista: mueven dinero entre tu disponible y tu colchón,
-                y tu total no cambia.
-              </p>
-            )}
             {categories.failed && transactions.some((tx) => tx.categoryId !== null) && (
               <p className="wallet__categories-note" role="status">
                 No pudimos cargar los nombres de tus categorías; los movimientos se muestran sin ellos.{' '}
@@ -166,14 +168,21 @@ export function PersonalWalletPage() {
               </p>
             )}
             <TransactionList
+              // Al cambiar de celular a escritorio (o al revés) la lista arranca con la tanda de ese tamaño.
+              key={pageSize}
               transactions={transactions}
               categoryNames={categories.names}
-              pageSize={MOVEMENTS_PAGE}
+              pageSize={pageSize}
               empty={
                 <EmptyState
                   title="Aún no tienes movimientos"
                   description="Registra lo que recibes y lo que gastas, y aquí verás cada peso que entra y sale de tu billetera."
-                  action={<Button onClick={() => openPanel('movement', 'INGRESO')}>Registra tu primer ingreso</Button>}
+                  // Secundario: "Registrar movimiento" ya es la acción principal de la página.
+                  action={
+                    <Button variant="ghost" onClick={() => openPanel('movement', 'INGRESO')}>
+                      Registra tu primer ingreso
+                    </Button>
+                  }
                 />
               }
             />
@@ -185,7 +194,10 @@ export function PersonalWalletPage() {
               transactions={transactions}
               onEdit={() => openPanel('goal')}
             />
-            <CushionSheet cushion={figures.cushion} onManage={() => openPanel('cushion')} />
+            <CushionSheet
+              cushion={figures.cushion}
+              onManage={allZero ? undefined : () => openPanel('cushion')}
+            />
           </div>
         </PageColumns>
       </>

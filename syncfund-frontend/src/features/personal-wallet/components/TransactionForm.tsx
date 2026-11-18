@@ -156,8 +156,9 @@ export function TransactionForm({ walletId, onSaved, available, embedded = false
         value={amount}
         // El color del tipo aparece al escribir: vacío no debe parecer un campo con error.
         tone={amount === '' || amountError ? undefined : type === 'GASTO' ? 'loss' : 'gain'}
+        // Con el error a la vista (que ya dice el disponible), la ayuda sobra.
         hint={
-          type === 'GASTO' && available !== undefined
+          type === 'GASTO' && available !== undefined && !amountError
             ? `Disponible para gastar: ${formatCOP(available)}`
             : undefined
         }
@@ -216,7 +217,9 @@ export function TransactionForm({ walletId, onSaved, available, embedded = false
         </p>
       )}
       <FormError message={formError} />
-      <Button type="submit" loading={loading}>Guardar</Button>
+      <Button type="submit" loading={loading}>
+        {type === 'GASTO' ? 'Registrar gasto' : 'Registrar ingreso'}
+      </Button>
     </form>
   );
 }

@@ -1,9 +1,12 @@
-export function formatDate(iso: string): string {
+/** "05 nov" en el año en curso y "05 nov 2025" en otros años: el año no se repite en cada fila. */
+export function formatDate(iso: string, now: Date = new Date()): string {
+  const date = new Date(iso);
+  const sameYear = date.getFullYear() === now.getFullYear();
   return new Intl.DateTimeFormat('es-CO', {
     day: '2-digit',
     month: 'short',
-    year: 'numeric',
-  }).format(new Date(iso));
+    ...(sameYear ? {} : { year: 'numeric' }),
+  }).format(date);
 }
 
 /**
