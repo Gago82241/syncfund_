@@ -76,6 +76,7 @@ export function LoginPage() {
           name="email"
           inputMode="email"
           autoComplete="email"
+          enterKeyHint="next"
           autoCapitalize="none"
           spellCheck={false}
           value={email}
@@ -91,6 +92,7 @@ export function LoginPage() {
           label="Contraseña"
           name="password"
           autoComplete="current-password"
+          enterKeyHint="go"
           autoFocus={prefilledEmail !== ''}
           value={password}
           readOnly={loading}

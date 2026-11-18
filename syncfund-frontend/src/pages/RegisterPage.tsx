@@ -94,6 +94,7 @@ export function RegisterPage() {
           label="Nombre"
           name="name"
           autoComplete="name"
+          enterKeyHint="next"
           autoCapitalize="words"
           maxLength={NAME_MAX}
           value={name}
@@ -111,6 +112,7 @@ export function RegisterPage() {
           name="email"
           inputMode="email"
           autoComplete="email"
+          enterKeyHint="next"
           autoCapitalize="none"
           spellCheck={false}
           maxLength={EMAIL_MAX}
@@ -137,6 +139,7 @@ export function RegisterPage() {
           label="Contraseña"
           name="password"
           autoComplete="new-password"
+          enterKeyHint="go"
           hint="Mínimo 6 caracteres"
           value={password}
           readOnly={loading}

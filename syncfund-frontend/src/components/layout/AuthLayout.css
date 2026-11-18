@@ -161,3 +161,25 @@
   font-size: var(--text-small);
   font-weight: 600;
 }
+
+/* Enlaces de acceso en el celular: sin el destello gris al tocar, sin la espera del doble toque
+   y con respuesta al presionar (el subrayado del hover solo con mouse). */
+.auth-form__switch a,
+.auth-form__error-link {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  -webkit-touch-callout: none;
+  transition: color var(--duration-fast) var(--ease-out);
+}
+
+.auth-form__switch a:active,
+.auth-form__error-link:active {
+  color: var(--ink-900);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .auth-form__switch a:hover,
+  .auth-form__error-link:hover {
+    color: var(--ink-900);
+  }
+}
