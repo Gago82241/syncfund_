@@ -38,7 +38,22 @@ export async function fetchBalances(projectIds: readonly number[]): Promise<Bala
   return { balances, failedIds, firstError };
 }
 
-/** Si falla la lista de proyectos, la promesa se rechaza; si falla un saldo, queda en failedIds. */
+/** Solo la lista de proyectos, sin saldos: la lista de Proyectos los pide uno a uno después. */
+export async function fetchProjectList(userId: number): Promise<SharedProjectResponse[]> {
+  const { data } = await sharedProjectService.getByMember(userId);
+  return data;
+}
+
+/** Pide la situación de un proyecto. */
+export async function fetchBalance(projectId: number): Promise<ProjectBalancesResponse> {
+  const { data } = await sharedProjectService.getBalances(projectId);
+  return data;
+}
+
+/**
+ * Todo junto, para el Resumen: su cifra suma todos los saldos, así que espera a tenerlos.
+ * Si falla la lista de proyectos, la promesa se rechaza; si falla un saldo, queda en failedIds.
+ */
 export async function fetchProjectsWithBalances(userId: number): Promise<ProjectsWithBalances> {
   const { data: projects } = await sharedProjectService.getByMember(userId);
   const result = await fetchBalances(projects.map((p) => p.projectId));

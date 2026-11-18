@@ -22,18 +22,17 @@ import './SharedProjectsPage.css';
 const TITLE = 'Proyectos compartidos';
 const LIST_TITLE = 'Tus proyectos';
 
-/** Aviso cuando faltan saldos: la lista se muestra, pero esos renglones van sin cifra. */
+/** Nota cuando faltan saldos: la lista se muestra, pero esos renglones van sin cifra. */
 function missingBalancesMessage(count: number): string {
   return count === 1
-    ? 'No pudimos cargar tu saldo en 1 proyecto, así que ese renglón va sin cifra.'
-    : `No pudimos cargar tu saldo en ${count} proyectos, así que esos renglones van sin cifra.`;
+    ? 'No pudimos cargar tu saldo en 1 proyecto; ese renglón va sin cifra.'
+    : `No pudimos cargar tu saldo en ${count} proyectos; esos renglones van sin cifra.`;
 }
 
 export function SharedProjectsPage() {
   const { user } = useAuth();
-  const { lines, missingBalances, loading, error, refresh, retryBalances, retryingBalances } = useSharedProjects(
-    user!.id,
-  );
+  const { lines, missingBalances, pendingBalances, loading, error, refresh, retryBalances, retryingBalances } =
+    useSharedProjects(user!.id);
   const { showToast } = useToast();
   const navigate = useNavigate();
   // formKey vuelve a montar el formulario en cada apertura: arranca limpio.
@@ -105,21 +104,28 @@ export function SharedProjectsPage() {
         <PageHeader
           title={TITLE}
           className="projects__header"
-          meta={<p className="projects__headline">{projectsHeadline(lines)}</p>}
+          meta={
+            // La línea espera a que lleguen todos los saldos: antes no puede decir dónde debes.
+            pendingBalances > 0 ? (
+              <Skeleton width="16rem" />
+            ) : (
+              <p className="projects__headline">{projectsHeadline(lines)}</p>
+            )
+          }
           fixedActionOnMobile
           action={createButton('Crear proyecto')}
         />
+        {/* Nota neutra (no alerta): la lista sí cargó; solo faltan algunas cifras. */}
         {missingBalances > 0 && (
-          <div className="projects__notice">
-            <LoadError
-              message={missingBalancesMessage(missingBalances)}
-              onRetry={retryBalances}
-              retrying={retryingBalances}
-            />
+          <div className="projects__notice" role="status">
+            <p>{missingBalancesMessage(missingBalances)}</p>
+            <Button variant="ghost" loading={retryingBalances} onClick={retryBalances}>
+              Reintentar
+            </Button>
           </div>
         )}
         <Sheet title={LIST_TITLE} titleHidden className="projects__sheet">
-          <ProjectStatusList projects={lines} />
+          <ProjectStatusList projects={lines} showPayees />
         </Sheet>
       </>
     );
