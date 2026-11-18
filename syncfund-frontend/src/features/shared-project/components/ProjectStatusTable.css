@@ -178,10 +178,12 @@
     padding: 0.25rem 0.5rem;
   }
 
+  /* La etiqueta empuja el monto a la derecha; si la etiqueta ocupa la línea, el monto baja y
+     sigue a la derecha (con space-between quedaba suelto a la izquierda). */
   .status-table__table td[data-label] {
     display: flex;
     flex-wrap: wrap;
-    justify-content: space-between;
+    justify-content: flex-end;
     gap: 0 var(--space-md);
   }
 
@@ -193,8 +195,9 @@
 
   .status-table__table td[data-label]::before {
     content: attr(data-label);
+    margin-right: auto;
     color: var(--ink-muted);
-    font-size: 0.8125rem;
+    font-size: var(--text-label);
     text-align: left;
   }
 

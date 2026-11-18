@@ -46,8 +46,10 @@
 }
 
 .tx-list__date {
-  font-size: 0.8125rem;
+  font-size: var(--text-label);
   color: var(--ink-faint);
+  /* La categoría va en esta línea: un nombre largo sin espacios parte aquí. */
+  overflow-wrap: anywhere;
 }
 
 /* Pago entre integrantes: no suma ni resta al fondo, así que va en gris y sin signo. */

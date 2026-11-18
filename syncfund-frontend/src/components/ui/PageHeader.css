@@ -21,6 +21,8 @@
   font-size: var(--text-headline);
   line-height: var(--leading-tight);
   text-wrap: balance;
+  /* Un nombre de proyecto sin espacios parte en vez de ensanchar la página. */
+  overflow-wrap: anywhere;
 }
 
 .sf-page-header__figure {
@@ -37,7 +39,9 @@
 /* La cifra protagonista: fluida (2rem → 2.75rem) y, si es muy larga, parte en vez de salirse. */
 .sf-page-header__figure-value {
   font-family: var(--font-display);
-  font-size: var(--text-display);
+  /* A 320 px baja un poco (9vw) para que una cifra de 12 dígitos no parta a mitad del número;
+     desde 360 px manda el token. Si aun así no cabe, parte en vez de salirse. */
+  font-size: min(var(--text-display), 9vw);
   font-weight: 500;
   line-height: var(--leading-tight);
   color: var(--ink-900);
