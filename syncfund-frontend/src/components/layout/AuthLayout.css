@@ -142,3 +142,22 @@
   min-height: var(--tap-target);
   font-weight: 600;
 }
+
+/* Nota bajo el botón (ej. qué pasa si se olvidó la contraseña): informativa, no un enlace. */
+.auth-form__note {
+  margin: var(--space-md) 0 0;
+  font-size: var(--text-label);
+  line-height: var(--leading-body);
+  color: var(--ink-muted);
+}
+
+/* Salida bajo el error del correo ya registrado: alto táctil completo, pegada al mensaje. */
+.auth-form__error-link {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  min-height: var(--tap-target);
+  margin-top: calc(-1 * var(--space-xs));
+  font-size: var(--text-small);
+  font-weight: 600;
+}

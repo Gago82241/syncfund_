@@ -1,5 +1,6 @@
-import { useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import axios from 'axios';
 import { AuthLayout } from '../components/layout/AuthLayout';
 import { Input } from '../components/ui/Input';
 import { PasswordInput } from '../components/ui/PasswordInput';
@@ -17,6 +18,7 @@ import {
   passwordBytes,
   required,
 } from '../utils/validation';
+import { CONNECTION_ERROR_MESSAGE } from '../utils/apiError';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 
 export function RegisterPage() {
@@ -27,8 +29,16 @@ export function RegisterPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const { fieldErrors, formError, formRef, validate, showApiError, clearField } =
+  // Correo con el que el backend dijo que ya hay cuenta: lo lleva el enlace al Login.
+  const [takenEmail, setTakenEmail] = useState('');
+  const formErrorRef = useRef<HTMLParagraphElement>(null);
+  const { fieldErrors, formError, formRef, validate, showApiError, showFieldError, clearField } =
     useFormErrors(['name', 'email', 'password']);
+
+  // Un error general (sin conexión, error interno) recibe el foco: el botón se desactivó al enviar.
+  useEffect(() => {
+    if (formError) formErrorRef.current?.focus();
+  }, [formError]);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -46,16 +56,23 @@ export function RegisterPage() {
     });
     if (!valid) return;
     setLoading(true);
+    // Sin espacios al inicio o al final: un espacio en el correo crearía otra variante de la cuenta.
+    // La contraseña se envía tal cual.
+    const cleanEmail = email.trim();
     try {
-      // Sin espacios al inicio o al final: un espacio en el correo crearía otra variante de la cuenta.
-      // La contraseña se envía tal cual.
-      const { data } = await authService.register({ name: name.trim(), email: email.trim(), password });
+      const { data } = await authService.register({ name: name.trim(), email: cleanEmail, password });
       login(data);
       // replace: con "Atrás" no se vuelve al formulario de registro estando dentro.
       navigate('/dashboard', { replace: true });
     } catch (err) {
-      showApiError(err, 'No se pudo conectar con el servidor.');
-    } finally {
+      // En el registro, el único 422 del backend es el correo ya registrado (UserAppService.register).
+      // Llega sin errors.email, así que la pantalla lo pone bajo el campo con una salida al Login.
+      if (axios.isAxiosError(err) && err.response?.status === 422) {
+        setTakenEmail(cleanEmail);
+        showFieldError('email', 'Ya hay una cuenta con este correo.');
+      } else {
+        showApiError(err, CONNECTION_ERROR_MESSAGE);
+      }
       setLoading(false);
     }
   }
@@ -64,9 +81,10 @@ export function RegisterPage() {
     <AuthLayout>
       <h1 className="auth-form__title">Crea tu cuenta</h1>
       <p className="auth-form__lead">
-        Te creamos una billetera personal para tus ingresos y gastos; luego puedes crear proyectos o unirte a uno.
+        Te creamos una billetera personal para tus ingresos y gastos; luego puedes crear proyectos o
+        unirte a uno.
       </p>
-      <form ref={formRef} onSubmit={handleSubmit} noValidate>
+      <form ref={formRef} onSubmit={handleSubmit} noValidate aria-busy={loading || undefined}>
         <Input
           label="Nombre"
           name="name"
@@ -74,6 +92,7 @@ export function RegisterPage() {
           autoCapitalize="words"
           maxLength={NAME_MAX}
           value={name}
+          readOnly={loading}
           error={fieldErrors.name}
           onChange={(e) => {
             setName(e.target.value);
@@ -91,9 +110,18 @@ export function RegisterPage() {
           spellCheck={false}
           maxLength={EMAIL_MAX}
           value={email}
+          readOnly={loading}
           error={fieldErrors.email}
+          errorAction={
+            takenEmail && (
+              <Link to="/login" state={{ email: takenEmail }} className="auth-form__error-link">
+                Inicia sesión con este correo
+              </Link>
+            )
+          }
           onChange={(e) => {
             setEmail(e.target.value);
+            setTakenEmail('');
             clearField('email');
           }}
           required
@@ -106,6 +134,7 @@ export function RegisterPage() {
           autoComplete="new-password"
           hint="Mínimo 6 caracteres"
           value={password}
+          readOnly={loading}
           error={fieldErrors.password}
           onChange={(e) => {
             setPassword(e.target.value);
@@ -113,8 +142,8 @@ export function RegisterPage() {
           }}
           required
         />
-        <FormError message={formError} />
-        <Button type="submit" loading={loading}>Crear cuenta</Button>
+        <FormError ref={formErrorRef} message={formError} />
+        <Button type="submit" loading={loading} loadingText="Creando tu cuenta…">Crear cuenta</Button>
       </form>
       <p className="auth-form__switch">
         ¿Ya tienes cuenta? <Link to="/login">Inicia sesión</Link>

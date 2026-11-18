@@ -1,5 +1,6 @@
-import { useState, type FormEvent } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
+import axios from 'axios';
 import { AuthLayout } from '../components/layout/AuthLayout';
 import { Input } from '../components/ui/Input';
 import { PasswordInput } from '../components/ui/PasswordInput';
@@ -9,17 +10,36 @@ import { authService } from '../features/auth/services/authService';
 import { useAuth } from '../context/useAuth';
 import { useFormErrors } from '../hooks/useFormErrors';
 import { email as validateEmail, required } from '../utils/validation';
+import { CONNECTION_ERROR_MESSAGE } from '../utils/apiError';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
+
+/** El backend responde 422 "Credenciales inválidas" sin decir cuál de los dos falló, a propósito. */
+const WRONG_CREDENTIALS_MESSAGE = 'Correo o contraseña incorrectos. Revisa los dos e inténtalo de nuevo.';
+
+/** Estado con el que llega desde el Registro cuando el correo ya tenía cuenta. */
+interface LoginLocationState {
+  email?: string;
+}
 
 export function LoginPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { login } = useAuth();
   useDocumentTitle('Inicia sesión · SyncFund');
-  const [email, setEmail] = useState('');
+  // Desde "Inicia sesión con este correo" el correo llega escrito y el foco va a la contraseña.
+  const [prefilledEmail] = useState(() => (location.state as LoginLocationState | null)?.email ?? '');
+  const [email, setEmail] = useState(prefilledEmail);
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const { fieldErrors, formError, formRef, validate, showApiError, clearField } =
+  const formErrorRef = useRef<HTMLParagraphElement>(null);
+  const { fieldErrors, formError, formRef, validate, showApiError, showFormError, clearField } =
     useFormErrors(['email', 'password']);
+
+  // Un error general (credenciales o conexión) recibe el foco: el botón se desactivó al enviar
+  // y el lector de pantalla debe saber qué pasó y dónde quedó.
+  useEffect(() => {
+    if (formError) formErrorRef.current?.focus();
+  }, [formError]);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -36,8 +56,11 @@ export function LoginPage() {
       // replace: con "Atrás" no se vuelve al formulario de login estando dentro.
       navigate('/dashboard', { replace: true });
     } catch (err) {
-      showApiError(err, 'No se pudo conectar con el servidor.');
-    } finally {
+      if (axios.isAxiosError(err) && err.response?.status === 422) {
+        showFormError(WRONG_CREDENTIALS_MESSAGE);
+      } else {
+        showApiError(err, CONNECTION_ERROR_MESSAGE);
+      }
       setLoading(false);
     }
   }
@@ -45,10 +68,8 @@ export function LoginPage() {
   return (
     <AuthLayout>
       <h1 className="auth-form__title">Inicia sesión</h1>
-      <p className="auth-form__lead">
-        Entra para ver tu billetera y tus proyectos.
-      </p>
-      <form ref={formRef} onSubmit={handleSubmit} noValidate>
+      <p className="auth-form__lead">Entra para ver tu billetera y tus proyectos.</p>
+      <form ref={formRef} onSubmit={handleSubmit} noValidate aria-busy={loading || undefined}>
         <Input
           label="Correo"
           type="email"
@@ -58,6 +79,7 @@ export function LoginPage() {
           autoCapitalize="none"
           spellCheck={false}
           value={email}
+          readOnly={loading}
           error={fieldErrors.email}
           onChange={(e) => {
             setEmail(e.target.value);
@@ -69,7 +91,9 @@ export function LoginPage() {
           label="Contraseña"
           name="password"
           autoComplete="current-password"
+          autoFocus={prefilledEmail !== ''}
           value={password}
+          readOnly={loading}
           error={fieldErrors.password}
           onChange={(e) => {
             setPassword(e.target.value);
@@ -77,9 +101,12 @@ export function LoginPage() {
           }}
           required
         />
-        <FormError message={formError} />
-        <Button type="submit" loading={loading}>Entrar</Button>
+        <FormError ref={formErrorRef} message={formError} />
+        <Button type="submit" loading={loading} loadingText="Entrando…">Entrar</Button>
       </form>
+      <p className="auth-form__note">
+        ¿Olvidaste tu contraseña? Por ahora SyncFund no permite recuperarla desde la app.
+      </p>
       <p className="auth-form__switch">
         ¿No tienes cuenta? <Link to="/register">Regístrate</Link>
       </p>
