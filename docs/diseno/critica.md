@@ -2393,6 +2393,157 @@ mostrar contraseña, foco visible).
 
 ---
 
+## Login — después del rediseño
+
+- **Archivos:** `src/pages/LoginPage.tsx` (ruta `/login`) dentro de
+  `src/components/layout/AuthLayout.tsx`, con `Input`, `PasswordInput`, `Button` (`loadingText`),
+  `FormError` (con foco) y `useFormErrors` (`showFormError`).
+- **Fecha:** 2026-11-18 · rama `style/login-registro` (evaluado en el commit `3d6a030`; las
+  correcciones de `ae52379` se anotan abajo).
+- **Método:** dos evaluaciones aisladas en subagentes separados.
+  - A: revisión de diseño con el código y capturas de Chrome sin interfaz contra una API simulada
+    (320, 375 y 1280 px): formulario vacío, enviando, 422, sin conexión y correo precargado desde
+    el Registro.
+  - B: detector de impeccable sobre el código y sobre la página renderizada
+    (`detect --viewport` a 1280, 375 y 320 px), más medidas por CDP: desplazamiento horizontal,
+    botón dentro de la pantalla, h1, áreas táctiles y contraste.
+- **Modo de la pantalla:** Operate (entrar rápido).
+- **Resultado:** **29/40, Bueno** (antes 23/40, +6). Cumple la meta de 28 del plan.
+
+### Puntaje de heurísticas (Nielsen)
+
+| # | Heurística | Antes | Ahora | Problema clave que queda |
+|---|---|---|---|---|
+| 1 | Visibilidad del estado del sistema | 2 | 3 | "Entrando…" con `aria-busy` y campos de solo lectura. Nada avisa si el backend tarda, y quien llega por una sesión vencida no sabe por qué. |
+| 2 | Coincidencia con el mundo real | 3 | 3 | Español natural; el 422 dice "Correo o contraseña incorrectos…". "Un solo saldo real" del titular puede leerse como si billetera y fondo fueran un mismo saldo. |
+| 3 | Control y libertad | 2 | 3 | "Mostrar", `replace` al entrar y salida al Registro. Sin recuperación de contraseña (fuera de alcance, y la pantalla lo dice). |
+| 4 | Consistencia y estándares | 3 | 3 | h1 en el formulario, tokens y clases compartidas con el Registro. `FormError.css` aún usa tamaño y margen sin token. |
+| 5 | Prevención de errores | 2 | 3 | Autocompletado, "Mostrar", `trim` del correo y bordes de campo de 3,4:1. |
+| 6 | Reconocer antes que recordar | 3 | 3 | Etiquetas persistentes, sin placeholders y correo precargado desde el Registro. |
+| 7 | Flexibilidad y eficiencia | 2 | 3 | `autoComplete` email y current-password, `enterKeyHint` y foco en la contraseña cuando el correo llega escrito. |
+| 8 | Estética y diseño minimalista | 3 | 3 | Franja móvil compacta. La línea de apoyo repetía la de la marca (corregido después, ver abajo). |
+| 9 | Recuperación de errores | 2 | 3 | El 422 es accionable, conserva lo escrito y recibe el foco. Quien olvidó la contraseña no tiene a dónde ir. |
+| 10 | Ayuda y documentación | 1 | 2 | Nota honesta sobre la contraseña, sin un siguiente paso (no hay contacto de soporte definido). |
+| **Total** | | **23/40** | **29/40** | **Bueno**: base sólida; quedan la espera larga y la sesión vencida. |
+
+### Veredicto de especificidad
+
+**Revisión de diseño:** en escritorio es propio. El titular en Fraunces sobre azul tinta, el
+párrafo con el vocabulario del producto ("aporta al fondo", "quién le debe a quién") y los dos aros
+en tonos de tinta tienen voz de autor. El formulario es un login estándar, y eso es lo correcto en
+modo Operate. En el celular la marca queda en una franja con el nombre y una línea: neutra, pero ya
+no estorba.
+
+**Detector automático:**
+- Código (`LoginPage`, `AuthLayout` y componentes de formulario): **0 hallazgos**.
+- Página renderizada a 1280, 375 y 320 px: **1 aviso**, `cream-palette` (fondo `ledger-50`). Es un
+  falso positivo: es la identidad de DESIGN.md.
+- A 320 px el detector marcó como sugerencia (`straggler`) la palabra "lugar." sola en la segunda
+  línea de la franja. Se corrigió con `text-wrap: balance` y ya no aparece.
+- Medidas por CDP: sin desplazamiento horizontal a 320, 375 ni 1280 px; "Entrar" dentro de la
+  pantalla en los tres; un solo h1; ningún enlace ni botón por debajo de 44 px. Contraste: franja
+  y párrafo de la marca 9,5:1 (`on-ink-muted`); nota, ayuda y línea de apoyo 6,3:1.
+- No se inyectó la superposición visual: la sesión no tenía un navegador visible.
+
+### Impresión general
+
+Antes el panel de marca empujaba el formulario en el celular, la contraseña se escribía a ciegas y
+"Credenciales inválidas" no orientaba. Ahora se entra rápido: el formulario y "Entrar" se ven sin
+desplazar, el gestor de contraseñas completa los datos, "Mostrar" evita el error de tipeo y el error
+dice qué revisar sin borrar nada. Lo que más rinde ahora es explicar las dos situaciones en que el
+usuario queda sin contexto: la espera larga y la sesión vencida.
+
+### Lo que funciona
+
+1. **La franja móvil compacta.** El formulario completo y "Entrar" quedan a la vista a 375 × 667 y
+   a 320 × 568.
+2. **El manejo de errores.** El foco va al error general (`tabIndex=-1` y `role="alert"`), el texto
+   es humano y mantiene la decisión de no decir cuál de los dos campos falló, y los datos se
+   conservan.
+3. **La continuidad desde el Registro.** "Inicia sesión con este correo" llega con el correo escrito
+   y el foco en la contraseña.
+
+### Problemas prioritarios
+
+#### [P2] La sesión vencida cae al Login sin explicación
+
+- **Qué:** `apiClient.ts:34-38` borra la sesión y hace `window.location.href = '/login'`; el Login se
+  ve igual que un acceso nuevo.
+- **Por qué importa:** si la sesión vence a mitad de un registro en el celular, el usuario pierde lo
+  escrito y no entiende qué pasó.
+- **Corrección:** redirigir con una señal (`/login?motivo=sesion-vencida` o `sessionStorage`) y
+  mostrar una nota informativa arriba del formulario: "Tu sesión venció. Vuelve a entrar para
+  seguir.". Opcional: volver a la ruta de origen después de entrar.
+- **Comando sugerido:** `/impeccable harden`.
+
+#### [P2] Nada avisa si el backend tarda
+
+- **Qué:** "Entrando…" es la única señal, sin límite de tiempo, en un botón desactivado al 60 %.
+- **Por qué importa:** Railway puede tardar varios segundos en arrancar; sin aviso, el usuario
+  recarga o vuelve a tocar.
+- **Corrección:** después de unos 5–6 s, una línea bajo el botón con `aria-live="polite"`: "Está
+  tardando más de lo normal; seguimos intentando.". Sirve igual para el Registro.
+- **Comando sugerido:** `/impeccable harden`.
+
+#### [P3] En escritorio las dos columnas no comparten la línea de arranque
+
+- **Qué:** marca y formulario se centran cada uno por su cuenta (titular hacia y≈330, "Inicia
+  sesión" hacia y≈190); los aros quedan cortados en la esquina.
+- **Corrección:** alinear el nombre con el h1, o darle al motivo un tamaño y lugar deliberados.
+- **Comando sugerido:** `/impeccable layout`.
+
+### Señales de alerta por persona
+
+- **Usuario distraído en el celular:** si la sesión vence, vuelve a un login sin explicación; con
+  mala señal, "Entrando…" sin aviso de demora lo lleva a recargar.
+- **Lector de pantalla y teclado:** al enviar, el botón se desactiva y el foco cae al `body`;
+  "Entrando…" no se anuncia (`aria-busy` no es una región viva). El error sí se anuncia y recibe el
+  foco. "Mostrar" cambia su `aria-label` en vez de usar `aria-pressed` (aceptable).
+- **Estudiante** (persona de PRODUCT.md): si olvidó la contraseña, la nota le dice que no puede
+  recuperarla, pero no a quién acudir.
+
+### Observaciones menores
+
+- El botón desactivado ("Entrando…" blanco sobre tinta al 60 %) da unos 3,5:1. WCAG exime los
+  controles inactivos, pero aquí el texto informa un estado; conviene una variante de carga con
+  opacidad completa.
+- `FormError.css` usa `0.8125rem` y `1rem` en vez de tokens.
+- La nota de la contraseña va antes de "¿No tienes cuenta?": para quien llega por primera vez, el
+  Registro queda en tercer lugar.
+
+### Corregido después de la evaluación (commit `ae52379`)
+
+- La línea de apoyo ya no repite la franja: dice "Usa el correo con el que te registraste.".
+- La palabra suelta en la franja a 320 px (`text-wrap: balance`).
+- En teléfonos bajos (≤ 620 px de alto) la franja queda solo con el nombre.
+
+### Estado de los problemas de la crítica anterior
+
+| Problema | Estado |
+|---|---|
+| [P1] El panel de marca empuja el formulario y el motivo tapa el texto | **Resuelto.** Franja de unos 80 px en el celular, sin motivo; "Entrar" visible a 320 × 568. |
+| [P1] Sin autocompletado ni "Mostrar" | **Resuelto.** `PasswordInput`, `autoComplete` y teclado de correo. |
+| [P1] Bordes invisibles y foco débil en `Input` | **Resuelto** en ramas anteriores: `field-border` de 3,4:1 y anillo de foco, también con error. |
+| [P2] Estados de envío y error que no orientan | **Resuelto en parte.** "Entrando…", `aria-busy`, foco al error, 422 reescrito y texto de conexión unificado. Falta el aviso de demora. |
+| [P2] Texto que promete de más y motivo esmeralda | **Resuelto.** Sin "al instante"; motivo en dos tonos de tinta con tokens; DESIGN.md corregido. |
+| Estilos en línea, placeholder del correo, enlace pequeño | **Resuelto.** Clases con tokens, sin placeholder, enlace de 44 px. |
+
+### Preguntas para el equipo
+
+1. ¿Se quiere un correo de contacto de soporte para quien olvida la contraseña? Si se define uno
+   real, se agrega a la nota del Login; hoy la nota solo dice que no se puede recuperar desde la app.
+2. ¿"Un solo saldo real" es exacto? Billetera y fondo son saldos separados, aunque el Resumen los
+   sume en una cifra.
+3. ¿Se aprueban el aviso de sesión vencida y el de demora? Tocan `apiClient` (toda la app), así que
+   irían en `style/pulido-final`.
+
+### Pendiente (sin hacer en esta rama)
+
+- Los dos P2 (sesión vencida y aviso de demora) y el P3 de composición, para `style/pulido-final`.
+- Recuperación de contraseña: fuera de alcance por ahora.
+
+---
+
 ## Registro
 
 - **Archivo:** `src/pages/RegisterPage.tsx` (ruta `/register`), dentro de `AuthLayout`, con los
@@ -2585,3 +2736,137 @@ de máxima intención para guiar el primer movimiento o el primer proyecto.
 4. ¿El registro debe llevar a un primer paso guiado (primer movimiento, meta o unirse a un
    proyecto)? ¿Hace falta un aviso de tratamiento de datos (Ley 1581 de 2012), aunque sea un
    proyecto académico?
+
+---
+
+## Registro — después del rediseño
+
+- **Archivos:** `src/pages/RegisterPage.tsx` (ruta `/register`) dentro de `AuthLayout`, con los
+  mismos componentes que el Login más `Input.errorAction` (enlace bajo el error) y los validadores
+  de longitud de `utils/validation.ts`. La bienvenida está en `src/pages/DashboardPage.tsx`.
+- **Fecha:** 2026-11-18 · rama `style/login-registro` (evaluado en el commit `3d6a030`; las
+  correcciones de `ae52379` se anotan abajo).
+- **Método:** el mismo del Login. A, con el código y capturas contra una API simulada (formulario,
+  errores de longitud, correo duplicado, enlace al Login y llegada al Resumen con el aviso); B, con
+  el detector sobre el código y la página renderizada y medidas por CDP.
+- **Modo de la pantalla:** Operate (crear la cuenta), con papel de primera impresión.
+- **Resultado:** **32/40, Bueno** (antes 23/40, +9). Cumple la meta de 28 del plan.
+
+### Puntaje de heurísticas (Nielsen)
+
+| # | Heurística | Antes | Ahora | Problema clave que queda |
+|---|---|---|---|---|
+| 1 | Visibilidad del estado del sistema | 3 | 3 | "Creando tu cuenta…" y el aviso "Tu cuenta quedó creada." al llegar. Nada avisa si el backend tarda. |
+| 2 | Coincidencia con el mundo real | 3 | 3 | Claro. "Unirte a uno" prometía una acción que no existe (corregido después, ver abajo). |
+| 3 | Control y libertad | 3 | 3 | "Mostrar", salida al Login y `replace`. |
+| 4 | Consistencia y estándares | 2 | 3 | Mismo sistema que el Login. Con el correo duplicado se ven dos enlaces "Inicia sesión" y el espacio bajo el error es mayor. |
+| 5 | Prevención de errores | 2 | 3 | Regla visible, `newEmail` estricto, `new-password`, `trim` y límites de la base. `maxLength` cortaba en silencio lo pegado (corregido después). |
+| 6 | Reconocer antes que recordar | 2 | 4 | Etiquetas, regla persistente en la ayuda (y en `aria-describedby`), autocompletado, y el correo duplicado pasa escrito al Login. |
+| 7 | Flexibilidad y eficiencia | 1 | 3 | El gestor genera y guarda la contraseña; `enterKeyHint` y mayúscula inicial en el nombre. |
+| 8 | Estética y diseño minimalista | 3 | 3 | Limpio. Con el error de largo, la ayuda y el error de la contraseña quedan apilados. |
+| 9 | Recuperación de errores | 2 | 4 | El correo duplicado aparece bajo el campo, con foco y con una salida que conserva el correo; los errores se borran al escribir. |
+| 10 | Ayuda y documentación | 2 | 3 | El texto anticipa lo que pasa y el Resumen nuevo ofrece "Registra tu primer ingreso" y "Crea un proyecto". Aviso de tratamiento de datos fuera de alcance. |
+| **Total** | | **23/40** | **32/40** | **Bueno**: un recorrido pensado para SyncFund; queda pulido de texto y de casos límite. |
+
+### Veredicto de especificidad
+
+**Revisión de diseño:** propio en lo que importa. La línea de apoyo explica el modelo del producto
+(la billetera se crea sola y a los proyectos te agrega quien los administra), el correo duplicado
+se convierte en continuidad hacia el Login, y la llegada al Resumen con el aviso y los primeros
+pasos cierra el recorrido. Ya no es un formulario de plantilla.
+
+**Detector automático:**
+- Código (`RegisterPage`, `AuthLayout` y componentes de formulario): **0 hallazgos**.
+- Página renderizada a 1280, 375 y 320 px: **1 aviso**, `cream-palette` (falso positivo, identidad
+  de DESIGN.md). El `straggler` de la franja a 320 px se corrigió, como en el Login.
+- Medidas por CDP: sin desplazamiento horizontal; un h1; áreas táctiles de 44 px. A 320 × 568,
+  "Crear cuenta" quedaba 11 px por debajo del borde; con la franja solo con el nombre en teléfonos
+  bajos (`ae52379`) queda dentro (borde inferior en 552 px). La ayuda "Mínimo 6 caracteres" da
+  6,3:1.
+
+### Impresión general
+
+El Registro fallaba al crear la contraseña (sin gestor, regla escondida) y justo después de crear
+la cuenta (un Resumen vacío sin bienvenida). Las dos puntas quedaron resueltas: la contraseña tiene
+apoyo y regla visible, el correo duplicado tiene salida, y la cuenta nueva llega a un Resumen que
+confirma y dice qué hacer. El mayor salto está en el final del recorrido.
+
+### Lo que funciona
+
+1. **El correo duplicado como continuidad.** Error bajo el campo, foco, y "Inicia sesión con este
+   correo" lleva al Login con el correo escrito (por estado de navegación, no por la URL).
+2. **Límites coherentes con la base y con BCrypt.** Nombre 100, correo 150 y contraseña de 72
+   bytes, con mensajes en español; ningún campo corta en silencio.
+3. **Un cierre con bienvenida y siguiente paso.** El aviso "Tu cuenta quedó creada." sale una sola
+   vez y no se repite al recargar; el Resumen ofrece las dos primeras acciones.
+
+### Problemas prioritarios
+
+#### [P2] Nada avisa si la creación tarda, y un reenvío confunde
+
+- **Qué:** como en el Login, pero aquí, si el usuario recarga y vuelve a enviar, el backend ya creó
+  la cuenta y responde "Ya hay una cuenta con este correo." sobre su propia cuenta.
+- **Corrección:** el mismo aviso de demora que en el Login. El enlace "Inicia sesión con este
+  correo" ya rescata el caso.
+- **Comando sugerido:** `/impeccable harden`.
+
+#### [P3] La ayuda y el error de la contraseña se apilan, con un texto técnico
+
+- **Qué:** "Mínimo 6 caracteres" y debajo "La contraseña puede tener máximo 72 caracteres (las
+  tildes y la ñ cuentan doble)". Un emoji ocupa 4 bytes, así que "cuentan doble" no es exacto.
+- **Corrección:** con error, ocultar la ayuda en `PasswordInput`, o reformular: "Es demasiado
+  larga. Usa una más corta (máximo 72; las tildes, la ñ y los emojis ocupan más)."
+- **Comando sugerido:** `/impeccable clarify`.
+
+#### [P3] Ritmo del estado de correo duplicado
+
+- **Qué:** el enlace del error más el margen del campo dejan un hueco mayor antes de "Contraseña", y
+  se ven dos enlaces "Inicia sesión".
+- **Corrección:** compensar el margen del campo cuando hay `errorAction`; ocultar el enlace del pie
+  mientras se ve el del error.
+- **Comando sugerido:** `/impeccable polish`.
+
+### Señales de alerta por persona
+
+- **Primera vez:** la línea de apoyo, la regla visible y la bienvenida lo guían bien.
+- **Lector de pantalla:** la ayuda se anuncia con el campo y el error de duplicado recibe el foco
+  con la salida al lado. Como en el Login, el foco cae al `body` mientras envía.
+- **Estudiante a quien un compañero va a agregar al proyecto del arriendo** (persona de
+  PRODUCT.md): la pantalla ahora le dice que quien administra el proyecto lo agrega con este
+  correo, así que sabe que debe usar el mismo que le dio.
+
+### Observaciones menores
+
+- El mínimo de 6 caracteres es bajo para una app de dinero sin recuperación de contraseña (regla
+  del backend).
+- "Correo" podría ser "Correo electrónico" para lectores de pantalla (afecta a todos los
+  formularios; pulido final).
+
+### Corregido después de la evaluación (commit `ae52379`)
+
+- "Unirte a uno" → "Para entrar a un proyecto compartido, quien lo administra te agrega con este
+  correo." (la app no tiene una acción para unirse).
+- Nombre y correo sin `maxLength`: los límites los dicen los validadores, como en la contraseña.
+- "Crear cuenta" visible sin desplazar a 320 × 568 y sin palabra suelta en la franja.
+
+### Estado de los problemas de la crítica anterior
+
+| Problema | Estado |
+|---|---|
+| [P1] La contraseña nueva no tiene apoyo y su regla se esconde | **Resuelto.** `new-password`, "Mostrar" y la regla como ayuda visible y accesible. |
+| [P1] Sin límites de longitud en ninguna capa | **Resuelto en el frontend.** El `@Size` de `RegisterUserRequest` (nombre 100, correo 150, contraseña 72) sigue pendiente en el backend. |
+| [P1] "Correo ya registrado" lejos del campo y sin salida | **Resuelto** solo en el frontend, sin cambiar el contrato del 422. |
+| [P2] Sin bienvenida ni primer paso | **Resuelto.** Aviso al llegar y estado de usuario nuevo en el Resumen. |
+| [P3] Subtítulo pobre y estilos en línea | **Resuelto.** Texto que explica la billetera y los proyectos, con clases y tokens. |
+
+### Preguntas para el equipo
+
+1. ¿Se sube el mínimo de la contraseña (cambio de backend) en una app que maneja saldos y no
+   permite recuperar la clave?
+2. ¿Sobra el enlace "Inicia sesión" del pie mientras se muestra "Inicia sesión con este correo"?
+
+### Pendiente (sin hacer en esta rama)
+
+- El P2 de demora (junto con el del Login) y los dos P3, para `style/pulido-final`.
+- Backend: `@Size` en `RegisterUserRequest` (anotado en `plan-rediseno.md`).
+- Aviso de tratamiento de datos (Ley 1581 de 2012): fuera de esta rama.
