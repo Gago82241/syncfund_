@@ -23,3 +23,8 @@ export function formatMonthLabel(monthKey: string): string {
     new Date(year, month - 1, 1),
   );
 }
+
+/** Primera letra en mayúscula, para títulos: "noviembre de 2026" → "Noviembre de 2026". */
+export function capitalize(text: string): string {
+  return text.charAt(0).toUpperCase() + text.slice(1);
+}

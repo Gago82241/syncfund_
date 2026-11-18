@@ -2014,6 +2014,173 @@ comprometidas primero.
 
 ---
 
+## Categorías — después del rediseño
+
+- **Archivos:** `src/pages/CategoriesPage.tsx` y `src/features/categories/`:
+  - medición, orden y línea de resumen compartidos con el Resumen en `budget.ts`;
+  - carga en `hooks/useCategories.ts` (N + 2 peticiones en dos rondas);
+  - `components/CategoryBudgetList` y el panel `CreateCategoryForm` con paso de revisión;
+  - estados de la barra en `components/ui/ProgressBar.tsx` y `utils/budget.ts`.
+- **Fecha:** 2026-11-16 · rama `style/categorias` (commit `d2afbaf`).
+- **Método:** dos evaluaciones aisladas en subagentes separados.
+  - A: revisión de diseño con el código y 9 capturas de Chrome sin interfaz contra el backend local
+    (320, 375 y 1280 px): lista con los cuatro estados, datos extremos, validaciones del panel,
+    revisión con límite sospechoso, aviso tras crear y estado vacío. Error de carga, "Reintentar"
+    y "Tu cambio se guardó" verificados aparte.
+  - B: detector de impeccable sobre el código y sobre la página renderizada (`detect --cdp`, a 1280
+    y 375 px), más desplazamiento horizontal a 320 px.
+- **Modo de la pantalla:** Operate.
+- **Resultado:** **28/40, Bueno** (antes 20/40, +8). Cumple la meta de 28 del plan, sin margen.
+
+### Puntaje de heurísticas (Nielsen)
+
+| # | Heurística | Antes | Ahora | Problema clave que queda |
+|---|---|---|---|---|
+| 1 | Visibilidad del estado del sistema | 2 | 3 | Mes nombrado, esqueleto, aviso al crear y "Tu cambio se guardó". La categoría nueva (0 %) queda al final, fuera de la vista en el celular. |
+| 2 | Coincidencia con el mundo real | 2 | 3 | "Te quedan", "Te pasaste por" y montos con puntos de miles. "1 categoría pasada" se puede leer como "del mes pasado". |
+| 3 | Control y libertad | 1 | 2 | "Volver" en la revisión; el panel se cierra con Esc o "Cerrar". Editar y eliminar siguen fuera (backend y UML). |
+| 4 | Consistencia y estándares | 3 | 3 | Misma barra y mismo cálculo que el Resumen. Jerarquía plana: h1, mes y títulos de hoja miden 18 px. |
+| 5 | Prevención de errores | 2 | 3 | Nombre repetido (sin importar tildes ni mayúsculas), 0 con guía, tope de la columna y revisión. El aviso de "faltan ceros" solo salta por debajo de $ 10.000. |
+| 6 | Reconocer antes que recordar | 2 | 3 | Porcentaje, lo que queda y lo que te pasaste a la vista. La línea de resumen cuenta, pero no nombra cuáles. |
+| 7 | Flexibilidad y eficiencia | 1 | 2 | Orden por uso. Sin paso a los movimientos de una categoría ni meses anteriores. |
+| 8 | Estética y diseño minimalista | 3 | 3 | Limpia. Cuatro líneas de cabecera empujan la primera barra en el celular. |
+| 9 | Recuperación de errores | 2 | 3 | Mensajes concretos y "Reintentar" que recupera. "Te pasaste por $ 50.000" no ofrece un siguiente paso. |
+| 10 | Ayuda y documentación | 2 | 3 | Estado vacío que explica para qué sirven y cómo se usan; alcance, pista del límite y "Se mide en". "Te avisa" puede hacer esperar una notificación. |
+| **Total** | | **20/40** | **28/40** | **Bueno**: responde "¿cómo voy este mes?" con certeza; falta que lo diga con nombre propio y con jerarquía. |
+
+### Veredicto de especificidad
+
+**Revisión de diseño:** la pantalla dejó de ser "formulario arriba, lista abajo". Es propio de
+SyncFund:
+- El mes nombrado, calculado en hora local y guardado junto con los datos.
+- La línea de resumen por estados, sin sumar límites distintos: no esconde que te pasaste en una
+  categoría porque te sobre en otra.
+- La barra de tres estados con texto ("Cerca del límite", "Llegaste al límite", "Te pasaste por
+  $X"), con el porcentaje real aunque el relleno se corte en 100 %. Por fin se usa el ámbar
+  reservado.
+- La revisión antes de crear como un asiento de libro mayor ("Se mide en: tu billetera personal").
+
+Lo genérico: la cabecera apila cuatro líneas de peso parecido, y en escritorio la acción se alinea
+al borde de la página y no al de la hoja de 768 px (igual que en Proyectos).
+
+**Detector automático:**
+- Código: **0 hallazgos** (página, `features/categories` y `ProgressBar`).
+- Página renderizada (`detect --cdp`, igual a 1280 y a 375 px): **2 avisos**.
+  - `cream-palette` (fondo `ledger-50`): falso positivo, es la identidad de DESIGN.md.
+  - `flat-type-hierarchy` (h1 y h2 de 18 px): real y ya conocido; coincide con la revisión de
+    diseño. Es el pendiente del `h1` de `PageHeader` para `style/pulido-final`.
+- Sin desplazamiento horizontal a 320, 375 ni 1280 px. No se inyectó la superposición visual.
+
+### Impresión general
+
+Antes la pantalla obligaba a restar, no avisaba antes de pasarse y no decía de qué mes eran las
+cifras. Ahora cada categoría dice cuánto queda o cuánto te pasaste, las más comprometidas van
+primero y crear tiene una revisión que compensa que aún no se pueda editar. Lo que más rinde ahora
+es que la línea de resumen nombre las categorías en problema y tenga más peso, y que una alerta
+lleve a los gastos de esa categoría.
+
+### Lo que funciona
+
+1. **Certeza sin trampas aritméticas.** El estado se calcula sin redondear (nunca "100 %" sin
+   haber llegado), el orden usa la proporción real y el límite 0 se lee como "sin límite" sin
+   depender de `alertExcess`.
+2. **Una barra accesible y compartida.** `role="progressbar"` con `aria-valuetext`, avisos en tonos
+   700 (AA) y rellenos en 500; la misma barra en el Resumen y en Categorías.
+3. **Prevención seria mientras no haya edición.** Nombre repetido, 0 con guía, tope de
+   `DECIMAL(12,2)`, aviso de límite bajo, revisión y foco que sigue al paso.
+
+### Problemas prioritarios
+
+#### [P2] La línea de resumen cuenta pero no nombra, y no tiene peso
+
+- **Qué:** "1 categoría pasada, 1 en el límite y 1 cerca del límite, de tus 4 con límite" va en
+  cuerpo, debajo de un mes en Fraunces del tamaño del h1. "Pasada" es ambiguo.
+- **Por qué importa:** es la respuesta a la pregunta de la pantalla; el usuario tiene que mapear el
+  conteo a las filas.
+- **Corrección:** nombrar hasta 2 o 3 categorías ("Te pasaste en Mercado; Transporte llegó al
+  límite y Salidas va cerca"), contar solo cuando haya más, cambiar "pasada" por "en la que te
+  pasaste" y darle más peso que al mes.
+- **Comando sugerido:** `/impeccable clarify`, luego `/impeccable typeset`.
+
+#### [P2] Exceder o acercarse al límite no lleva a ninguna parte
+
+- **Qué:** las filas no son interactivas y la Billetera no filtra por categoría.
+- **Por qué importa:** tras "te pasaste", la pregunta es "¿en qué?".
+- **Corrección (solo frontend):** enlace "Ver gastos de Mercado" hacia `/wallet?categoria={id}` y
+  filtro en la Billetera con los movimientos que ya carga.
+- **Comando sugerido:** `/impeccable shape`.
+
+#### [P2] La fila de estado cambia de forma según el ancho
+
+- **Qué:** a 375 y 320 px, "Te quedan" y los montos bajan de línea en unas filas y en otras no.
+- **Por qué importa:** rompe la lectura vertical del libro mayor.
+- **Corrección:** por debajo de unos 24 rem, fijar siempre la fila de estado en dos líneas.
+- **Nota:** "Llegaste al límite · Te quedan $ 0" se repite, pero es una decisión del equipo para
+  esta rama; se conserva.
+- **Comando sugerido:** `/impeccable layout`, luego `/impeccable adapt`.
+
+#### [P3] Tras crear, la categoría nueva no se ve
+
+- **Qué:** con 0 % va al final; en el celular queda debajo de la acción fija.
+- **Corrección:** desplazar hasta la fila nueva y resaltarla un momento (respetando "reducir
+  movimiento").
+- **Comando sugerido:** `/impeccable polish`.
+
+#### [P3] El lector de pantalla oye cada cifra tres veces
+
+- **Qué:** montos visibles, `aria-valuetext` completo y la línea de estado.
+- **Corrección:** dejar en `aria-valuetext` solo el porcentaje y el estado.
+- **Comando sugerido:** `/impeccable harden`.
+
+### Señales de alerta por persona
+
+- **Usuario distraído en el celular:** cuatro líneas de cabecera antes de la primera barra; el
+  orden sí le pone arriba la que se pasó.
+- **Primera vez:** el estado vacío orienta. La descripción del panel habla de "la barra" antes de
+  que exista y da por hecho el límite aunque el campo es opcional.
+- **Lector de pantalla y teclado:** aviso con `role="status"` y foco al título de la revisión y,
+  tras la primera categoría, al contenido. En contra, la triple lectura de cada fila.
+- **Estudiante** (persona de PRODUCT.md): ve "Te quedan $ 30.000 para Salidas" y la noche del 30
+  ya no ve $ 0 en todo. Si escribe 30.000 queriendo 300.000, no hay aviso y el error es permanente.
+
+### Observaciones menores
+
+- El carril de la barra (`ledger-100` sobre `paper`, ~1,2:1) apenas se ve con 0 %; el texto lleva
+  la información.
+- Carga todo o nada: si falla el gasto de una categoría, cae la página (en Proyectos se resolvió
+  con "Saldo sin cargar").
+- El mes queda fijo si la pestaña sigue abierta al cambiar de mes.
+- En la revisión sigue visible la descripción del panel; con límite 0, la pista y el error se
+  apilan.
+- La nota de la hoja "Sin límite" repite el mes.
+
+### Estado de los problemas de la crítica anterior
+
+| Problema | Estado |
+|---|---|
+| [P1] Barra invisible y sin semántica | **Resuelto.** `progressbar`, tres estados con texto y tonos 700. Queda el carril de bajo contraste (menor). |
+| [P1] Mes en UTC y sin nombre | **Resuelto.** La zona del servidor sigue pendiente para el paso a producción. |
+| [P1] Sin edición ni eliminación | **Mitigado** con la revisión, nombres únicos y `MoneyInput`. Fuera de alcance (backend y UML). |
+| [P2] Sin cifra protagonista ni orden | **Resuelto en parte.** Orden por uso; la cifra se reemplazó por una línea de estados (decisión del equipo), que aún no tiene peso. |
+| [P2] Casos límite sin definir | **Resuelto.** 0 = sin límite, nombres largos, estado vacío con guía y aviso de éxito. |
+| 2N + 2 peticiones | **Resuelto en parte.** N + 2 en dos rondas, sin `over-limit`. Una sola llamada requiere backend. |
+
+### Preguntas para el equipo
+
+1. ¿La línea de resumen debe nombrar las categorías en problema y pesar más que el mes?
+2. ¿Se aprueba el enlace de una categoría a la Billetera filtrada (solo frontend)?
+3. ¿Se sube el umbral del aviso de límite bajo, o se muestra siempre el límite en palabras?
+
+### Pendiente (sin hacer en esta rama)
+
+- Los tres P2 y los dos P3 de arriba, para `style/pulido-final` o según lo que decida el equipo.
+- Backend: un límite mayor que `DECIMAL(12,2)` responde 500 en vez de 400 (falta `@Max` o
+  `@Digits` en `CreateCategoryRequest`); el frontend ya lo impide.
+- Backend y UML: editar y eliminar categorías; `alertExcess` diría "excedido" con límite 0; una
+  respuesta con todas las categorías y su gasto del mes.
+
+---
+
 ## Login
 
 - **Archivo:** `src/pages/LoginPage.tsx` (ruta `/login`), dentro de

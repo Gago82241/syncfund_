@@ -6,14 +6,8 @@ import { categoryService } from '../../categories/services/categoryService';
 import { transactionService } from '../../transactions/services/transactionService';
 import { afterActionLoadError, describeLoadError, type LoadErrorInfo } from '../../../utils/apiError';
 import { currentMonthKey } from '../../../utils/formatDate';
-import {
-  computeDashboardSummary,
-  isNewUser,
-  needsHistoryCheck,
-  selectBudgetAlerts,
-  type BudgetAlert,
-  type DashboardSummary,
-} from '../summary';
+import { computeDashboardSummary, isNewUser, needsHistoryCheck, type DashboardSummary } from '../summary';
+import { fetchMonthSpend, selectBudgetAlerts, type BudgetLine } from '../../categories/budget';
 import type { CategoryResponse, PersonalWalletResponse } from '../../../types/api';
 
 export interface DashboardData {
@@ -29,7 +23,7 @@ export interface BudgetData {
   month: string;
   /** Cuántas categorías tienen límite mensual (0: no hay nada que vigilar). */
   limitedCount: number;
-  alerts: BudgetAlert[];
+  alerts: BudgetLine[];
 }
 
 async function fetchSummary(
@@ -65,14 +59,8 @@ async function fetchBudget(
   const month = currentMonthKey();
   const [wallet, categories] = await Promise.all([walletPromise, categoriesPromise]);
   const limited = categories.filter((c) => c.monthlyLimit > 0);
-  const spent = await Promise.all(
-    limited.map((c) =>
-      categoryService
-        .getExpense(c.categoryId, wallet.walletId, 'PERSONAL', month)
-        .then((r) => [c.categoryId, r.data] as const),
-    ),
-  );
-  return { month, limitedCount: limited.length, alerts: selectBudgetAlerts(limited, new Map(spent)) };
+  const spent = await fetchMonthSpend(wallet.walletId, limited, month);
+  return { month, limitedCount: limited.length, alerts: selectBudgetAlerts(limited, spent) };
 }
 
 /**

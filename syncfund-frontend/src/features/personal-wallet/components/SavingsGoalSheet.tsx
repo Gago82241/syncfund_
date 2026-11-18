@@ -5,7 +5,7 @@ import { ProgressBar } from '../../../components/ui/ProgressBar';
 import { Sheet } from '../../../components/ui/Sheet';
 import { formatCOP } from '../../../styles/theme';
 import type { TransactionResponse } from '../../../types/api';
-import { currentMonthKey, formatMonthLabel } from '../../../utils/formatDate';
+import { capitalize, currentMonthKey, formatMonthLabel } from '../../../utils/formatDate';
 import { personalWalletService } from '../services/personalWalletService';
 import { monthSavings, type SavingsLine } from '../walletFigures';
 import './WalletLedger.css';
@@ -51,11 +51,6 @@ function useQuota(walletId: number, goal: number): Quota | null {
 
   // Una cuota de otra meta (antes de que llegue la nueva) no se muestra.
   return quota && quota.goal === goal ? quota.value : null;
-}
-
-/** "noviembre de 2026" → "Noviembre de 2026". */
-function capitalize(text: string): string {
-  return text.charAt(0).toUpperCase() + text.slice(1);
 }
 
 function LineTerm({ line, first }: { line: SavingsLine; first: boolean }) {

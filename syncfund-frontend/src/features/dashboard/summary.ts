@@ -10,9 +10,7 @@
 import { HALF_CENT, settle } from '../shared-project/balance';
 import { sortProjectLines, toProjectLine, type ProjectLine } from '../shared-project/projectLines';
 import { toPesos, walletFigures } from '../personal-wallet/walletFigures';
-import { BUDGET_WARN_PERCENT, budgetPercent } from '../../utils/budget';
 import type {
-  CategoryResponse,
   PersonalWalletResponse,
   ProjectBalancesResponse,
   SharedProjectResponse,
@@ -135,33 +133,4 @@ export function isNewUser(
 /** Si hace falta pedir el historial para saber si el usuario es nuevo. */
 export function needsHistoryCheck(wallet: PersonalWalletResponse, projects: SharedProjectResponse[]): boolean {
   return projects.length === 0 && settle(wallet.currentBalance) === 0 && settle(wallet.cushionBalance) === 0;
-}
-
-export interface BudgetAlert {
-  categoryId: number;
-  name: string;
-  spent: number;
-  limit: number;
-  percent: number;
-}
-
-/** Categorías con límite que ya van en el 80 % o más este mes, de la más pasada a la menos. */
-export function selectBudgetAlerts(
-  categories: CategoryResponse[],
-  spentByCategory: ReadonlyMap<number, number>,
-): BudgetAlert[] {
-  return categories
-    .filter((c) => c.monthlyLimit > 0)
-    .map((c) => {
-      const spent = spentByCategory.get(c.categoryId) ?? 0;
-      return {
-        categoryId: c.categoryId,
-        name: c.name,
-        spent,
-        limit: c.monthlyLimit,
-        percent: budgetPercent(spent, c.monthlyLimit),
-      };
-    })
-    .filter((alert) => alert.percent >= BUDGET_WARN_PERCENT)
-    .sort((a, b) => b.percent - a.percent);
 }

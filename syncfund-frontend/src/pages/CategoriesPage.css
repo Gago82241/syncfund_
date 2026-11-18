@@ -1,0 +1,37 @@
+/* El mes nombrado: dice de qué periodo son todas las cifras de la página. */
+.categories__month {
+  font-family: var(--font-display);
+  font-size: var(--text-title);
+  font-weight: 500;
+  color: var(--ink-900);
+}
+
+/* La respuesta a "¿cómo voy?": estados por categoría, sin sumar montos. */
+.categories__headline {
+  margin-top: calc(var(--space-xs) / 2);
+  font-size: var(--text-body);
+  color: var(--ink);
+  text-wrap: pretty;
+}
+
+.categories__scope {
+  margin-top: calc(var(--space-xs) / 2);
+  font-size: var(--text-label);
+  color: var(--ink-muted);
+  text-wrap: pretty;
+}
+
+/* Una lista de barras no se estira a todo el ancho: nombre y cifras quedan cerca. */
+.categories__sheet {
+  max-width: var(--list-max);
+}
+
+.categories__sheet + .categories__sheet {
+  margin-top: var(--space-lg);
+}
+
+.categories__sheet-note {
+  margin-bottom: var(--space-md);
+  font-size: var(--text-small);
+  color: var(--ink-muted);
+}

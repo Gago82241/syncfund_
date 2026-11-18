@@ -1,0 +1,55 @@
+.category-budget-list,
+.category-spend-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Una barra por renglón, separadas con línea fina como el libro mayor. */
+.category-budget-list li {
+  padding: var(--space-md) 0;
+}
+
+.category-budget-list li:first-child {
+  padding-top: 0;
+}
+
+.category-budget-list li:last-child {
+  padding-bottom: 0;
+}
+
+.category-budget-list li + li,
+.category-spend-list li + li {
+  border-top: 1px solid var(--hairline);
+}
+
+/* Renglón sin límite: nombre a la izquierda, lo gastado a la derecha (abajo si no cabe). */
+.category-spend-list__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: calc(var(--space-xs) / 2) var(--space-md);
+  padding: var(--space-sm) 0;
+}
+
+.category-spend-list__row:first-child {
+  padding-top: 0;
+}
+
+.category-spend-list__row:last-child {
+  padding-bottom: 0;
+}
+
+.category-spend-list__name {
+  flex: 1 1 8.5rem;
+  min-width: 0;
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+
+.category-spend-list__amount {
+  margin-left: auto;
+  font-size: var(--text-small);
+  white-space: nowrap;
+}
