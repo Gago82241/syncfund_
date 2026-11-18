@@ -103,3 +103,32 @@ export function monthSavings(transactions: TransactionResponse[], monthKey: stri
   const total = lines.reduce((acc, line) => acc + line.amount, 0) || 0;
   return { lines, total };
 }
+
+/** Parámetros del filtro que llega desde Categorías (/wallet?categoria={id}&mes=yyyy-MM). */
+export interface CategoryMonthFilter {
+  categoryId: number;
+  /** "yyyy-MM", el mismo mes con que Categorías midió lo gastado. */
+  month: string;
+}
+
+/** Lee el filtro de la URL; null si falta un dato o no tiene la forma esperada. */
+export function parseCategoryMonthFilter(categoria: string | null, mes: string | null): CategoryMonthFilter | null {
+  if (!categoria || !mes || !/^\d+$/.test(categoria) || !/^\d{4}-(0[1-9]|1[0-2])$/.test(mes)) return null;
+  return { categoryId: Number(categoria), month: mes };
+}
+
+/**
+ * Gastos de una categoría en un mes, sobre todos los movimientos cargados (no solo los visibles).
+ * Misma regla que el backend para lo gastado por categoría (Category.calculateTotalExpense): solo
+ * GASTO de la billetera personal, con esa categoría y con fecha en ese mes. Así el total coincide
+ * con lo que mostraba Categorías.
+ */
+export function filterByCategoryMonth(
+  transactions: readonly TransactionResponse[],
+  filter: CategoryMonthFilter,
+): { transactions: TransactionResponse[]; total: number } {
+  const matches = transactions.filter(
+    (tx) => tx.type === 'GASTO' && tx.categoryId === filter.categoryId && tx.dateTime.slice(0, 7) === filter.month,
+  );
+  return { transactions: matches, total: toPesos(matches.reduce((acc, tx) => acc + tx.amount, 0)) };
+}

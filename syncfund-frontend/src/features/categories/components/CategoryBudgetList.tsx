@@ -1,5 +1,7 @@
 import { useCallback } from 'react';
+import { Link } from 'react-router-dom';
 import { ProgressBar } from '../../../components/ui/ProgressBar';
+import { budgetStatus } from '../../../utils/budget';
 import { formatCOP } from '../../../styles/theme';
 import type { BudgetLine } from '../budget';
 import './CategoryBudgetList.css';
@@ -8,6 +10,11 @@ interface ListProps {
   lines: readonly BudgetLine[];
   /** Categoría recién creada: se trae a la vista y se resalta un momento. */
   highlightId?: number | null;
+}
+
+interface LimitedListProps extends ListProps {
+  /** Mes medido ("yyyy-MM"): el enlace a la Billetera filtra por este mismo mes. */
+  month: string;
 }
 
 /**
@@ -25,7 +32,7 @@ function useScrollToHighlighted(highlightId: number | null | undefined) {
 }
 
 /** Categorías con límite: una barra por categoría, ya ordenadas (sortBudgetLines). */
-export function LimitedCategoryList({ lines, highlightId }: ListProps) {
+export function LimitedCategoryList({ lines, highlightId, month }: LimitedListProps) {
   const highlightedRef = useScrollToHighlighted(highlightId);
   return (
     <ul className="category-budget-list">
@@ -36,6 +43,15 @@ export function LimitedCategoryList({ lines, highlightId }: ListProps) {
           className={line.categoryId === highlightId ? 'category-row--new' : undefined}
         >
           <ProgressBar label={line.name} value={line.spent} max={line.limit} kind="budget" />
+          {/* Tras "te pasaste" o "cerca del límite", la pregunta es "¿en qué?": los gastos del mes. */}
+          {budgetStatus(line.spent, line.limit) !== 'normal' && (
+            <Link
+              className="category-budget-list__link"
+              to={`/wallet?categoria=${line.categoryId}&mes=${month}`}
+            >
+              Ver gastos de {line.name}
+            </Link>
+          )}
         </li>
       ))}
     </ul>

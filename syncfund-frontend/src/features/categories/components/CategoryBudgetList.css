@@ -23,6 +23,17 @@
   border-top: 1px solid var(--hairline);
 }
 
+/* Enlace a los gastos de la categoría: secundario, con área táctil de 44 px. */
+.category-budget-list__link {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--tap-target);
+  margin-bottom: calc(var(--space-sm) * -1);
+  font-size: var(--text-small);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
 /* Renglón sin límite: nombre a la izquierda, lo gastado a la derecha (abajo si no cabe). */
 .category-spend-list__row {
   display: flex;

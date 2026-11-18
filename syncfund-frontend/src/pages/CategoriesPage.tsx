@@ -131,7 +131,7 @@ export function CategoriesPage() {
         />
         {limited.length > 0 && (
           <Sheet title="Con límite" className="categories__sheet">
-            <LimitedCategoryList lines={limited} highlightId={createdId} />
+            <LimitedCategoryList lines={limited} highlightId={createdId} month={month} />
           </Sheet>
         )}
         {unlimited.length > 0 && (

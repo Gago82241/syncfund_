@@ -1,4 +1,5 @@
-import { useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { AppLayout } from '../components/layout/AppLayout';
 import { PageColumns } from '../components/layout/PageColumns';
 import { Button } from '../components/ui/Button';
@@ -20,11 +21,16 @@ import { WalletLedger } from '../features/personal-wallet/components/WalletLedge
 import { savedMovementMessage } from '../features/personal-wallet/movementMessage';
 import { useCategoryNames } from '../features/personal-wallet/hooks/useCategoryNames';
 import { usePersonalWallet } from '../features/personal-wallet/hooks/usePersonalWallet';
-import { walletFigures } from '../features/personal-wallet/walletFigures';
+import {
+  filterByCategoryMonth,
+  parseCategoryMonthFilter,
+  walletFigures,
+} from '../features/personal-wallet/walletFigures';
 import { TransactionList } from '../features/transactions/components/TransactionList';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 import { formatCOP } from '../styles/theme';
+import { capitalize, formatMonthLabel } from '../utils/formatDate';
 import './PersonalWalletPage.css';
 
 const TITLE = 'Billetera personal';
@@ -66,6 +72,33 @@ export function PersonalWalletPage() {
   useDocumentTitle(`${TITLE} · SyncFund`);
   const isMobile = useMediaQuery('(max-width: 639px)');
   const pageSize = isMobile ? MOVEMENTS_PAGE_MOBILE : MOVEMENTS_PAGE;
+
+  // Filtro que llega desde Categorías ("Ver gastos de Mercado"): categoría y mes en la URL, para
+  // que "Atrás" vuelva a Categorías y recargar no lo pierda.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const filter = parseCategoryMonthFilter(searchParams.get('categoria'), searchParams.get('mes'));
+  const hasFilterParams = searchParams.has('categoria') || searchParams.has('mes');
+  // Una categoría que no existe (o parámetros mal formados) no filtra nada: se quitan de la URL.
+  const unknownCategory = filter !== null && categories.loaded && !categories.names.has(filter.categoryId);
+  const invalidFilter = hasFilterParams && (filter === null || unknownCategory);
+
+  useEffect(() => {
+    if (invalidFilter) clearFilter();
+    // clearFilter solo usa setSearchParams, que es estable.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [invalidFilter]);
+
+  function clearFilter() {
+    setSearchParams(
+      (params) => {
+        const next = new URLSearchParams(params);
+        next.delete('categoria');
+        next.delete('mes');
+        return next;
+      },
+      { replace: true },
+    );
+  }
 
   function openPanel(kind: PanelKind, type: MovementType = 'GASTO') {
     setPanel((current) => ({ open: true, kind, type, formKey: current.formKey + 1 }));
@@ -134,6 +167,12 @@ export function PersonalWalletPage() {
     );
   } else {
     const figures = walletFigures(wallet);
+    const activeFilter = filter && !invalidFilter ? filter : null;
+    const filtered = activeFilter ? filterByCategoryMonth(transactions, activeFilter) : null;
+    const filterCategoryName = activeFilter
+      ? (categories.names.get(activeFilter.categoryId) ?? 'esta categoría')
+      : '';
+    const filterMonthLabel = activeFilter ? formatMonthLabel(activeFilter.month) : '';
     // Primera visita: sin nada que sumar ni que mover, la suma y el colchón no aportan.
     const allZero = figures.available === 0 && figures.cushion === 0;
     content = (
@@ -167,23 +206,46 @@ export function PersonalWalletPage() {
                 </button>
               </p>
             )}
+            {activeFilter && filtered && (
+              <div className="wallet__filter" role="status">
+                <p className="wallet__filter-text">
+                  <span className="wallet__filter-name">
+                    {filterCategoryName} · {capitalize(filterMonthLabel)}
+                  </span>
+                  <span className="wallet__filter-total tabular-nums">
+                    Total: {formatCOP(filtered.total)}
+                  </span>
+                </p>
+                <button type="button" className="wallet__retry" onClick={clearFilter}>
+                  Quitar filtro
+                </button>
+              </div>
+            )}
             <TransactionList
-              // Al cambiar de celular a escritorio (o al revés) la lista arranca con la tanda de ese tamaño.
-              key={pageSize}
-              transactions={transactions}
+              // Al cambiar de celular a escritorio (o al revés), o al poner o quitar el filtro, la
+              // lista arranca con la primera tanda.
+              key={`${pageSize}-${activeFilter ? `${activeFilter.categoryId}-${activeFilter.month}` : 'todo'}`}
+              transactions={filtered ? filtered.transactions : transactions}
               categoryNames={categories.names}
               pageSize={pageSize}
               empty={
-                <EmptyState
-                  title="Aún no tienes movimientos"
-                  description="Registra lo que recibes y lo que gastas, y aquí verás cada peso que entra y sale de tu billetera."
-                  // Secundario: "Registrar movimiento" ya es la acción principal de la página.
-                  action={
-                    <Button variant="ghost" onClick={() => openPanel('movement', 'INGRESO')}>
-                      Registra tu primer ingreso
-                    </Button>
-                  }
-                />
+                filtered ? (
+                  <EmptyState
+                    title={`No hay gastos de ${filterCategoryName} en ${filterMonthLabel}`}
+                    description="Aquí aparecen los gastos de tu billetera personal con esta categoría."
+                  />
+                ) : (
+                  <EmptyState
+                    title="Aún no tienes movimientos"
+                    description="Registra lo que recibes y lo que gastas, y aquí verás cada peso que entra y sale de tu billetera."
+                    // Secundario: "Registrar movimiento" ya es la acción principal de la página.
+                    action={
+                      <Button variant="ghost" onClick={() => openPanel('movement', 'INGRESO')}>
+                        Registra tu primer ingreso
+                      </Button>
+                    }
+                  />
+                )
               }
             />
           </Sheet>

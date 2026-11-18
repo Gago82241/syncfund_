@@ -7,6 +7,8 @@ import { categoryService } from '../../categories/services/categoryService';
  */
 export function useCategoryNames() {
   const [names, setNames] = useState<ReadonlyMap<number, string>>(new Map());
+  // true desde la primera respuesta exitosa: hasta entonces, un id que no está no es "inexistente".
+  const [loaded, setLoaded] = useState(false);
   const [failed, setFailed] = useState(false);
   const [retrying, setRetrying] = useState(false);
 
@@ -17,6 +19,7 @@ export function useCategoryNames() {
         .getAll()
         .then(({ data }) => {
           setNames(new Map(data.map((c) => [c.categoryId, c.name])));
+          setLoaded(true);
           setFailed(false);
         })
         .catch(() => setFailed(true))
@@ -33,5 +36,5 @@ export function useCategoryNames() {
     load();
   }, [load]);
 
-  return { names, failed, retrying, retry };
+  return { names, loaded, failed, retrying, retry };
 }
