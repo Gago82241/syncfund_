@@ -74,3 +74,10 @@
   opacity: 0.6;
   cursor: not-allowed;
 }
+
+/* Enviando ("Entrando…"): opacidad completa para que el texto se lea (al 60 % quedaba en 3,5:1);
+   el cambio de texto ya dice que no se puede volver a tocar. */
+.sf-button[aria-busy='true']:disabled {
+  opacity: 1;
+  cursor: progress;
+}

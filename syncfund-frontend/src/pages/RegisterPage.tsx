@@ -21,6 +21,7 @@ import {
 } from '../utils/validation';
 import { CONNECTION_ERROR_MESSAGE } from '../utils/apiError';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
+import { SLOW_HINT_MESSAGE, useSlowHint } from '../hooks/useSlowHint';
 
 export function RegisterPage() {
   const navigate = useNavigate();
@@ -30,6 +31,7 @@ export function RegisterPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const slow = useSlowHint(loading);
   // Correo con el que el backend dijo que ya hay cuenta: lo lleva el enlace al Login.
   const [takenEmail, setTakenEmail] = useState('');
   const formErrorRef = useRef<HTMLParagraphElement>(null);
@@ -106,7 +108,7 @@ export function RegisterPage() {
           required
         />
         <Input
-          label="Correo"
+          label="Correo electrónico"
           type="email"
           name="email"
           inputMode="email"
@@ -150,10 +152,14 @@ export function RegisterPage() {
         />
         <FormError ref={formErrorRef} message={formError} />
         <Button type="submit" loading={loading} loadingText="Creando tu cuenta…">Crear cuenta</Button>
+        <p className="auth-form__slow" aria-live="polite">{slow ? SLOW_HINT_MESSAGE : ''}</p>
       </form>
-      <p className="auth-form__switch">
-        ¿Ya tienes cuenta? <Link to="/login">Inicia sesión</Link>
-      </p>
+      {/* Mientras se ve "Inicia sesión con este correo", un segundo "Inicia sesión" sobra. */}
+      {!(takenEmail && fieldErrors.email) && (
+        <p className="auth-form__switch">
+          ¿Ya tienes cuenta? <Link to="/login">Inicia sesión</Link>
+        </p>
+      )}
     </AuthLayout>
   );
 }
