@@ -86,8 +86,8 @@ export function RegisterPage() {
     <AuthLayout>
       <h1 className="auth-form__title">Crea tu cuenta</h1>
       <p className="auth-form__lead">
-        Te creamos una billetera personal para tus ingresos y gastos; luego puedes crear proyectos o
-        unirte a uno.
+        Te creamos una billetera personal para tus ingresos y gastos. Para entrar a un proyecto
+        compartido, quien lo administra te agrega con este correo.
       </p>
       <form ref={formRef} onSubmit={handleSubmit} noValidate aria-busy={loading || undefined}>
         <Input
@@ -96,7 +96,6 @@ export function RegisterPage() {
           autoComplete="name"
           enterKeyHint="next"
           autoCapitalize="words"
-          maxLength={NAME_MAX}
           value={name}
           readOnly={loading}
           error={fieldErrors.name}
@@ -115,7 +114,6 @@ export function RegisterPage() {
           enterKeyHint="next"
           autoCapitalize="none"
           spellCheck={false}
-          maxLength={EMAIL_MAX}
           value={email}
           readOnly={loading}
           error={fieldErrors.email}
@@ -133,8 +131,8 @@ export function RegisterPage() {
           }}
           required
         />
-        {/* Sin maxLength: cortar en silencio una clave pegada o generada dejaría al gestor
-            guardando una distinta de la real. El largo lo revisa passwordBytes al enviar. */}
+        {/* Ningún campo lleva maxLength: cortaría en silencio lo que se pega (y el gestor
+            guardaría una clave distinta de la real). Los largos los revisan los validadores. */}
         <PasswordInput
           label="Contraseña"
           name="password"

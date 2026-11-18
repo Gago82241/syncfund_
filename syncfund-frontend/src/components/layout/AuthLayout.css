@@ -103,6 +103,7 @@
     color: var(--on-ink-muted);
     font-size: var(--text-small);
     line-height: 1.4;
+    text-wrap: balance;
   }
 
   .auth-layout__headline,
@@ -115,6 +116,18 @@
     align-items: flex-start;
     padding: var(--space-lg) var(--space-md);
     padding-bottom: max(var(--space-lg), env(safe-area-inset-bottom));
+  }
+}
+
+/* Teléfonos bajos (ej. 320 × 568): la franja queda solo con el nombre para que el botón del
+   Registro, el formulario más largo, siga a la vista sin desplazarse. */
+@media (max-width: 860px) and (max-height: 620px) {
+  .auth-layout__tagline {
+    display: none;
+  }
+
+  .auth-layout__panel {
+    padding-top: var(--space-md);
   }
 }
 

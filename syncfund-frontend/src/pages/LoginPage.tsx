@@ -68,7 +68,7 @@ export function LoginPage() {
   return (
     <AuthLayout>
       <h1 className="auth-form__title">Inicia sesión</h1>
-      <p className="auth-form__lead">Entra para ver tu billetera y tus proyectos.</p>
+      <p className="auth-form__lead">Usa el correo con el que te registraste.</p>
       <form ref={formRef} onSubmit={handleSubmit} noValidate aria-busy={loading || undefined}>
         <Input
           label="Correo"
