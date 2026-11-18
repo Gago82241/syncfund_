@@ -14,6 +14,12 @@
   gap: calc(var(--space-xs) / 2);
 }
 
+/* "A tu favor" no es una deuda de nadie: la línea dice qué incluye, justo bajo la cifra. */
+.project-detail__favor-note {
+  color: var(--ink-muted);
+  text-wrap: pretty;
+}
+
 /* El fondo es el dato secundario: tinta, sin color de dinero (es de todos, no tuyo). */
 .project-detail__fund {
   font-weight: 600;

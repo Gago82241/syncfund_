@@ -19,7 +19,7 @@ import { MembersList } from '../features/shared-project/components/MembersList';
 import { AddMemberForm } from '../features/shared-project/components/AddMemberForm';
 import { ExpenseForm } from '../features/shared-project/components/ExpenseForm';
 import { ContributionForm } from '../features/shared-project/components/ContributionForm';
-import { SettleDebtForm } from '../features/shared-project/components/SettleDebtForm';
+import { SettleDebtForm, type PayStep } from '../features/shared-project/components/SettleDebtForm';
 import { debtOf, payableMember, paymentsToSettle, suggestedAmount } from '../features/shared-project/payment';
 import { TransactionList } from '../features/transactions/components/TransactionList';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
@@ -98,6 +98,8 @@ export function SharedProjectDetailPage() {
   useDocumentTitle(project ? `${project.name} · SyncFund` : `${FALLBACK_TITLE} · SyncFund`);
 
   const [panel, setPanel] = useState<PanelState>(CLOSED);
+  // Paso del pago: en la revisión y el cierre el panel cambia de título y no repite el asiento.
+  const [payStep, setPayStep] = useState<PayStep>('amount');
   // Al pasar a otro proyecto, un panel abierto del anterior se cierra y no se reabre en el nuevo.
   const [panelProjectId, setPanelProjectId] = useState(projectId);
   if (!Object.is(panelProjectId, projectId)) {
@@ -122,6 +124,7 @@ export function SharedProjectDetailPage() {
   }
 
   function openPanel(kind: PanelKind) {
+    setPayStep('amount');
     setPanel((current) => ({ open: true, kind, formKey: current.formKey + 1 }));
   }
 
@@ -132,6 +135,7 @@ export function SharedProjectDetailPage() {
       debt: debtOf(balances, user!.id),
       suggested: suggestedAmount(balances, user!.id, payee),
     };
+    setPayStep('amount');
     setPanel((current) => ({ open: true, kind: 'pay', formKey: current.formKey + 1, payment }));
   }
 
@@ -203,6 +207,18 @@ export function SharedProjectDetailPage() {
     const me = balances.members.find((m) => m.userId === user!.id);
     const figure = situationFigure(me?.netBalance ?? 0);
     const isAdmin = project.adminId === user!.id;
+    // Recién creado: solo está el administrador. Lo siguiente es agregar a los demás, no gastar.
+    const onlyMe = isAdmin && members.length <= 1;
+    const addMemberButton = (variant: 'primary' | 'ghost') => (
+      <Button
+        variant={variant}
+        className={variant === 'ghost' ? 'project-detail__inline-button' : undefined}
+        onClick={() => openPanel('member')}
+      >
+        <Icon name="agregar" />
+        Agregar integrante
+      </Button>
+    );
 
     content = (
       <>
@@ -221,6 +237,9 @@ export function SharedProjectDetailPage() {
           }}
           meta={
             <div className="project-detail__meta">
+              {figure.tone === 'gain' && (
+                <p className="project-detail__favor-note">Incluye tu parte del fondo que aún no se gasta.</p>
+              )}
               <p>
                 Fondo del proyecto{' '}
                 <strong className="project-detail__fund tabular-nums">{formatCOP(project.currentBalance)}</strong>
@@ -230,10 +249,14 @@ export function SharedProjectDetailPage() {
           }
           fixedActionOnMobile
           action={
-            <Button onClick={() => openPanel('expense')}>
-              <Icon name="agregar" />
-              Registrar gasto
-            </Button>
+            onlyMe ? (
+              addMemberButton('primary')
+            ) : (
+              <Button onClick={() => openPanel('expense')}>
+                <Icon name="agregar" />
+                Registrar gasto
+              </Button>
+            )
           }
         />
 
@@ -244,9 +267,15 @@ export function SharedProjectDetailPage() {
         />
 
         <Tabs label="Secciones del proyecto" tabs={TABS} active={activeTab} onChange={changeTab}>
-          {activeTab === 'situacion' && (
-            <ProjectStatusTable currentUserId={user!.id} balances={balances} onPay={openPay} />
-          )}
+          {activeTab === 'situacion' &&
+            (onlyMe ? (
+              <EmptyState
+                title="Solo estás tú"
+                description="Agrega a los integrantes por su correo para repartir los aportes y los gastos."
+              />
+            ) : (
+              <ProjectStatusTable currentUserId={user!.id} balances={balances} onPay={openPay} />
+            ))}
 
           {activeTab === 'movimientos' &&
             (transactions.length > 0 ? (
@@ -285,11 +314,12 @@ export function SharedProjectDetailPage() {
                   navigate('/projects', { replace: true });
                 }}
               />
-              {isAdmin ? (
-                <Button variant="ghost" className="project-detail__inline-button" onClick={() => openPanel('member')}>
-                  <Icon name="agregar" />
-                  Agregar integrante
-                </Button>
+              {onlyMe ? (
+                <p className="project-detail__note">
+                  Solo estás tú. Agrega a los integrantes por su correo para repartir los gastos.
+                </p>
+              ) : isAdmin ? (
+                addMemberButton('ghost')
               ) : (
                 <p className="project-detail__note">Solo el administrador puede agregar integrantes.</p>
               )}
@@ -308,10 +338,18 @@ export function SharedProjectDetailPage() {
           open={panel.open}
           onClose={closePanel}
           fallbackFocusRef={figureRef}
-          title={panel.payment && panel.kind === 'pay' ? `Pagarle a ${panel.payment.payee.name}` : PANEL_TITLES[panel.kind]}
+          title={
+            panel.payment && panel.kind === 'pay'
+              ? payStep === 'done'
+                ? 'Pago hecho'
+                : `Pagarle a ${panel.payment.payee.name}`
+              : PANEL_TITLES[panel.kind]
+          }
           description={
             panel.kind === 'pay'
-              ? `Sale de tu billetera personal y llega a la de ${panel.payment?.payee.name ?? 'la otra persona'}; el fondo del proyecto no cambia.`
+              ? payStep !== 'amount'
+                ? undefined
+                : `Sale de tu billetera personal y llega a la de ${panel.payment?.payee.name ?? 'la otra persona'}; el fondo del proyecto no cambia.`
               : panel.kind === 'expense'
               ? `Lo paga el fondo del proyecto (disponible ${formatCOP(project.currentBalance)}) y se reparte entre quienes participan.`
               : panel.kind === 'contribution'
@@ -329,6 +367,7 @@ export function SharedProjectDetailPage() {
               suggestedAmount={panel.payment.suggested}
               onPaid={refreshAfterAction}
               onFinish={closePanel}
+              onStepChange={setPayStep}
             />
           ) : panel.kind === 'member' ? (
             <AddMemberForm

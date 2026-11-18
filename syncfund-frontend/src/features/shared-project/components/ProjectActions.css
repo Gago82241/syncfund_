@@ -56,3 +56,15 @@
     width: auto;
   }
 }
+
+/* Escritorio: la línea de pago y "Aportar al fondo" comparten fila, cerca de la cifra. */
+@media (min-width: 1024px) {
+  .project-actions {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: start;
+  }
+
+  .project-actions__payments + .project-actions__buttons {
+    grid-column: 2;
+  }
+}
