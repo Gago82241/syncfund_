@@ -1,12 +1,31 @@
 # Crítica de diseño del frontend
 
-Diagnóstico página por página antes del rediseño. Cada sección evalúa la pantalla **tal como
-está hoy** y señala qué resolvería la dirección acordada en `DESIGN.md` (menú lateral en
-escritorio, barra de navegación inferior en móvil y páginas organizadas en hojas) y qué no.
+Diagnóstico página por página del rediseño, en tres momentos: antes de empezar (2026-11-13), al
+terminar la rama de cada pantalla ("— después del rediseño") y al cerrar el rediseño ("Crítica
+final", al final del documento). El diagnóstico inicial evalúa cada pantalla **tal como estaba**
+y señala qué resolvería la dirección acordada en `DESIGN.md` (menú lateral en escritorio, barra
+de navegación inferior en móvil y páginas organizadas en hojas) y qué no.
 
 Método: `/impeccable critique` con dos evaluaciones independientes: una revisión de diseño (A)
 y el detector automático de impeccable (B). Las rutas de código son relativas a
 `syncfund-frontend/` salvo que se indique otra cosa.
+
+## Puntajes: antes, después de cada rama y al final
+
+| Pantalla | Inicial | Después de su rama | Final | Cambio total |
+|---|---|---|---|---|
+| Resumen | 18/40 | 28/40 (`style/resumen`) | 29/40 | +11 |
+| Billetera personal | 20/40 | 28/40 (`style/billetera`) | 28/40 | +8 |
+| Proyectos compartidos | 23/40 | 29/40 (`style/proyectos`) | 30/40 | +7 |
+| Detalle del proyecto | 24/40 | 29/40 (`style/detalle-proyecto`) | 29/40 | +5 |
+| Categorías | 20/40 | 28/40 (`style/categorias`) | 29/40 | +9 |
+| Login | 23/40 | 29/40 (`style/login-registro`) | 30/40 | +7 |
+| Registro | 23/40 | 32/40 (`style/login-registro`) | 32/40 | +9 |
+| **Promedio** | **21.6/40** | **29.0/40** | **29.6/40** | **+8.0** |
+
+La meta del plan era 28/40 o más en cada pantalla. El paso de "después de su rama" a "final"
+recoge la rama de pulido (`style/pulido-final`, PR #35). Las capturas del antes y del después
+están en `capturas-antes/` y `capturas-despues/`.
 
 ---
 
@@ -2911,3 +2930,521 @@ confirma y dice qué hacer. El mayor salto está en el final del recorrido.
 - Backend: `@Size` en `RegisterUserRequest` (anotado en `plan-rediseno.md`), con el mínimo de la
   contraseña en 8 caracteres.
 - Aviso de tratamiento de datos (Ley 1581 de 2012): fuera de esta rama.
+
+---
+
+## Crítica final
+
+- **Fecha:** 2026-11-18 · rama `docs/cierre-rediseno`, sobre el código de `develop` al terminar el
+  rediseño (commit `3211070`, PR #35). Esta rama no cambia la app.
+- **Método:** `/impeccable critique`, con dos evaluaciones aisladas en subagentes separados.
+  - **A (revisión de diseño):** un subagente por pantalla, que puntuó sin leer las críticas
+    anteriores y solo después revisó qué se resolvió. Usó capturas de Chrome sin interfaz contra
+    la API simulada a 320, 375–393 y 1280 px, con los escenarios normal, usuario nuevo, datos
+    extremos y listas largas (y error donde aplica).
+  - **B (detector):** `impeccable detect` sobre el código de cada pantalla y de
+    `src/components/`, y sobre la página renderizada por CDP a 1280 y 375 px. No se inyectó la
+    capa visual del detector (no había un navegador visible para el equipo).
+- **Datos:** la API simulada de las capturas, nunca la base de datos local.
+
+### Resultado
+
+| Pantalla | Final | Banda | P0 | P1 | P2 | P3 | Detector (código / página) |
+|---|---|---|---|---|---|---|---|
+| Resumen | 29/40 | Bueno | 0 | 0 | 3 | 1 | 0 / 0 reales |
+| Billetera personal | 28/40 | Bueno | 0 | 0 | 3 | 2 | 0 / 1 real (menor) |
+| Proyectos compartidos | 30/40 | Bueno | 0 | 0 | 2 | 2 | 0 / 0 reales |
+| Detalle del proyecto | 29/40 | Bueno | 0 | 0 | 3 | 1 | 0 / 0 reales |
+| Categorías | 29/40 | Bueno | 0 | 0 | 2 | 2 | 0 / 0 reales |
+| Login | 30/40 | Bueno | 0 | 0 | 1 | 3 | 0 / 0 reales |
+| Registro | 32/40 | Bueno | 0 | 0 | 2 | 2 | 0 / 0 reales |
+
+- Todas las pantallas quedan en la banda "Bueno" y por encima de la meta de 28/40; ninguna tiene
+  problemas P0 ni P1. El promedio pasó de 21.6/40 antes del rediseño a 29.6/40.
+- **Detector:** 0 hallazgos en el código (también con `--no-config`). En las páginas, 15 avisos:
+  14 son `cream-palette` sobre el fondo `ledger-50`, que es la regla "Paper Ground" de
+  `DESIGN.md` y no un error; el único real es `first-viewport-column-overflow` en la Billetera de
+  escritorio (la columna de Meta y Colchón no queda fija mientras se recorre la lista larga).
+- **Lo que más pesa en los puntajes:** "Flexibilidad y eficiencia" y "Ayuda y documentación" son
+  las heurísticas más bajas en casi todas las pantallas (listas largas sin filtro, sin forma de
+  editar lo registrado y el modelo fondo/billetera explicado solo con frases sueltas). Varias
+  dependen del backend (editar y eliminar movimientos y categorías).
+- **Regresión encontrada:** el pulido final dejó mal anidadas unas reglas de
+  `features/shared-project/components/ProjectStatusList.css`. En escritorio, la flecha de los
+  renglones de proyecto (Resumen y Proyectos) queda siempre en azul acero y corrida 2 px, y ya no
+  reacciona al pasar el mouse. Está anotada en "Estado al cierre del rediseño" de
+  `plan-rediseno.md` para corregirla en una rama `fix/`.
+- **Pendientes:** los P2 y P3 de abajo se resumen, junto con lo de backend y producción, en
+  "Estado al cierre del rediseño" de `plan-rediseno.md`.
+
+
+### Resumen
+
+- **Archivos:** `src/pages/DashboardPage.tsx` (+ `DashboardPage.css`) y `src/features/dashboard/`: `summary.ts`, `hooks/useDashboard.ts`, `components/SummaryLedger.tsx`, `components/DebtNotice.tsx`, `components/BudgetAlerts.tsx`. Usa también `ProjectStatusList.tsx` y `TransactionForm.tsx`.
+- **Resultado:** **29/40, Bueno** (inicial 18/40 · después de su rama 28/40).
+- **Escenarios revisados:** normal con deuda (320, 393 y 1280 px, con el panel "Registrar movimiento" abierto a 393); normal sin deuda ("No debes nada en tus proyectos"); un solo proyecto (375 y 1280); usuario nuevo (375 y 1280); datos extremos (320 y 1280); lista larga (1280, 34 proyectos); carga (esqueletos) y error de la cifra; flujo "Pagar" hasta el panel de pago del Detalle. Sin desplazamiento horizontal en ningún ancho.
+- **Detector (B):** 0 hallazgos en el código; en la página, solo `cream-palette` sobre el fondo `ledger-50` (falso positivo: es la regla "Paper Ground").
+
+#### Puntaje de heurísticas (Nielsen)
+
+| # | Heurística | Puntaje | Hallazgo clave |
+|---|---|---|---|
+| 1 | Visibilidad del estado del sistema | 3 | Esqueletos con la forma de la cifra, la cuenta y las hojas; aviso al guardar; página activa marcada. El Resumen no vuelve a consultar solo (no hay `setInterval` ni `visibilitychange` en `useDashboard.ts`) ni dice cuándo se actualizó la cifra. |
+| 2 | Coincidencia con el mundo real | 3 | Vocabulario del producto: "A tu favor", "Debes", "incluye colchón", "Te pasaste por". Pero "Tienes en total" suma "A tu favor", que es dinero del fondo que todavía no se puede gastar. |
+| 3 | Control y libertad | 3 | El panel se cierra con Esc, "Cerrar" o el velo, y abre con el foco en el monto. Al reabrirlo empieza vacío (a propósito). |
+| 4 | Consistencia y estándares | 3 | El h1 usa `--text-headline`; "Pagar" es secundario y "Registrar movimiento" es la única acción principal. "+ A tu favor $ 0" va en negrita y "− Debes $ 0" atenuado. |
+| 5 | Prevención de errores | 3 | La cifra es todo o nada, sin totales parciales. El aviso de deuda no advierte que la billetera no alcanza: se descubre dentro del panel de pago. |
+| 6 | Reconocer antes que recordar | 3 | Se ve a quién, cuánto y en qué proyecto se debe; "Pagar" abre el Detalle con el pago ya lleno. No se explica que "A tu favor" incluye la parte propia del fondo. |
+| 7 | Flexibilidad y eficiencia | 3 | Registrar a un toque (botón fijo en el celular) y pagar a dos toques más la revisión. El panel siempre abre en Gasto. |
+| 8 | Estética y diseño minimalista | 3 | Sobrio y fiel al libro mayor, una sola cifra protagonista. "Tus proyectos" no tiene tope (34 renglones, unos 2.700 px) y "Ver todos" aparece aunque ya se vean todos. |
+| 9 | Recuperación de errores | 3 | Errores de la cifra y del presupuesto por separado, con Reintentar, y aviso de "el cambio sí quedó" si falla la recarga. Con error de la cifra no hay otra salida. |
+| 10 | Ayuda y documentación | 2 | La cuenta con signos explica de dónde sale el total; nada explica qué es el colchón ni por qué "A tu favor" no es plata disponible. |
+| **Total** | | **29/40** | **Bueno** |
+
+#### Veredicto de especificidad
+
+Lo que dice y cómo lo cuenta es de SyncFund: la suma de libro mayor "Billetera + A tu favor − Debes" (con "más" y "menos" para el lector de pantalla), "incluye colchón $ 200.000", el aviso "Debes $ 100.000 a Laura Gómez · Arriendo apartamento" con un "Pagar" que llega al pago ya lleno y las etiquetas Debes / A tu favor / Al día por proyecto. En escritorio la composición (cifra, indicadores, aviso y dos hojas con "Ver todos" / "Ver categorías") todavía se parece a un dashboard; la salvan Fraunces, el papel cálido y la ausencia de sombras y gráficos de adorno.
+
+#### Lo que funciona
+
+- **La cifra se puede comprobar a ojo.** `summary.ts` redondea cada parte antes de sumar, así que $ 1.434.000 + $ 200.000 − $ 100.000 = $ 1.534.000 cuadra siempre, incluso con montos de 12 cifras.
+- **"Pagar" cumple lo que promete.** `DebtNotice.tsx` enlaza a `/projects/{id}?pagar={toUserId}` y el Detalle abre "Pagarle a …" con el monto sugerido. El botón es secundario y compacto: no compite con "Registrar movimiento".
+- **Resiste los datos extremos y los estados.** Sin desborde a 320 px con nombres largos, árabe, cirílico o montos de 12 dígitos; el usuario nuevo ve dos primeros pasos en vez de un $ 0; "Estás al día" solo aparece si todo está en cero.
+
+#### Problemas pendientes
+
+- **[P2] "Tienes en total" suma dinero que no se puede gastar.** Con datos extremos la cifra dice $ 100.000.001.500 mientras la billetera tiene $ 1.500. Arreglo sin cambiar la cifra aprobada: una nota bajo "+ A tu favor" en `SummaryLedger.tsx` ("tu parte del fondo y lo que te deben; no está en tu billetera"), o una línea "Puedes gastar $ X". Comando: `/impeccable clarify`.
+- **[P2] La lista "Tus proyectos" no tiene tope.** Con 34 proyectos la hoja mide unos 2.700 px. Arreglo: mostrar los primeros 5 de `summary.projects` (ya ordenados) y "Ver los 34 proyectos"; esconder "Ver todos" si no hay más. Comando: `/impeccable layout`.
+- **[P2] El aviso de deuda no anticipa que la billetera no alcanza.** Arreglo en `DebtNotice.tsx`: si la deuda supera el disponible, "Tu billetera tiene $ X; registra un ingreso antes de pagar" (el pago parcial sigue disponible). Comando: `/impeccable clarify`.
+- **[P3] La cifra no se actualiza sola.** Si un compañero paga, la deuda no desaparece hasta recargar. Arreglo en `useDashboard.ts`: recargar al volver a la pestaña (`visibilitychange`) y quizá cada 60 s mientras esté visible. Comando: `/impeccable harden`.
+
+#### Carga cognitiva y recorrido emocional
+
+Falla 1 punto del checklist ("pocas opciones"): con deuda, en escritorio hay unas 12 opciones a la vista, bien agrupadas por hojas; con 34 proyectos la hoja se vuelve un muro. Pico: el total y, debajo, el aviso terracota con a quién y cuánto. Final: "Pagar" lleva al panel ya lleno. Valle: la billetera insuficiente, que se descubre tarde. El usuario nuevo arranca con dos acciones claras, aunque en escritorio queda media pantalla vacía.
+
+#### Señales de alerta por persona
+
+- **Estudiante que comparte arriendo** (PRODUCT.md): ve la deuda sin buscarla y paga con dos toques; si le deben, puede creer que tiene más plata disponible; si el compañero paga mientras tiene la app abierta, la deuda no desaparece sola.
+- **Usuario distraído en el celular:** "Registrar movimiento" fijo al pulgar y "Pagar" secundario; el panel siempre abre en "Gasto", así que quien anota su sueldo cambia el tipo.
+- **Lector de pantalla:** la cuenta se oye con "más" y "menos", el `aria-label` de "Pagar" dice a quién, cuánto y dónde; el nuevo total después de guardar no se anuncia.
+
+#### Observaciones menores
+
+- "+ A tu favor $ 0" en negrita y "− Debes $ 0" atenuado: los dos ceros deberían verse igual.
+- A 320 px el título "Presupuesto del mes" se parte en dos líneas junto a "Ver categorías".
+- Con error de la cifra podría enlazar a Billetera o Proyectos.
+- En el celular, "Tus proyectos" empieza bajo el pliegue.
+
+#### Estado de lo pendiente de la crítica anterior
+
+- [P1] "Pagar" promete un pago y entrega una navegación: **resuelto** (`?pagar=` abre el pago ya lleno).
+- [P2] Dos acciones principales del mismo peso: **resuelto**.
+- [P2] "Estás al día" y "Tienes en total": **parcial** ("No debes nada en tus proyectos" ya separa el caso con saldo a favor; falta aclarar que "A tu favor" no se puede gastar).
+- [P2] En el celular la deuda se repite y los proyectos quedan bajo el pliegue: **sigue igual**.
+- [P3] Título plano y composición de dashboard: **parcial** (h1 con `--text-headline`).
+- Margen negativo cambiado por `gap` en `.dashboard__top`: **resuelto**.
+
+### Billetera personal
+
+- **Archivos:** `src/pages/PersonalWalletPage.tsx` y `src/features/personal-wallet/` (cálculos en `walletFigures.ts`; hojas `WalletLedger`, `SavingsGoalSheet` y `CushionSheet`; paneles `TransactionForm`, `SavingsGoalForm` y `CushionForm`), además de `src/features/transactions/components/TransactionList.tsx` y `src/components/ui/ProgressBar.tsx`.
+- **Resultado:** **28/40, Bueno** (inicial 20/40 · después de su rama 28/40). La rama 9a quitó casi todo lo pendiente de la crítica anterior, pero no movió el puntaje: siguen sin poder corregirse los movimientos, el historial largo cuesta recorrerlo y el disponible sale dos veces.
+- **Escenarios revisados:** normal (1280, 393 y 320 px), usuario nuevo (1280 y 393), datos extremos (1280 y 320), historial largo (1280, 236 movimientos) y los paneles "Registrar movimiento" (con un gasto mayor que el disponible), "Apartar o liberar colchón" y "Meta de ahorro". Sin desplazamiento horizontal.
+- **Detector (B):** 0 hallazgos en el código; en la página de escritorio, `first-viewport-column-overflow` en `PageColumns` (`main-aside`): la lista de movimientos mide el doble de la ventana y la columna de Meta y Colchón no es `sticky`, así que queda vacía al bajar (real, menor). `cream-palette` es falso positivo.
+
+#### Puntaje de heurísticas (Nielsen)
+
+| # | Heurística | Puntaje | Hallazgo clave |
+|---|---|---|---|
+| 1 | Visibilidad del estado del sistema | 3 | Carga con forma, avisos con el monto ("Apartaste… tu disponible quedó en…") y vista previa en vivo en los tres paneles. El movimiento recién registrado no se marca en la lista; si falla la cuota, desaparece sin aviso. |
+| 2 | Coincidencia con el mundo real | 3 | "Disponible + Colchón = Total en tu billetera" y "Ahorro del mes" se leen como un asiento contable; "Ritmo de la meta" ya no se confunde con lo que falta. "Disponible" aparece como etiqueta de la cifra y otra vez como primer renglón de la suma. |
+| 3 | Control y libertad | 2 | Los paneles se cierran con "Cerrar", Esc o el velo; el filtro trae "Quitar filtro". Un movimiento mal registrado no se puede editar ni borrar (falta en el backend), y cambiar Gasto/Ingreso borra lo escrito (decisión del equipo). |
+| 4 | Consistencia y estándares | 3 | Mismos `Sheet`, `Panel`, `MoneyInput` y `EmptyState` que el resto; el total sale del mismo `walletFigures` que usa el Resumen. |
+| 5 | Prevención de errores | 3 | El límite se ve antes de escribir, avisa en vivo si te pasas y deshabilita la opción imposible. Cuando el gasto no alcanza, no dice que se puede liberar el colchón. |
+| 6 | Reconocer antes que recordar | 3 | Categoría en cada fila, meta precargada, límites visibles en el panel. Aportes y pagos no enlazan a su proyecto. |
+| 7 | Flexibilidad y eficiencia | 2 | Acción fija al pulgar, tandas de 8 filas en el celular y filtro desde Categorías. Con 236 movimientos son 11 clics de "Ver más", sin encabezados por mes, búsqueda ni filtro propio. |
+| 8 | Estética y diseño minimalista | 3 | Una sola cifra protagonista, hojas planas y el colchón en su hoja. Con meta cumplida el mensaje se repite tres veces. |
+| 9 | Recuperación de errores | 3 | Error de carga con Reintentar y sin cifras viejas; el error del gasto dice el disponible. La falla de la cuota sigue siendo silenciosa. |
+| 10 | Ayuda y documentación | 3 | El colchón y el ahorro del mes se explican donde se ven; los estados vacíos dan el siguiente paso. No se dice qué es el "Ritmo de la meta". |
+| **Total** | | **28/40** | **Bueno** |
+
+#### Veredicto de especificidad
+
+Lo propio de SyncFund está en las cuentas: la suma con filete "Disponible + Colchón = Total en tu billetera", el asiento del mes "Ingresos − Gastos − Aportes a proyectos = Ahorro del mes", que separa lo personal de lo compartido, y la vista previa del colchón ("Tu disponible quedará en… y tu colchón en…"). La composición sí es intercambiable: título con cifra a la izquierda, botón suelto a la derecha y tres hojas en dos columnas; a 1280 px el botón queda a unos 470 px de la cifra.
+
+#### Lo que funciona
+
+- **La primera visita está bien resuelta.** Solo "$ 0" como cifra, una sola acción llena (la barra fija) y la hoja del colchón explica en vez de ofrecer una acción que no lleva a nada.
+- **Los paneles impiden el error en vez de reportarlo.** Al escribir un gasto mayor que el disponible, el campo pasa a terracota con "Tu disponible es $ 1.234.000; no alcanza para este gasto"; el colchón muestra sus dos límites antes de escribir y el resultado antes de confirmar; el botón dice qué va a pasar ("Registrar gasto", "Apartar").
+- **En el celular la meta queda cerca.** Con 8 filas, la meta queda a unos 1.100 px de desplazamiento a 393 px (antes unos 1.700), y "Cumpliste tu meta de noviembre" le da un momento propio.
+
+#### Problemas pendientes
+
+- **[P2] El historial largo no se puede recorrer.** Con 236 movimientos, "Ver más" de 20 en 20 obliga a unos 11 clics, sin encabezados de mes, búsqueda ni filtro por mes; para saber cuánto gastó en octubre hay que contar a mano. Arreglo: un selector de mes que reuse `filterByCategoryMonth` sin categoría, o encabezados de mes con subtotal en `TransactionList`. Comando: `/impeccable layout`.
+- **[P2] "Disponible" aparece dos veces seguidas.** La cifra grande y debajo el renglón "Disponible $ 1.234.000", también en lector de pantalla. Arreglo: dejar en la suma solo "+ Colchón … = Total en tu billetera …", con la cifra grande como primer sumando. Comando: `/impeccable distill`.
+- **[P2] El gasto que no alcanza termina en un callejón sin salida.** Con colchón apartado, el error solo dice "no alcanza". Arreglo: si el monto cabe en disponible + colchón, agregar "Puedes liberar $ X de tu colchón" con un enlace al panel del colchón. Comando: `/impeccable clarify`.
+- **[P3] La meta cumplida se anuncia tres veces.** Titular, etiqueta del mes y "Meta cumplida" junto a la barra en 80 px. Arreglo: ocultar uno de los tres. Comando: `/impeccable polish`.
+- **[P3] En escritorio el botón principal queda lejos de la cifra.** Arreglo: alinear la acción con la línea de la cifra o compactar el encabezado. Comando: `/impeccable layout`.
+
+#### Carga cognitiva y recorrido emocional
+
+Falla 1 punto del checklist (memoria de trabajo: sumar mentalmente las filas de un mes anterior). Ningún punto de decisión con más de 4 opciones. Pico: el titular esmeralda de meta cumplida y el aviso con el saldo resultante. Valle: el gasto que no alcanza aunque haya colchón. Final de cada acción: aviso con el monto y la cifra actualizada.
+
+#### Señales de alerta por persona
+
+- **Estudiante que comparte arriendo** (PRODUCT.md): ve "Aporte a «Arriendo apartamento»" como fila suelta, sin enlace al proyecto. Los aportes restan del "Ahorro del mes" (decisión del equipo) sin que la pantalla lo explique. Ese renglón se reconoce comparando la descripción con un texto fijo (`walletFigures.ts`): un gasto escrito a mano con ese formato se contaría como aporte (ya anotado como "Marcar el origen de cada movimiento" en el plan).
+- **Usuario distraído en el celular:** barra fija y foco automático en el monto; si se equivoca de monto, no puede corregirlo.
+- **Datos extremos (320 px):** montos de 12 cifras bajan a su línea sin desbordar; una categoría sin espacios se corta a la fuerza.
+
+#### Observaciones menores
+
+- El colchón todavía se explica en tres textos (dos en la hoja y uno en el panel).
+- "Ritmo de la meta" no dice que es la meta repartida en el mes.
+- La selección Gasto/Ingreso usa el mismo azul para los dos tipos; el color propio solo aparece al escribir el monto.
+
+#### Estado de lo pendiente de la crítica anterior
+
+- Cuota como ritmo fijo y oculta con la meta cumplida: **resuelto**.
+- Nota del colchón plana y en su hoja: **resuelto**; las explicaciones bajaron de cuatro a tres: **parcial**.
+- Primera visita con una sola acción principal: **resuelto**.
+- Tandas de 8 filas en el celular y fechas sin el año en curso: **resuelto**.
+- Titular de meta cumplida: **resuelto** (ahora con redundancia, P3).
+- "Disponible" dos veces cuando hay colchón: **sigue igual**.
+- Encabezado de escritorio con hueco: **sigue igual**.
+- Falla silenciosa de la cuota, enlaces de aportes y pagos a su proyecto, y editar o borrar movimientos (backend): **sigue igual**.
+
+### Proyectos compartidos
+
+- **Archivos:** `src/pages/SharedProjectsPage.tsx` (+ `.css`); en `src/features/shared-project/`: `components/ProjectStatusList.tsx` y `.css`, `components/CreateProjectForm.tsx`, `projectLines.ts`, `hooks/useSharedProjects.ts`.
+- **Resultado:** **30/40, Bueno** (inicial 23/40 · después de su rama 29/40).
+- **Escenarios revisados:** normal (320, 393 y 1280 px), usuario nuevo (393 y 1280), datos extremos (320, 393 y 1280: nombre sin espacios, nombre de una letra, montos de 12 cifras, acreedor con nombre largo), lista larga (393: 34 proyectos), panel "Crear proyecto" abierto y con el error de nombre obligatorio. Sin desplazamiento horizontal. Carga, falla parcial de saldos y error de carga revisados en el código.
+- **Detector (B):** 0 hallazgos en el código; en la página, solo `cream-palette` (falso positivo). La regresión de la flecha la encontró la revisión A comprobando el estilo calculado en Chrome; el detector no la ve.
+
+#### Puntaje de heurísticas (Nielsen)
+
+| # | Heurística | Puntaje | Hallazgo clave |
+|---|---|---|---|
+| 1 | Visibilidad del estado del sistema | 3 | Los renglones salen apenas llega la lista, con "Cargando saldo" en cada uno y un fundido al llegar la cifra. La línea de resumen espera a tener todos los saldos. Al crear hay aviso y se abre el Detalle. La flecha del renglón dejó de reaccionar al pasar el mouse (regresión del CSS). |
+| 2 | Coincidencia con el mundo real | 3 | "Debes en 1 de tus 4 proyectos", "Le debes a Laura Gómez", "A tu favor", "Al día". "A tu favor" se explica solo en el Detalle, como decidió el equipo. |
+| 3 | Control y libertad | 3 | El panel se cierra con "Cerrar", Esc o el velo, y arranca limpio. Si la lista no carga, no hay forma de crear un proyecto. |
+| 4 | Consistencia y estándares | 3 | Renglón y orden iguales a los del Resumen. Por la regresión del CSS, en escritorio todas las flechas quedan siempre en `ink-600` y corridas 2 px. |
+| 5 | Prevención de errores | 3 | Nombre obligatorio con error en línea y foco; topes de 100/500 caracteres; el panel avisa que serás el administrador. Sin aviso de nombre repetido ni contador. |
+| 6 | Reconocer antes que recordar | 4 | Cada renglón trae nombre, integrantes, rol, estado con monto y a quién le debes. No hay que entrar para saber qué pasa. |
+| 7 | Flexibilidad y eficiencia | 2 | Con 34 proyectos la página mide unos 2.500 px en el celular, sin búsqueda, filtro ni forma de plegar los "Al día". |
+| 8 | Estética y diseño minimalista | 3 | Hoja de libro mayor sobria, con un solo color fuerte: el de la deuda. En listas largas, "Al día" y "Administrador" se repiten y meten ruido. |
+| 9 | Recuperación de errores | 3 | "Reintentar" en el error de carga; la falla parcial es una nota neutra cuyo "Reintentar" pide solo los saldos que fallaron. |
+| 10 | Ayuda y documentación | 3 | El estado vacío explica el fondo común y el camino "si alguien te agrega por correo"; el panel explica el rol. Nada explica "A tu favor" en la lista. |
+| **Total** | | **30/40** | **Bueno** |
+
+#### Veredicto de especificidad
+
+La pantalla es propia de SyncFund: el renglón dice tu situación en palabras ("Debes $ 100.000 · Le debes a Laura Gómez"), el orden pone primero lo que hay que resolver y un saldo que no llegó nunca se muestra como cero. Lo único genérico es el escritorio vacío: una hoja de 768 px con mucho lienzo sobrante y el estado vacío pequeño a la izquierda.
+
+#### Lo que funciona
+
+- **Certeza sobre cada peso, en cada estado.** "Cargando saldo" mientras carga; "Saldo sin cargar" con borde punteado si falla, y ese renglón sube en el orden. La línea de resumen nunca dice "no debes nada" si falta un dato (`projectsHeadline` en `projectLines.ts`).
+- **La deuda dice a quién se debe.** "Le debes a …" en terracota y en texto, que aguanta nombres largos y montos de 12 cifras a 320 px.
+- **Crear lleva al siguiente paso.** El panel abre con el foco en el nombre, la acción queda fija al alcance del pulgar y, al crear, se abre el Detalle en la pestaña Integrantes con un aviso.
+
+#### Problemas pendientes
+
+- **[P2] Regresión del CSS en `features/shared-project/components/ProjectStatusList.css` (líneas 118–143).** En el commit del pulido final (3211070), un comentario y dos reglas (`__loading` y `__payees`) quedaron dentro del selector `.project-status-list__row:hover …` del `@media (hover: hover)`, y la regla `.project-status-list__arrow { color: var(--ink-600); transform: translateX(2px) }` quedó suelta. Comprobado en Chrome a 1280 px: la flecha en reposo tiene el color de `ink-600` y `translateX(2px)` fijo, en vez de `ink-faint`. Afecta al Resumen y a la lista; ni `build` ni `lint` lo detectan. Arreglo: restaurar `.project-status-list__row:hover .project-status-list__arrow { … }` como estaba en 1bc7b6b y borrar los bloques duplicados. Comando: `/impeccable polish`.
+- **[P2] Una lista larga es puro desplazamiento.** 30 renglones "Al día · Administrador" iguales, unos 2.500 px en el celular. Arreglo compatible con la decisión del equipo (sin cortes por grupo): con más de unos 8 proyectos, plegar los "Al día" tras "Mostrar N proyectos al día", o un campo para filtrar por nombre. Consultar con el equipo. Comando: `/impeccable distill`.
+- **[P3] La columna del estado no se alinea en el celular.** A 393 px unos renglones llevan el estado al lado y otros debajo, según el largo del nombre. Arreglo: por debajo de unos 480 px, el estado siempre en su línea, a la derecha. Comando: `/impeccable adapt`.
+- **[P3] Si la lista no carga, no se puede crear.** En la rama `error` de `SharedProjectsPage.tsx`, el `PageHeader` no lleva `action`. Arreglo: mantener "Crear proyecto" también en el error. Comando: `/impeccable harden`.
+
+#### Carga cognitiva y recorrido emocional
+
+Falla 1 punto del checklist (agrupación en la lista larga). Ningún punto de decisión con más de 4 opciones. Momento pico: el primer renglón en terracota con "Le debes a Laura Gómez". Final: el aviso con el nombre del proyecto y el salto a Integrantes. Valle: buscar un proyecto en la lista larga.
+
+#### Señales de alerta por persona
+
+- **Estudiante con varios grupos** (PRODUCT.md): "Debes en 1 de tus 4 proyectos" y el acreedor le resuelven la pregunta; "A tu favor $ 200.000" puede hacerle creer que alguien le debe esa plata.
+- **Usuario intensivo (Alex):** sin búsqueda ni atajos; con 34 proyectos solo le queda Ctrl+F.
+- **Lector de pantalla y teclado:** cada fila es un solo enlace con nombre legible; "Cargando saldo" se anuncia en texto oculto y la falla parcial es `role="status"`. Sin bloqueos.
+
+#### Observaciones menores
+
+- En el estado vacío la línea del encabezado ocupa todo el ancho; con lista llega solo hasta `--list-max`.
+- El nombre tiene tope de 100 caracteres sin contador visible.
+- "Administrador" repetido en la lista larga; se podría atenuar.
+
+#### Estado de lo pendiente de la crítica anterior
+
+- La lista no dice a quién le debes: **resuelto** ("Pagar" no se agrega, por decisión del equipo).
+- La lista espera al saldo más lento: **resuelto**.
+- La falla de un saldo se anuncia tres veces con tono de error: **resuelto**.
+- Jerarquía plana y orden sin cortes visibles: **parcial** (los cortes se descartaron por decisión del equipo).
+- Estado al lado o debajo según el largo del nombre a 375 px: **sigue igual**.
+- Si la lista no carga, no se puede crear: **sigue igual**.
+
+### Detalle del proyecto
+
+- **Archivos:** `src/pages/SharedProjectDetailPage.tsx` (+ `.css`) y `src/features/shared-project/`: `ProjectActions`, `ProjectStatusTable`, `SettleDebtForm`, `ExpenseForm`, `ContributionForm`, `MembersList`, `ParticipantChips` y `payment.ts`; además `TransactionList`, `PageHeader` y `Panel`.
+- **Resultado:** **29/40, Bueno** (inicial 24/40 · después de su rama 29/40).
+- **Escenarios revisados:** normal en `/projects/40` (Diego debe 100.000 a Laura) y `/projects/11` (a favor y administrador): pestañas Situación, Movimientos e Integrantes; panel de gasto vacío, con división 2 de 3 y mayor que el fondo; panel de aporte; pago con monto, monto mayor que la deuda, revisión y cierre; error 404. Datos extremos: nombres largos, sin espacios, árabe, vietnamita y "Ñ", montos de 12 cifras, 7 integrantes y billetera de $ 1.500. Anchos 320, 393 (táctil) y 1280 px, sin desplazamiento horizontal.
+- **Detector (B):** 0 hallazgos en el código; en la página, solo `cream-palette` (falso positivo).
+
+#### Puntaje de heurísticas (Nielsen)
+
+| # | Heurística | Puntaje | Hallazgo clave |
+|---|---|---|---|
+| 1 | Visibilidad del estado del sistema | 3 | Carga con la forma del contenido; las acciones terminan con aviso y el pago con un cierre propio que usa la respuesta del backend. No hay señal de cuándo se actualizaron los datos. |
+| 2 | Coincidencia con el mundo real | 3 | "Debes / A tu favor / Al día", "Pagó $ 100.000 / Recibió $ 100.000" y "Entre 3 · $ 180.000 c/u" hablan como el grupo. En `/projects/11`, "A tu favor $ 200.000" pesa como cobro aunque nadie le debe; la nota lo aclara en letra pequeña. |
+| 3 | Control y libertad | 3 | Revisión con "Volver"; paneles que se cierran con "Cerrar", Esc o el velo. Un gasto mal registrado no se puede deshacer (límite del backend). |
+| 4 | Consistencia y estándares | 3 | Un solo estilo de "Pagar" y montos con la misma regla en página y panel. Quedan dos "Pagar" para la misma deuda; el filete de la franja se corta antes de "Aportar al fondo" en escritorio. |
+| 5 | Prevención de errores | 4 | Límites en vivo ("Supera lo que debes", "Supera el fondo disponible", "El fondo alcanza para…"), fondo visible antes de escribir, paso de revisión y "Podrás salir cuando estés al día" antes de intentarlo. |
+| 6 | Reconocer antes que recordar | 3 | El pago llega con a quién y cuánto, y la división se calcula a la vista. El historial no dice entre quiénes se dividió cada gasto. |
+| 7 | Flexibilidad y eficiencia | 2 | Pestaña en la URL, `?pagar=` y "Registrar gasto" fijo al pulgar. El historial no se filtra ni se agrupa, y no hay atajo para pagar lo que alcanza. |
+| 8 | Estética y diseño minimalista | 3 | Una cifra protagonista, tabla con pie de libro mayor y paneles limpios. En el celular, quien debe recorre unos 470 px antes de la tabla y ve su deuda tres veces. |
+| 9 | Recuperación de errores | 3 | Mensajes en español con el número exacto y "Volver a tus proyectos" en el 404. Si la billetera no alcanza, el panel abre ya en error y sin salida. |
+| 10 | Ayuda y documentación | 2 | Buena ayuda en contexto ("Igual a la suma de los saldos…", "Incluye tu parte del fondo…"), pero no hay dónde entender el modelo fondo/billetera más allá de frases sueltas. |
+| **Total** | | **29/40** | **Bueno** |
+
+#### Veredicto de especificidad
+
+Es de SyncFund por su composición, no solo por su paleta. La revisión del pago es un asiento contable ("Sale de: Tu billetera / Llega a: La billetera de Laura / Fondo del proyecto: No cambia / Después del pago: Quedas al día"), y la tabla de Situación con el pie "Fondo disponible — Igual a la suma de los saldos" convierte en interfaz la regla del producto. Lo genérico sigue en el escritorio: cifra a la izquierda, botón principal a la derecha y pestañas a todo el ancho, como un panel de administración.
+
+#### Lo que funciona
+
+- **El flujo de pago completo.** Llega con el monto sugerido, avisa los tres límites mientras se escribe, tiene revisión de libro mayor y cierra con "Pago hecho" y "Quedaste al día con Laura Gómez" en Fraunces esmeralda, mientras la tabla ya muestra "Al día · Pagó $ 100.000".
+- **Reglas visibles antes del error.** El panel de gasto muestra el disponible, marca "Supera el fondo disponible ($ 240.000)" y cambia la división por "El fondo alcanza para $ 240.000". En Integrantes, quien debe lee "Debes $ 100.000. Podrás salir cuando estés al día." en lugar de un botón que falla.
+- **Robustez con datos extremos.** A 320 px no hay desborde con montos de 13 cifras, un título sin espacios, un nombre árabe y 7 integrantes: la tabla pasa a fichas, los chips se reacomodan y los pagos se pliegan en "Ver los 5 pagos sugeridos entre integrantes".
+
+#### Problemas pendientes
+
+- **[P2] Si la billetera no alcanza, el pago abre en error y sin salida.** Con billetera de $ 1.500, el panel abre con la deuda completa y "no alcanza para este pago". Arreglo en `SettleDebtForm.tsx`: si el disponible es menor que lo sugerido, prellenar el mínimo de los dos y guiar ("Con tu billetera puedes pagar $ 1.500 ahora; te quedarían $ X por pagar"), con enlace a la Billetera. Comando: `/impeccable harden`.
+- **[P2] Dos "Pagar" para la misma deuda.** La franja "Para quedar al día… · Pagar" y otro "Pagar" en la fila de Laura, que además estira esa fila (unos 70 px contra 43). Arreglo en `ProjectStatusTable`: quitarlo de la tabla cuando ya está en la franja, o dejarlo como enlace de texto que no cambie la altura. Comando: `/impeccable distill`.
+- **[P2] En el celular, la tabla empieza tarde para quien debe.** A 393 px la deuda sale en la cifra, la franja y la ficha propia, y "Aportar al fondo" ocupa todo el ancho; la tabla empieza cerca de y = 520. Arreglo: "Aportar al fondo" en ancho automático o como acción secundaria, y sin resaltar la deuda en la ficha propia. Comando: `/impeccable layout`.
+- **[P3] Detalles de alineación en escritorio.** El filete de la franja de pago se corta en "Pagar" (es el borde del `<li>`), y "A favor $ 940.000.000.000" se parte en dos líneas. Arreglo: filete en `.project-actions` y `white-space: nowrap` en el saldo. Comando: `/impeccable polish`.
+
+#### Carga cognitiva y recorrido emocional
+
+Falla "un solo foco por vista" en el celular de quien debe (deuda tres veces y tres botones antes de la tabla), y con nombres largos el nombre de la otra persona se repite en título, descripción y nota del panel. Solo los chips con 7 integrantes pasan de 4 opciones, aliviados por "Quitar a todos / Seleccionar a todos". Pico: la revisión del pago, bien atendida por el asiento contable. Final: "Quedaste al día con Laura Gómez". Valle: la billetera insuficiente.
+
+#### Señales de alerta por persona
+
+- **Estudiante que comparte arriendo** (PRODUCT.md): paga en tres toques con el monto puesto; no sabe entre quiénes se dividió cada gasto; si está corto de plata, el pago lo deja sin camino; "A tu favor $ 200.000" en verde puede leerse como plata por cobrar.
+- **Usuario distraído en el celular:** "Registrar gasto" al pulgar y botones de 44 px; tiene que bajar para ver la tabla, y el "Pagar" de la ficha de Laura queda donde se toca sin querer al desplazar.
+- **Teclado o lector de pantalla:** el foco sigue el paso (monto → "Revisa el pago" → titular del cierre), un solo `h1` y pestañas con patrón ARIA; en la ficha móvil se lee "Fondo" justo después de "Fondo disponible".
+
+#### Observaciones menores
+
+- En la ficha móvil del pie, la etiqueta "Fondo" repite "Fondo disponible".
+- La vista previa "Vas a pagarle…" se repite casi igual en la revisión.
+- "Para quedar al día" usa viñetas de navegador.
+- La descripción del panel de gasto ocupa 3 líneas a 393 px y 5 a 320 px.
+- En Integrantes (administrador), una fila sin botón queda sin separador inferior.
+
+#### Estado de lo pendiente de la crítica anterior
+
+- [P1] "Te deben" en vez de saldo neto: **resuelto** ("A tu favor" con nota).
+- [P2] Cierre del pago: **resuelto**.
+- [P2] "Pagar" en tres lugares y lista "Para quedar al día": **parcial** (siguen dos "Pagar" por deuda).
+- [P2] Una columna en escritorio: **descartado por el equipo**.
+- Jerarquía tipográfica h1/h2: **resuelto**.
+- "Estás al día" en tamaño Display: **resuelto**.
+- Montos redondeados contra centavos: **resuelto**.
+- "Fondo" repetido junto a "Fondo disponible" en el celular: **sigue igual**.
+- Historial sin decir entre quiénes: **sigue igual**.
+
+### Categorías
+
+- **Archivos:** `src/pages/CategoriesPage.tsx` (+ `.css`) y `src/features/categories/`: `budget.ts` (medición, orden y línea de resumen compartidos con el Resumen), `hooks/useCategories.ts`, `components/CategoryBudgetList.tsx`, `components/CreateCategoryForm.tsx` (panel en dos pasos), `services/categoryService.ts`; componentes compartidos `ProgressBar`, `Panel`, `Sheet`, `EmptyState` y `PageHeader`.
+- **Resultado:** **29/40, Bueno** (inicial 20/40 · después de su rama 28/40).
+- **Escenarios revisados:** normal (320, 375 y 1280 px), usuario nuevo (375 y 1280), datos extremos (375 y 1280), lista larga (375 y 1280; 5.638 px en el celular); panel "Crear categoría" vacío, con nombre repetido y en la revisión con un límite sospechoso ($ 300); el enlace "Ver gastos de Mercado" hasta la Billetera filtrada. Sin desplazamiento horizontal. Carga y error de carga revisados en el código.
+- **Detector (B):** 0 hallazgos en el código; en la página, solo `cream-palette` (falso positivo).
+
+#### Puntaje de heurísticas (Nielsen)
+
+| # | Heurística | Puntaje | Hallazgo clave |
+|---|---|---|---|
+| 1 | Visibilidad del estado del sistema | 3 | Mes nombrado, línea de resumen, esqueleto, aviso al crear y fila nueva resaltada y llevada a la vista. Con 40 categorías, las de abajo solo se conocen bajando mucho. |
+| 2 | Coincidencia con el mundo real | 3 | "Te pasaste en Mercado", "Te quedan $ 5.000", "Cerca del límite". "Cuenta los gastos de tu billetera personal a los que les pusiste categoría" se lee forzado. |
+| 3 | Control y libertad | 2 | En el panel hay "Volver", "Cerrar" y Esc, pero una categoría no se puede editar ni eliminar (backend y UML). |
+| 4 | Consistencia y estándares | 3 | Misma barra, cálculo y orden que el Resumen. "Ver gastos" aparece solo en las filas con alerta. |
+| 5 | Prevención de errores | 4 | Nombre repetido sin importar tildes ni mayúsculas, 0 con guía, tope de `DECIMAL(12,2)`, aviso "¿faltaron ceros?", revisión tipo asiento y nota de que no se podrá cambiar. |
+| 6 | Reconocer antes que recordar | 3 | Porcentaje real, lo que queda o lo que se pasó, y la línea que nombra las categorías en problema. Con muchas categorías no se encuentra una por nombre. |
+| 7 | Flexibilidad y eficiencia | 2 | El enlace a la Billetera filtrada es un buen atajo, pero no hay búsqueda, meses anteriores ni forma de compactar la lista. |
+| 8 | Estética y diseño minimalista | 3 | Libro mayor limpio y jerarquía clara (h1 > resumen > mes). Con muchas categorías, decenas de filas idénticas "0 % usado"; en el celular cada fila ocupa 4–5 líneas. |
+| 9 | Recuperación de errores | 3 | Errores en español, el error del backend dentro de la revisión, "Reintentar" y "Tu cambio se guardó" si la recarga falla. Si falla una sola consulta de gasto, cae toda la página. |
+| 10 | Ayuda y documentación | 3 | El estado vacío explica para qué sirve; hay pista del límite opcional y "Se mide en". La descripción del panel nombra "la barra" a quien aún no tiene ninguna. |
+| **Total** | | **29/40** | **Bueno** |
+
+#### Veredicto de especificidad
+
+Es de SyncFund y no una pantalla de presupuesto genérica: la cabecera responde "¿cómo voy este mes?" nombrando las categorías ("Te pasaste en Mercado; Transporte y Salidas van cerca del límite") sin sumar límites distintos, la barra de tres estados usa por fin el ámbar reservado y la revisión antes de crear es un asiento de libro mayor ("Se mide en: tu billetera personal, mes a mes"). Lo genérico es la lista larga: una pila uniforme de barras vacías, cuando un libro mayor real agruparía lo que no tiene movimiento.
+
+#### Lo que funciona
+
+- **La cabecera nombra y tiene peso.** La línea de resumen va en 600 y `ink-900`, nombra hasta tres categorías y cuenta cuando hay más.
+- **De la alerta a la causa en un toque.** "Ver gastos de Mercado" lleva a la Billetera filtrada por categoría y mes, con chip, total ($ 480.000, que coincide con la barra) y "Quitar filtro".
+- **Prevención seria mientras no haya edición.** La revisión muestra el límite en palabras, avisa en ámbar con un límite bajo y deja claro que no se podrá cambiar; el aviso de nombre repetido cita el nombre existente.
+
+#### Problemas pendientes
+
+- **[P2] La lista no escala.** Con muchas categorías la página mide 5.638 px en el celular: unas 35 barras iguales "0 % usado" y la hoja "Sin límite" al fondo con renglones de "$ 0". Arreglo: agrupar en cada hoja las categorías sin gasto este mes en un renglón plegable ("12 categorías sin gastos este mes", con `<details>`). Comando: `/impeccable layout`.
+- **[P2] "Ver gastos" solo existe en las filas con alerta.** Servicios (18 %) no lo tiene, y con un nombre largo el enlace ocupa dos o tres líneas. Arreglo: el nombre de la categoría como enlace en todas las filas con gasto (o un "Ver gastos" corto con `aria-label` completo), con el énfasis solo en las filas con alerta. Comando: `/impeccable clarify`.
+- **[P3] Filas altas en el celular.** Por debajo de 24 rem cada categoría ocupa 5–6 líneas y solo caben dos y media sobre la acción fija. Arreglo: llevar "Te quedan" a la línea del porcentaje. Comando: `/impeccable adapt`.
+- **[P3] Una consulta de gasto fallida tumba toda la página.** `fetchMonthSpend` usa `Promise.all`. Arreglo: `Promise.allSettled` y una fila "Gasto sin cargar" con "Reintentar" para esa categoría, como ya hace Proyectos. Comando: `/impeccable harden`.
+
+#### Carga cognitiva y recorrido emocional
+
+Ningún punto de decisión con más de 4 opciones. Falla "agrupar y revelar de a poco" en listas largas. Pico: la cabecera con nombre propio, un mal momento entregado con tacto y con un siguiente paso. Final: el aviso "Categoría «X» creada" y la fila nueva resaltada. Valle: la revisión con límite sospechoso, correcta pero algo amenazante para un acto pequeño.
+
+#### Señales de alerta por persona
+
+- **Estudiante que comparte apartamento** (PRODUCT.md), a fin de mes en el celular: ve en qué se pasó y llega a los gastos en un toque. Si escribe 30.000 queriendo 300.000, el aviso no salta (solo por debajo de $ 10.000) y el error es permanente porque no hay edición.
+- **Primera vez:** el estado vacío orienta y da ejemplos; el panel habla de "la barra" antes de que exista y suena como si el límite fuera obligatorio.
+- **Lector de pantalla y teclado:** `aria-valuetext` con porcentaje y estado, foco que sigue al paso de revisión y enlace "Ver gastos de …" con nombre completo.
+
+#### Observaciones menores
+
+- El anillo de foco del título "Revisa la categoría" ocupa todo el ancho del panel y parece un campo.
+- En escritorio, con un nombre extremo, el botón "Crear categoría" queda centrado frente a una línea de resumen de tres renglones.
+- La nota de la hoja "Sin límite" sobra cuando la cabecera ya nombra el mes.
+- El carril de la barra al 0 % tiene muy poco contraste (el texto lleva la información).
+
+#### Estado de lo pendiente de la crítica anterior
+
+- La línea de resumen cuenta pero no nombra y no tiene peso: **resuelto**.
+- Exceder o acercarse al límite no lleva a ninguna parte: **resuelto, con matiz** (solo en filas con alerta).
+- La fila de estado cambia de forma según el ancho: **resuelto** (a costa de altura).
+- Tras crear, la categoría nueva no se ve: **resuelto**.
+- El lector de pantalla oye cada cifra tres veces: **resuelto**.
+- Jerarquía plana: **resuelto**.
+- Carga todo o nada: **sigue igual**.
+- Aviso de "faltan ceros" solo por debajo de $ 10.000: **sigue igual**.
+- Backend (editar o eliminar categorías, `@Digits`/`@Max`, una sola respuesta con el gasto del mes): **sigue igual**.
+
+### Login
+
+- **Archivos:** `src/pages/LoginPage.tsx` (ruta `/login`), dentro de `src/components/layout/AuthLayout.tsx` + `AuthLayout.css`, con `src/components/ui/Input.tsx`, `PasswordInput.tsx`, `Button.tsx`, `FormError.tsx`, `src/hooks/useFormErrors.ts`, `src/hooks/useSlowHint.ts`, `src/utils/authStorage.ts` (aviso de sesión vencida) y `src/features/auth/services/authService.ts`.
+- **Resultado:** **30/40, Bueno** (inicial 23/40 · después de su rama 29/40).
+- **Escenarios revisados:** 1280 × 800, 375 × 667 (móvil) y 320 × 568 (móvil), sin sesión. Estados: formulario vacío, envío vacío (dos errores de campo), correo sin "@", contraseña incorrecta (422) con "Mostrar" activado, 401, sin conexión (error de red simulado), espera larga (más de 6 s: aparece el aviso de demora) y sesión vencida. No hubo desplazamiento horizontal en ningún ancho.
+- **Detector (B):** 0 hallazgos en el código; en la página, solo `cream-palette` (falso positivo).
+
+#### Puntaje de heurísticas (Nielsen)
+
+| # | Heurística | Puntaje | Hallazgo clave |
+|---|---|---|---|
+| 1 | Visibilidad del estado del sistema | 4 | "Entrando…" en el botón, que conserva la opacidad completa. A los 6 s sale "Está tardando más de lo normal; seguimos intentando." en una región viva. "Tu sesión venció" explica por qué el usuario volvió aquí. |
+| 2 | Coincidencia con el mundo real | 3 | Español natural ("Usa el correo con el que te registraste", "Entrar"). Pero un 401 en el login muestra el texto genérico del backend, que no corresponde a esta pantalla. |
+| 3 | Control y libertad | 3 | Hay "Mostrar/Ocultar", la salida al Registro y `replace` al entrar. Durante la espera larga no se puede cancelar. No hay recuperación de contraseña (decisión del equipo). |
+| 4 | Consistencia y estándares | 3 | Componentes y tokens compartidos con el Registro, y un solo h1. El lema del celular ("en un solo lugar") no coincide con el titular de escritorio ("un solo saldo real"). |
+| 5 | Prevención de errores | 3 | Teclado de correo, `autoCapitalize="none"`, `trim` del correo, autocompletado y "Mostrar". No avisa de Bloq Mayús. |
+| 6 | Reconocer antes que recordar | 3 | Etiquetas que no desaparecen, sin placeholders, el gestor de contraseñas completa los datos y el correo llega escrito desde el Registro. |
+| 7 | Flexibilidad y eficiencia | 3 | `enterKeyHint` (next/go), Enter envía y el foco va a la contraseña si el correo llega escrito. En escritorio el foco no arranca en el correo. |
+| 8 | Estética y diseño minimalista | 3 | Sobrio y bien jerarquizado. El error general es texto terracota pequeño sin contenedor y pesa menos que el aviso informativo de sesión vencida. |
+| 9 | Recuperación de errores | 3 | El 422 dice qué revisar, conserva lo escrito y recibe el foco. Los errores de campo enfocan el primero. Si se olvidó la contraseña no hay salida. |
+| 10 | Ayuda y documentación | 2 | La nota "Por ahora SyncFund no permite recuperarla" es honesta pero no ofrece un siguiente paso. |
+| **Total** | | **30/40** | **Bueno** |
+
+#### Veredicto de especificidad
+
+En escritorio la pantalla es de este producto: el titular en Fraunces sobre azul tinta, el párrafo con el vocabulario propio ("aporta al fondo", "quién le debe a quién") y los dos aros de tinta (billetera y fondo) no servirían tal cual en otra app. El nombre y el h1 arrancan a la misma altura, así que las dos columnas se leen como una sola composición. El formulario es un login estándar, y en modo Operate eso es lo correcto. En el celular la franja de marca es neutra, pero cumple su función: dejar el formulario a la vista.
+
+#### Lo que funciona
+
+- **Los estados de espera y de regreso.** La región viva siempre está presente, el aviso de demora aparece a los 6 s y la nota de sesión vencida va en tinta, no en terracota, porque no es culpa del usuario.
+- **El formulario entero cabe en la pantalla del celular.** A 320 × 568 se ven el h1, los dos campos, "Entrar", el enlace al Registro y la nota sin desplazarse. A 375 px, con dos errores de campo, "Entrar" sigue a la vista.
+- **El manejo de errores.** La validación local enfoca el primer campo con error. El 422 conserva los datos y mueve el foco al mensaje con `role="alert"`, sin revelar cuál de los dos campos falló.
+
+#### Problemas pendientes
+
+- **[P2] El error general parece un error de la contraseña y pesa poco.** Es un `<p>` terracota en `--text-label`, sin fondo, pegado bajo el campo Contraseña (`components/ui/FormError.css`); con foco, el anillo queda ceñido al texto. Es el momento de mayor frustración de la pantalla y el aviso informativo de sesión vencida tiene más presencia. Arreglo: darle a `.sf-form-error` el tratamiento de bloque de `.auth-form__notice` (fondo claro en token, `padding`, `radius-sm`) y un `outline-offset` positivo. Comando: `/impeccable harden`.
+- **[P3] Un 401 en el login muestra un mensaje que no corresponde a esta pantalla.** `LoginPage.tsx` solo traduce el 422; otro estado muestra el texto del backend ("Tu sesión no es válida o ya expiró…"). Arreglo: tratar el 401 de `/auth/login` igual que el 422. Comando: `/impeccable clarify`.
+- **[P3] Dos lemas distintos para la misma marca.** Celular: "Tu billetera y tus proyectos, en un solo lugar."; escritorio: "…un solo saldo real." (`AuthLayout.tsx`). Arreglo: una sola frase. Comando: `/impeccable clarify`.
+- **[P3] Ayuda sin salida si se olvidó la contraseña.** Aceptado por el equipo (recuperación fuera de alcance); queda como la mayor fricción de H9 y H10.
+
+#### Carga cognitiva y recorrido emocional
+
+No falla ningún punto del checklist. El único punto de decisión tiene dos opciones (Entrar / Regístrate) más "Mostrar". Momento pico: el error de credenciales, bien redactado pero visualmente débil. Final: entrar al Resumen con `replace`. La espera larga ya no es un valle.
+
+#### Señales de alerta por persona
+
+- **Estudiante en el celular con mala señal** (PRODUCT.md): el aviso de demora y la nota de sesión vencida cubren lo que antes lo hacía recargar. Si escribe mal la contraseña, el error aparece bajo ese campo y puede no revisar el correo.
+- **Lector de pantalla y teclado:** "Entrando…" se anuncia por la región viva y el error recibe el foco; el anillo de foco del mensaje queda pegado al texto.
+- **Primera vez (Jordan):** "¿No tienes cuenta? Regístrate" está antes de la nota de la contraseña y mide 44 px. Sin bloqueos.
+
+#### Observaciones menores
+
+- En escritorio el correo no recibe el foco al cargar (en el celular, no enfocarlo evita abrir el teclado).
+- No hay aviso de Bloq Mayús en la contraseña.
+- En escritorio queda mucho vacío bajo el formulario; el motivo de los aros queda cortado en la esquina (decisión).
+
+#### Estado de lo pendiente de la crítica anterior
+
+- Sesión vencida sin explicación: **resuelto** (`markSessionExpired` y la nota "Tu sesión venció…").
+- Nada avisa si el backend tarda: **resuelto** (`useSlowHint` a 6 s).
+- Columnas sin línea de arranque común en escritorio: **resuelto** (`--auth-start`).
+- "Entrando…" sin anuncio para lector de pantalla: **resuelto**.
+- Botón de carga al 60 % de opacidad: **resuelto** (`aria-busy` con opacidad completa).
+- `FormError.css` sin tokens: **resuelto**; su peso visual sigue débil (nuevo P2).
+- Recuperación de contraseña: **sigue igual** (fuera de alcance).
+
+### Registro
+
+- **Archivos:** `src/pages/RegisterPage.tsx` (ruta `/register`) dentro de `src/components/layout/AuthLayout.tsx`; `src/components/ui/Input.tsx` (con `errorAction`), `PasswordInput.tsx`, `Button.tsx`, `FormError.tsx`; `src/features/auth/services/authService.ts`; `src/utils/validation.ts`; `src/hooks/useSlowHint.ts`; la bienvenida está en `src/pages/DashboardPage.tsx`.
+- **Resultado:** **32/40, Bueno** (inicial 23/40 · después de su rama 32/40).
+- **Escenarios revisados:** formulario vacío a 1280, 375 y 320 px (a 320 × 568 "Crear cuenta" queda visible sin desplazar); envío vacío; correo inválido con contraseña corta; correo ya registrado a 375 y 1280 px; el enlace "Inicia sesión con este correo" hasta el Login; registro exitoso hasta el Resumen con el aviso "Tu cuenta quedó creada.". Sin desplazamiento horizontal. El estado de usuario nuevo del Resumen no se pudo comprobar desde aquí (la API simulada responde al registro con un usuario que ya tiene datos).
+- **Detector (B):** 0 hallazgos en el código; en la página, solo `cream-palette` (falso positivo).
+
+#### Puntaje de heurísticas (Nielsen)
+
+| # | Heurística | Puntaje | Hallazgo clave |
+|---|---|---|---|
+| 1 | Visibilidad del estado del sistema | 4 | Al enviar: "Creando tu cuenta…", `aria-busy` y un aviso para lector de pantalla. Si tarda: aviso de demora. Al llegar al Resumen: "Tu cuenta quedó creada.". |
+| 2 | Coincidencia con el mundo real | 3 | Español claro y vocabulario del producto. La línea de apoyo explica el modelo, pero dice dos cosas en cuatro renglones. |
+| 3 | Control y libertad | 3 | "Mostrar"/"Ocultar", salida al Login y `replace` para que "Atrás" no vuelva al formulario. |
+| 4 | Consistencia y estándares | 3 | Mismo `AuthLayout` y campos que el Login. "Ya hay una cuenta con este correo." lleva punto final y los demás errores no. |
+| 5 | Prevención de errores | 3 | Regla visible ("Mínimo 6 caracteres"), teclado de correo, `new-password`, `trim` y dominio obligatorio. La regla solo se comprueba al enviar y el mínimo de 6 es bajo para una app de dinero. |
+| 6 | Reconocer antes que recordar | 4 | Etiquetas siempre visibles, ayuda ligada por `aria-describedby`, y el correo duplicado pasa escrito al Login. |
+| 7 | Flexibilidad y eficiencia | 3 | Autocompletado, `enterKeyHint` y mayúscula inicial en el nombre. En escritorio ningún campo recibe el foco al abrir. |
+| 8 | Estética y diseño minimalista | 3 | Limpio, con franja de marca corta en el celular. La línea de apoyo pesa cuatro renglones antes del primer campo. |
+| 9 | Recuperación de errores | 4 | Errores bajo cada campo, foco en el primero, se borran al escribir. El correo duplicado ofrece una salida que conserva el correo. |
+| 10 | Ayuda y documentación | 2 | No dice para qué se usan el nombre y el correo ni trae aviso de tratamiento de datos. |
+| **Total** | | **32/40** | **Bueno** |
+
+#### Veredicto de especificidad
+
+La pantalla está pensada para SyncFund y no es un registro de plantilla: el titular "un solo saldo real" y los dos círculos entrelazados nombran el producto, la línea de apoyo explica que la billetera se crea sola y que a los proyectos te agrega quien los administra, y el correo duplicado lleva al Login en vez de quedarse en un callejón sin salida. Lo único genérico es el formulario de tres campos, y eso es correcto para la tarea.
+
+#### Lo que funciona
+
+- **El correo duplicado como continuidad.** Error bajo el campo, con foco; "Inicia sesión con este correo" lleva al Login con el correo escrito (por estado de navegación, no por la URL) y el foco en la contraseña. El "Inicia sesión" del pie se oculta para que no haya dos.
+- **Buena respuesta durante la espera y al final.** El botón dice qué pasa, el lector de pantalla oye la espera, hay aviso si el servidor tarda y el cierre es un aviso en el Resumen.
+- **Pensado para el celular.** La franja de marca se reduce, los campos usan 16 px (sin zoom), los objetivos táctiles miden 44 px y aparece el teclado de correo.
+
+#### Problemas pendientes
+
+- **[P2] El mínimo de contraseña sigue en 6 caracteres.** El equipo ya decidió subirlo a 8 junto con el `@Size` del backend (`RegisterUserRequest`); en el mismo PR, cambiar `minLength(password, 6, …)` y la ayuda en `RegisterPage.tsx`. Comando: `/impeccable harden` (solo la parte del frontend).
+- **[P2] No dice para qué se usan los datos.** Falta el aviso de tratamiento de datos (Ley 1581 de 2012) y no se explica que los integrantes verán el nombre. Arreglo: ayuda "Así te verán en tus proyectos compartidos" en Nombre y, si el equipo lo aprueba, una línea sobre el uso del correo. Comando: `/impeccable clarify`.
+- **[P3] La línea de apoyo junta dos ideas lejos del campo que importa.** Dejar "Te creamos una billetera personal…" y pasar la frase del correo a la ayuda del campo Correo. Comando: `/impeccable clarify`.
+- **[P3] La regla de la contraseña no confirma cuando ya se cumple.** Que la ayuda pase a "✓ Tiene 6 caracteres o más" (con signo, no solo color) sin mostrar el error antes de enviar. Comando: `/impeccable harden`.
+
+#### Carga cognitiva y recorrido emocional
+
+Falla 1 punto del checklist: la línea de apoyo de cuatro renglones compite con el primer campo. Ningún punto de decisión con más de 4 opciones. Momento pico: el correo duplicado, resuelto con un toque. Final: el aviso de cuenta creada.
+
+#### Señales de alerta por persona
+
+- **Estudiante a quien un compañero va a agregar al proyecto del arriendo** (PRODUCT.md): la pantalla le dice que use el correo con el que lo agregarán, pero en el párrafo de arriba y no junto al campo Correo.
+- **Primera vez con una app de finanzas:** no sabe si "Nombre" será visible para otros ni qué pasa con su correo.
+- **Lector de pantalla:** errores y ayuda ligados al campo; la espera se anuncia en región viva, aunque el foco cae al `body` al enviar.
+
+#### Observaciones menores
+
+- El Nombre acepta una sola letra.
+- Puntuación inconsistente entre mensajes de error.
+- En escritorio ningún campo recibe el foco al abrir.
+- A 320 px el eslogan se parte en dos líneas.
+
+#### Estado de lo pendiente de la crítica anterior
+
+- Sin aviso si la creación tarda: **resuelto**.
+- Ayuda y error de la contraseña apilados y texto técnico: **resuelto**.
+- Ritmo del correo duplicado y doble "Inicia sesión": **resuelto**.
+- "Correo" → "Correo electrónico": **resuelto**.
+- Foco al `body` mientras envía: **parcial**.
+- `@Size` y mínimo de 8 caracteres en el backend: **sigue igual**.
+- Aviso de tratamiento de datos (Ley 1581): **sigue igual**.
