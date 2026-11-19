@@ -16,6 +16,7 @@ Proyecto académico desarrollado para la asignatura de Construcción de Software
 - [Patrón de diseño: Observer](#patrón-de-diseño-observer)
 - [Saldar deudas entre integrantes](#saldar-deudas-entre-integrantes)
 - [Eliminar integrantes y salir de un proyecto](#eliminar-integrantes-y-salir-de-un-proyecto)
+- [Rediseño de la interfaz](#rediseño-de-la-interfaz)
 - [Diagramas de diseño (UML)](#diagramas-de-diseño-uml)
 - [Modelo de datos](#modelo-de-datos)
 - [Instalación y ejecución](#instalación-y-ejecución)
@@ -62,16 +63,16 @@ Como riesgo aceptado, el registro y la incorporación de integrantes informan si
 ### Limitaciones y trabajo futuro
 
 - Implementar el ciclo de vida completo de un proyecto compartido descrito en las máquinas de estado (Activo → En liquidación → Cerrado).
-- Reemplazar la actualización de datos por consulta periódica (*polling*) por notificaciones en tiempo real mediante WebSockets.
+- Actualizar los saldos sin recargar: hoy cada pantalla consulta los datos al abrirse y después de cada acción, así que un cambio hecho por otro integrante solo se ve al volver a entrar. Se contemplan notificaciones en tiempo real mediante WebSockets.
 
 ## Características principales
 
 - **Billetera personal**: registro de ingresos y gastos, meta de ahorro mensual con cálculo automático de cuota, y un "colchón" de seguridad que nunca permite dejar el saldo en negativo.
 - **Proyectos compartidos**: crea un grupo, agrega integrantes por correo electrónico, aporta al fondo común desde tu billetera personal y registra gastos selectivos (eliges quién participa en cada uno) que paga el fondo. Si el fondo no alcanza, el gasto se rechaza.
-- **Cálculo de deudas en tiempo real**: en todo momento puedes ver si estás "en paz", tienes saldo a favor o debes, sin tener que hacer la cuenta a mano.
+- **Cálculo automático de deudas**: en cada proyecto ves si estás "Al día", tienes saldo "A tu favor" o "Debes", sin tener que hacer la cuenta a mano. El Resumen junta tu billetera y tu saldo en cada proyecto en una sola cifra.
 - **Situación del proyecto y pago de deudas**: una tabla muestra cuánto aportó cada integrante, su parte de los gastos y su saldo. Si debes, puedes pagarle directamente a quien tiene saldo a favor desde tu billetera personal, con el monto sugerido para quedar al día.
 - **Eliminar integrantes y salir de un proyecto**: el administrador puede quitar a un integrante y cualquier integrante puede salir, siempre que esté al día. Su historial se conserva y los saldos de los demás no cambian.
-- **Categorías con alerta de presupuesto**: crea tus propias categorías de gasto, define un límite mensual para cada una y recibe aviso visual cuando lo superas. Solo tú puedes verlas y usarlas.
+- **Categorías con alerta de presupuesto**: crea tus propias categorías de gasto, define un límite mensual (opcional) para cada una y sigue su barra de progreso: "Cerca del límite" desde el 80 % y "Te pasaste" desde el 100 %. Solo tú puedes verlas y usarlas.
 - **Seguridad**: autenticación con JWT y una capa de autorización que verifica, en cada petición, que el recurso solicitado pertenezca a quien hace la petición, no solo que haya iniciado sesión.
 
 ## Arquitectura del sistema
@@ -276,6 +277,35 @@ Un saldo de menos de medio centavo (por ejemplo, −0,0033 tras dividir un gasto
 ### Patrón Observer
 
 `SharedProject.removeParticipant(user)` quita a la persona de los integrantes y de los observadores (`removeObserver`), y notifica a los que quedan. El servicio valida antes los permisos y el saldo con `DebtCalculator.calculateBalances`. No se modifica ninguna transacción ni el esquema de la base de datos: solo se borra la fila de `project_participants`.
+
+## Rediseño de la interfaz
+
+En noviembre de 2026 se rediseñó el frontend completo, sin tocar el backend, el diseño UML ni la base de datos. Se conservó la identidad visual ("libro mayor, no dashboard": azul tinta, esmeralda y terracota; Fraunces y Figtree) y se cambió la estructura:
+
+- **Navegación:** menú lateral en escritorio y barra inferior con cuatro destinos en el celular, con la acción principal de cada pantalla fija al alcance del pulgar.
+- **Páginas:** cada pantalla responde una pregunta ("¿Cuánto tengo?", "¿Cómo estoy en este proyecto?") con una sola cifra protagonista arriba y el resto en hojas. Los formularios se abren en paneles.
+- **Certeza sobre cada peso:** ninguna cifra se inventa mientras carga o si falla, y los estados de dinero siempre van con texto ("Debes", "A tu favor", "Al día"), no solo con color.
+- **Accesibilidad:** contraste de al menos 4.5:1 en los textos, uso completo con teclado, objetivos táctiles de 44 px y anuncios para lectores de pantalla.
+
+Se hizo en 10 ramas (PR #27 a #35 y el cierre), con 10 componentes compartidos nuevos y sin librerías nuevas. Cada pantalla se evaluó con las 10 heurísticas de Nielsen (de 0 a 4 cada una, máximo 40) antes del rediseño, al terminar su rama y al final:
+
+| Pantalla | Antes | Después de su rama | Final |
+|---|---|---|---|
+| Resumen | 18/40 | 28/40 | 29/40 |
+| Billetera personal | 20/40 | 28/40 | 28/40 |
+| Proyectos compartidos | 23/40 | 29/40 | 30/40 |
+| Detalle del proyecto | 24/40 | 29/40 | 29/40 |
+| Categorías | 20/40 | 28/40 | 29/40 |
+| Login | 23/40 | 29/40 | 30/40 |
+| Registro | 23/40 | 32/40 | 32/40 |
+| **Promedio** | **21.6/40** | **29.0/40** | **29.6/40** |
+
+Documentación del rediseño:
+
+- [Plan del rediseño](docs/diseno/plan-rediseno.md): principios, componentes, pantallas, lo que quedó fuera y el estado al cierre.
+- [Crítica de diseño](docs/diseno/critica.md): diagnóstico inicial, crítica de cada rama y crítica final.
+- [Capturas del antes](docs/diseno/capturas-antes/) y [capturas del después](docs/diseno/capturas-despues/), en escritorio y en iPhone 16.
+- [Sistema de diseño](DESIGN.md): colores, tipografía, componentes, estructura y movimiento.
 
 ## Diagramas de diseño (UML)
 

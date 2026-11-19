@@ -232,3 +232,85 @@ En paralelo, cuando haya tiempo: la rama de backend `fix/limites-longitud`.
 ### Cómo lo usa Claude Code
 
 En la primera rama, este plan se exporta como Markdown y se guarda en `docs/diseno/plan-rediseno.md`. Desde ahí, cada rama le pide a Claude Code leer su sección del plan antes de proponer cambios.
+
+## Estado al cierre del rediseño
+
+Noviembre 18 de 2026, rama `docs/cierre-rediseno`. Las 9 ramas del rediseño están en `develop` (PR #27 a #35) y esta rama cierra la documentación: crítica final, capturas del antes y del después, `DESIGN.md` al día, la sección del rediseño en el README y el borrado de `App.css` e `index.css`, sobrantes de Vite.
+
+### Lo que se logró
+
+Las 7 pantallas pasaron la meta de 28/40 en la crítica de Impeccable; el promedio subió de 21.6 a 29.6. El detalle de cada una está en la "Crítica final" de `critica.md`.
+
+| Pantalla | Antes | Después de su rama | Final |
+| --- | --- | --- | --- |
+| Resumen | 18/40 | 28/40 | 29/40 |
+| Billetera personal | 20/40 | 28/40 | 28/40 |
+| Proyectos compartidos | 23/40 | 29/40 | 30/40 |
+| Detalle del proyecto | 24/40 | 29/40 | 29/40 |
+| Categorías | 20/40 | 28/40 | 29/40 |
+| Login | 23/40 | 29/40 | 30/40 |
+| Registro | 23/40 | 32/40 | 32/40 |
+
+- Se cumplieron los seis principios, la estructura (menú lateral, barra inferior, hojas y paneles), los 10 componentes compartidos y la lista de accesibilidad, sin librerías nuevas y sin tocar el backend.
+- Ninguna crítica final encontró problemas P0 ni P1; lo que queda son P2 y P3.
+
+### Corregir primero
+
+- **Regresión del CSS en `ProjectStatusList.css` (rama 9a).** En el pulido final, dos reglas y un comentario quedaron dentro del selector de `:hover` de la flecha, y la regla de la flecha quedó suelta: en escritorio todas las flechas de los renglones de proyecto (Resumen y Proyectos) se ven siempre en azul acero y corridas 2 px, y ya no reaccionan al pasar el mouse. Ni `build` ni `lint` lo detectan. Arreglo: restaurar la regla `.project-status-list__row:hover .project-status-list__arrow` como estaba en `1bc7b6b` y sacar las otras dos reglas del selector. Va en una rama `fix/` propia, porque esta rama solo documenta.
+
+### Backend (ramas propias, con pruebas)
+
+Tomado de "Fuera del rediseño", con su estado al cierre:
+
+| Cambio | Estado |
+| --- | --- |
+| `@Size` en `RegisterUserRequest` y en el nombre del proyecto, con el mínimo de contraseña en 8 caracteres y el texto del Registro en el mismo PR (`fix/limites-longitud`) | Pendiente. El Registro sigue pidiendo 6 caracteres. |
+| `@Digits` o `@Max` en `CreateCategoryRequest` (un límite que no cabe en `DECIMAL(12,2)` responde 500) | Pendiente. El frontend ya lo impide. |
+| `PersonalWallet.adjustPrivateBudget` con el caso semanal | Pendiente. La Billetera muestra el ritmo por quincena y por día, no el semanal. |
+| Marcar el origen de cada movimiento de la billetera (registrado, aporte, pago entre integrantes) | Pendiente. Hoy se reconoce por la descripción, y un gasto escrito a mano con ese formato se contaría como aporte. |
+| Editar y eliminar movimientos y categorías | Pendiente (backend y diagrama UML). Es la mayor causa de los puntajes bajos en "Control y libertad". |
+| Movimiento en el historial al apartar o liberar colchón | Pendiente (dominio y base de datos). |
+| Guardar quién pagó cada gasto compartido, y entre quiénes se dividió en el historial | Pendiente (base de datos y backend). |
+| Saldo neto del usuario en la respuesta de la lista de proyectos, y una respuesta de categorías con el gasto del mes | Solo si Proyectos o Categorías se sienten lentas. |
+| Invitación de integrantes con aceptación (hoy se agrega a alguien sin su consentimiento) | Pendiente; requiere aprobación del equipo y cambios al diseño. |
+| Recuperación de contraseña | Fuera de alcance por ahora. |
+
+### Producción
+
+- **Migraciones en Railway** antes de desplegar: los scripts pendientes de `docs/base-de-datos/migraciones/` (categorías y tipos de pago entre integrantes).
+- **Zona horaria del servidor** en `America/Bogota` (ver "Fuera del rediseño"), y decidir si se corrigen las filas ya guardadas en UTC.
+- **Aviso de tratamiento de datos (Ley 1581 de 2012)** en el Registro; consultar con el docente.
+- **PR de `develop` a `main`** cuando lo anterior esté listo y pasen las pruebas manuales pendientes de cada rama.
+
+### Mejoras futuras del frontend
+
+Los P2 abiertos de la crítica final, por pantalla. Ninguno bloquea; varios piden una decisión del equipo antes de hacerse.
+
+- **Resumen:** aclarar que "A tu favor" no es dinero de la billetera (sin cambiar la cifra aprobada); limitar "Tus proyectos" a 5 renglones con "Ver los N proyectos"; avisar en el aviso de deuda cuando la billetera no alcanza para pagar.
+- **Billetera:** filtro por mes en el historial; no repetir "Disponible" en la suma; cuando un gasto no alcanza, ofrecer liberar el colchón.
+- **Proyectos:** plegar los proyectos "Al día" o filtrar por nombre cuando hay muchos.
+- **Detalle del proyecto:** si la billetera no alcanza, proponer pagar lo que se tiene; un solo "Pagar" por deuda; en el celular, la tabla más arriba para quien debe.
+- **Categorías:** agrupar las categorías sin gasto del mes; "Ver gastos" en todas las filas con gasto, no solo en las que tienen alerta.
+- **Login:** darle al error de credenciales el peso de un aviso, no de una nota.
+- **Registro:** decir para qué se usan el nombre y el correo (junto con el aviso de la Ley 1581).
+- **Toda la app:** volver a consultar los saldos al regresar a la pestaña (hoy los datos solo se cargan al abrir cada pantalla y después de cada acción).
+
+### Deuda del sistema de diseño
+
+Detalles encontrados al actualizar `DESIGN.md`. Ninguno se ve en la app; conviene corregirlos en una rama de limpieza.
+
+- Unas 33 medidas sueltas sin token en `features/` y `pages/` (por ejemplo en `ProjectStatusTable`, `ParticipantChips`, `TransactionList` y el titular de `AuthLayout`, que usa 2.75rem fijo en vez de `--text-display`).
+- `theme.ts` define `zIndex.toast = 100`, pero no existe `--z-toast` en `globals.css` y `Toast.css` escribe el número directo. `--enter-duration` se declara solo en `ProjectForms.css`.
+- `.tx-list__more:hover` está fuera de `@media (hover: hover)`, contra la regla del sistema.
+- `.status-table__sr-only` repite `.visually-hidden` de forma incompleta.
+- A exactamente 640 px aplican a la vez la regla `max-width: 640px` de la tabla y las `min-width: 640px` de `Sheet` y `PageHeader`.
+- Los comentarios de `globals.css` y `Panel.css` dicen que el panel es el único elemento con `shadow-float`, pero el menú de cuenta y el toast también la usan (`DESIGN.md` ya lo describe así).
+- Este plan conserva "Te deben" en las secciones escritas antes de la rama 4; el vocabulario vigente es el de `DESIGN.md` ("A tu favor").
+
+### Decisiones del equipo que conviene no deshacer
+
+- "A tu favor" en vez de "Te deben"; "Al día" en vez de "En paz".
+- Pestañas en el Detalle (no dos columnas); sin "Pagar" en la lista de Proyectos; sin cortes por grupo en esa lista.
+- La cifra del Resumen es billetera + saldos netos en proyectos.
+- Cambiar entre Gasto e Ingreso reinicia los campos del formulario.
+- "Reducir movimiento" apaga todas las animaciones.
