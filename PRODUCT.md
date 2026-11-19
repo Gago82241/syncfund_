@@ -42,7 +42,9 @@ misma app, y las dos cosas pesan igual.
   compartido eligiendo quién participa; consultar la tabla de situación del proyecto (aportes,
   parte de los gastos y saldo de cada uno); pagarle a quien tiene saldo a favor con el monto
   sugerido; eliminar integrantes o salir de un proyecto (solo si están al día).
-- Los datos se actualizan por consulta periódica (polling), no en tiempo real.
+- Los datos se cargan al abrir cada pantalla y después de cada acción; no hay consulta
+  periódica ni actualización en tiempo real, así que un cambio hecho por otro integrante se ve
+  al volver a entrar a la pantalla.
 
 ## Capabilities and Constraints
 - Idioma: español. Moneda: pesos colombianos (COP, formato `es-CO`).

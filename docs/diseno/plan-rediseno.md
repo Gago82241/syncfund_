@@ -293,7 +293,7 @@ Los P2 abiertos de la crítica final, por pantalla. Ninguno bloquea; varios pide
 - **Categorías:** agrupar las categorías sin gasto del mes; "Ver gastos" en todas las filas con gasto, no solo en las que tienen alerta.
 - **Login:** darle al error de credenciales el peso de un aviso, no de una nota.
 - **Registro:** decir para qué se usan el nombre y el correo (junto con el aviso de la Ley 1581).
-- **Toda la app:** volver a consultar los saldos al regresar a la pestaña (hoy no hay consulta periódica, aunque `PRODUCT.md` la menciona).
+- **Toda la app:** volver a consultar los saldos al regresar a la pestaña (hoy los datos solo se cargan al abrir cada pantalla y después de cada acción).
 
 ### Deuda del sistema de diseño
 
