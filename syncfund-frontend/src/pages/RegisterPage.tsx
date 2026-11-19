@@ -13,6 +13,7 @@ import { useFormErrors } from '../hooks/useFormErrors';
 import {
   EMAIL_MAX,
   NAME_MAX,
+  PASSWORD_MIN,
   maxLength,
   minLength,
   newEmail,
@@ -54,7 +55,7 @@ export function RegisterPage() {
         maxLength(email, EMAIL_MAX, `El correo puede tener máximo ${EMAIL_MAX} caracteres`),
       password:
         required(password, 'La contraseña es obligatoria') ??
-        minLength(password, 6, 'La contraseña debe tener al menos 6 caracteres') ??
+        minLength(password, PASSWORD_MIN, `La contraseña debe tener al menos ${PASSWORD_MIN} caracteres`) ??
         passwordBytes(password),
     });
     if (!valid) return;
@@ -140,7 +141,7 @@ export function RegisterPage() {
           name="password"
           autoComplete="new-password"
           enterKeyHint="go"
-          hint="Mínimo 6 caracteres"
+          hint={`Mínimo ${PASSWORD_MIN} caracteres`}
           value={password}
           readOnly={loading}
           error={fieldErrors.password}
