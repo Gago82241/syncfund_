@@ -120,23 +120,7 @@
     background: var(--ledger-50);
   }
 
-  .project-status-list__row:hover /* Mientras llega el saldo: un bloque con la forma de la etiqueta, sin cifra. */
-.project-status-list__loading {
-  display: inline-flex;
-  align-items: center;
-  min-height: 1.5rem;
-}
-
-/* A quién le debes: la otra mitad de "Debes", en el color de la deuda pero en texto. */
-.project-status-list__payees {
-  margin-top: calc(var(--space-xs) / 2);
-  font-size: var(--text-label);
-  font-weight: 600;
-  color: var(--loss-700);
-  overflow-wrap: anywhere;
-}
-
-.project-status-list__arrow {
+  .project-status-list__row:hover .project-status-list__arrow {
     color: var(--ink-600);
     transform: translateX(2px);
   }
