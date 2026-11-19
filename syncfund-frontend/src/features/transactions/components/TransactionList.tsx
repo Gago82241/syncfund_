@@ -1,26 +1,106 @@
+import { useState, type ReactNode } from 'react';
 import { formatCOP } from '../../../styles/theme';
 import { formatDate } from '../../../utils/formatDate';
 import type { TransactionResponse } from '../../../types/api';
 import './TransactionList.css';
 
-export function TransactionList({ transactions }: { transactions: TransactionResponse[] }) {
+interface Props {
+  transactions: TransactionResponse[];
+  /**
+   * Solo en un proyecto: nombres de los integrantes por id, para decir quién aportó, quién pagó
+   * y entre cuántos se dividió cada gasto (sale de involvedIdsList). La Billetera no lo pasa.
+   */
+  memberNames?: ReadonlyMap<number, string>;
+  /** Nombre de cada categoría por id: la fila lo muestra junto a la fecha. Sin el dato, no se muestra. */
+  categoryNames?: ReadonlyMap<number, string>;
+  /** Qué mostrar si no hay movimientos (por defecto, una línea). */
+  empty?: ReactNode;
+  /** Muestra de a tantas filas, con "Ver más movimientos". Sin este dato se muestran todas. */
+  pageSize?: number;
+}
+
+/**
+ * Detalle de un movimiento del proyecto a partir de involvedIdsList. Nunca supone un autor:
+ * si el dato no está (aportes antiguos sin aportante) o la persona ya no es integrante, se
+ * dice qué fue ("Aporte sin aportante", "Aporte de un exintegrante"), sin nombre.
+ */
+function projectDetail(tx: TransactionResponse, names: ReadonlyMap<number, string>): string | null {
+  const ids = tx.involvedIdsList ?? [];
+  const firstName = ids.length > 0 ? names.get(ids[0]) : undefined;
+
+  if (tx.type === 'INGRESO') {
+    if (firstName) return `Aporte de ${firstName}`;
+    // Mismo término que la tabla de situación; si hay aportante pero ya no está, se dice así.
+    return ids.length === 0 ? 'Aporte sin aportante' : 'Aporte de un exintegrante';
+  }
+  if (tx.type === 'ABONO') return firstName ? `Pago de ${firstName}` : null;
+  if (tx.type === 'GASTO') {
+    if (ids.length === 0) return null;
+    if (ids.length === 1) return firstName ? `A cargo de ${firstName}` : 'A cargo de 1 persona';
+    // Igual que DebtCalculator.splitBill: monto / participantes; si no es exacta, "≈".
+    const share = tx.amount / ids.length;
+    const sign = Number.isInteger(share) ? '' : '≈ ';
+    // Espacio duro antes de "c/u": que no quede solo en la línea siguiente.
+    return `Entre ${ids.length} · ${sign}${formatCOP(share)}\u00a0c/u`;
+  }
+  return null;
+}
+
+export function TransactionList({ transactions, memberNames, categoryNames, empty, pageSize }: Props) {
+  const [visible, setVisible] = useState(pageSize ?? Infinity);
+
   if (transactions.length === 0) {
-    return <p className="tx-list__empty">Todavía no hay movimientos registrados.</p>;
+    return empty ?? <p className="tx-list__empty">Todavía no hay movimientos registrados.</p>;
   }
 
+  const shown = transactions.slice(0, visible);
+  const remaining = transactions.length - shown.length;
+
   return (
-    <ul className="tx-list">
-      {transactions.map((tx) => (
-        <li key={tx.transactionId} className="tx-list__row">
-          <div>
-            <p className="tx-list__description">{tx.description}</p>
-            <span className="tx-list__date">{formatDate(tx.dateTime)}</span>
-          </div>
-          <span className={`tabular-nums ${tx.type === 'INGRESO' ? 'amount-gain' : 'amount-loss'}`}>
-            {tx.type === 'INGRESO' ? '+' : '−'} {formatCOP(tx.amount)}
-          </span>
-        </li>
-      ))}
-    </ul>
+    <>
+      <ul className="tx-list">
+        {shown.map((tx) => {
+          const detail = memberNames
+            ? projectDetail(tx, memberNames)
+            : tx.categoryId !== null
+              ? (categoryNames?.get(tx.categoryId) ?? null)
+              : null;
+          return (
+            <li key={tx.transactionId} className="tx-list__row">
+              <div className="tx-list__text">
+                <p className="tx-list__description">{tx.description}</p>
+                <span className="tx-list__date">
+                  {formatDate(tx.dateTime)}
+                  {detail && <span className="tx-list__detail tabular-nums"> · {detail}</span>}
+                </span>
+              </div>
+              {tx.type === 'ABONO' || tx.type === 'COBRO' ? (
+                // Pago entre integrantes: va de billetera a billetera y no mueve el fondo, por eso no lleva signo.
+                <span className="tabular-nums tx-list__amount tx-list__neutral">
+                  {formatCOP(tx.amount)}
+                  <span className="tx-list__neutral-note">Pago entre integrantes</span>
+                </span>
+              ) : (
+                <span className={`tabular-nums tx-list__amount ${tx.type === 'INGRESO' ? 'amount-gain' : 'amount-loss'}`}>
+                  {/* El lector de pantalla oye "Ingreso de" o "Gasto de", no un signo suelto. */}
+                  <span aria-hidden="true">{tx.type === 'INGRESO' ? '+' : '−'} </span>
+                  <span className="visually-hidden">{tx.type === 'INGRESO' ? 'Ingreso de ' : 'Gasto de '}</span>
+                  {formatCOP(tx.amount)}
+                </span>
+              )}
+            </li>
+          );
+        })}
+      </ul>
+      {remaining > 0 && pageSize !== undefined && (
+        <button
+          type="button"
+          className="tx-list__more"
+          onClick={() => setVisible((current) => current + pageSize)}
+        >
+          Ver más movimientos <span className="tx-list__more-count tabular-nums">({remaining} más)</span>
+        </button>
+      )}
+    </>
   );
 }

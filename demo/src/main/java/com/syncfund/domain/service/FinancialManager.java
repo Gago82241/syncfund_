@@ -66,9 +66,12 @@ public class FinancialManager {
     public void auditWallet(Wallet wallet, List<Transaction> transactionHistory) {
         double calculated = 0.0;
         for (Transaction t : transactionHistory) {
-            calculated += (t.getType() == Transaction.TransactionType.INGRESO)
-                    ? t.getAmount()
-                    : -t.getAmount();
+            // ABONO y COBRO registran pagos entre integrantes y no mueven el saldo de la billetera.
+            switch (t.getType()) {
+                case INGRESO -> calculated += t.getAmount();
+                case GASTO -> calculated -= t.getAmount();
+                case ABONO, COBRO -> { }
+            }
         }
 
         if (Math.abs(calculated - wallet.getCurrentBalance()) > 0.001) {

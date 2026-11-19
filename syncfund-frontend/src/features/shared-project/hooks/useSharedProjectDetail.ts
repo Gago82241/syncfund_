@@ -1,66 +1,128 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { sharedProjectService } from '../services/sharedProjectService';
 import { transactionService } from '../../transactions/services/transactionService';
 import { userService } from '../../users/services/userService';
-import type { NetBalanceResponse, SharedProjectResponse, TransactionResponse, UserResponse } from '../../../types/api';
+import { afterActionLoadError, describeLoadError, notFoundLoadError, type LoadErrorInfo } from '../../../utils/apiError';
+import type {
+  NetBalanceResponse,
+  ProjectBalancesResponse,
+  SharedProjectResponse,
+  TransactionResponse,
+  UserResponse,
+} from '../../../types/api';
+
+const WHAT = 'este proyecto compartido';
+/** Se lanza cuando el id de la URL no es un entero positivo (ej. /projects/abc): no se pide al backend. */
+const INVALID_ID = new Error('id de proyecto inválido');
+
+async function fetchProjectDetail(projectId: number) {
+  if (!Number.isInteger(projectId) || projectId <= 0) throw INVALID_ID;
+  const { data: project } = await sharedProjectService.getById(projectId);
+  const memberResponses = await Promise.all(project.memberIds.map((id) => userService.getById(id)));
+  const { data: balances } = await sharedProjectService.getBalances(projectId);
+  const { data: txData } = await transactionService.getByWallet(projectId, 'SHARED');
+  // Un pago deja un ABONO y un COBRO con la misma descripción: basta mostrar el ABONO.
+  const transactions = txData
+    .filter((tx) => tx.type !== 'COBRO')
+    .sort((a, b) => b.dateTime.localeCompare(a.dateTime));
+  return { project, members: memberResponses.map((r) => r.data), balances, transactions };
+}
 
 /**
  * Orquesta todo lo que necesita la pantalla de detalle de un SharedProject:
  * el proyecto, los nombres de sus miembros (el backend solo da memberIds),
- * el saldo neto del usuario actual (DebtCalculator.determineNetBalance) y
- * el historial de movimientos del proyecto.
+ * la situación de todos los integrantes (DebtCalculator.calculateBalances), de la que sale
+ * el saldo neto del usuario actual, y el historial de movimientos del proyecto.
+ * Todo se guarda junto solo si todas las peticiones llegan bien: una falla parcial
+ * no deja la pantalla a medias (ej. proyecto con "sin movimientos").
  */
-export function useSharedProjectDetail(projectId: number, currentUserId: number) {
+/**
+ * @param afterAction true si se llega justo después de una acción ya guardada (crear el
+ *        proyecto): si la primera carga falla, el error dice que el cambio sí quedó.
+ */
+export function useSharedProjectDetail(projectId: number, currentUserId: number, afterAction = false) {
   const [project, setProject] = useState<SharedProjectResponse | null>(null);
   const [members, setMembers] = useState<UserResponse[]>([]);
-  const [netBalance, setNetBalance] = useState<NetBalanceResponse | null>(null);
+  const [balances, setBalances] = useState<ProjectBalancesResponse | null>(null);
   const [transactions, setTransactions] = useState<TransactionResponse[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [error, setError] = useState<LoadErrorInfo | null>(null);
   const [loadedProjectId, setLoadedProjectId] = useState(projectId);
+  // Número de la última carga pedida. Solo esa puede escribir el estado: una respuesta que llega
+  // tarde (de otro proyecto, o de una recarga anterior del mismo) se descarta.
+  const latestRequest = useRef(0);
+  // true desde que una acción se guardó hasta que una recarga sale bien: si la recarga falla,
+  // el error avisa que la acción sí quedó (afterActionLoadError), también al reintentar.
+  const unconfirmedAction = useRef(false);
 
-  // La ruta reutiliza esta pantalla al cambiar de proyecto: se vuelve a marcar "cargando".
+  // La ruta reutiliza esta pantalla al cambiar de proyecto: se borran los datos del anterior
+  // para no mostrarlos mientras carga el nuevo, y se vuelve a marcar "cargando".
   // Object.is porque un id no numérico en la URL da NaN, y con !== esto nunca dejaría de renderizar.
   if (!Object.is(loadedProjectId, projectId)) {
     setLoadedProjectId(projectId);
+    setProject(null);
+    setMembers([]);
+    setBalances(null);
+    setTransactions([]);
     setLoading(true);
-    setError('');
+    setError(null);
   }
 
   // load no marca "cargando": el estado inicial ya lo hace y refresh lo marca antes de recargar.
-  const load = useCallback(
-    () =>
-      sharedProjectService
-        .getById(projectId)
-        .then(({ data: projectData }) => {
-          setProject(projectData);
-          return Promise.all(projectData.memberIds.map((id) => userService.getById(id)));
-        })
-        .then((memberResponses) => {
-          setMembers(memberResponses.map((r) => r.data));
-          return sharedProjectService.getNetBalance(projectId, currentUserId);
-        })
-        .then(({ data: balanceData }) => {
-          setNetBalance(balanceData);
-          return transactionService.getByWallet(projectId, 'SHARED');
-        })
-        .then(({ data: txData }) => {
-          setTransactions(txData.slice().sort((a, b) => b.dateTime.localeCompare(a.dateTime)));
-        })
-        .catch(() => setError('No se pudo cargar el proyecto compartido.'))
-        .finally(() => setLoading(false)),
-    [projectId, currentUserId],
-  );
+  const load = useCallback(() => {
+    const requestId = ++latestRequest.current;
+    const isLatest = () => latestRequest.current === requestId;
 
+    return fetchProjectDetail(projectId)
+      .then((data) => {
+        if (!isLatest()) return;
+        setProject(data.project);
+        setMembers(data.members);
+        setBalances(data.balances);
+        setTransactions(data.transactions);
+        setError(null);
+        unconfirmedAction.current = false;
+      })
+      .catch((err) => {
+        if (!isLatest()) return;
+        const info = err === INVALID_ID ? notFoundLoadError(WHAT) : describeLoadError(err, WHAT);
+        setError(unconfirmedAction.current ? afterActionLoadError(info) : info);
+      })
+      .finally(() => {
+        if (isLatest()) setLoading(false);
+      });
+  }, [projectId]);
+
+  // El error se mantiene mientras se reintenta, para que el botón muestre "Procesando..." sin parpadeos.
   const refresh = useCallback(() => {
     setLoading(true);
-    setError('');
     return load();
   }, [load]);
 
-  useEffect(() => {
-    load();
-  }, [load]);
+  /** Recarga después de una acción que el backend ya aceptó (guardar, crear, pagar…). */
+  const refreshAfterAction = useCallback(() => {
+    unconfirmedAction.current = true;
+    return refresh();
+  }, [refresh]);
 
-  return { project, members, netBalance, transactions, loading, error, refresh };
+  useEffect(() => {
+    // Se marca aquí y no al crear la referencia: el modo estricto desmonta y vuelve a montar, y la
+    // limpieza de abajo la pondría en false.
+    if (afterAction) unconfirmedAction.current = true;
+    load();
+    // Al cambiar de proyecto o salir de la pantalla, la carga en curso queda obsoleta.
+    return () => {
+      latestRequest.current += 1;
+      // Una acción del proyecto anterior no se anuncia en el siguiente.
+      unconfirmedAction.current = false;
+    };
+  }, [load, afterAction]);
+
+  // Saldo del usuario actual para la tarjeta resumen: el mismo cálculo de la tabla de situación.
+  const myBalance = balances?.members.find((m) => m.userId === currentUserId);
+  const netBalance: NetBalanceResponse | null = myBalance
+    ? { userId: currentUserId, projectId, netBalance: myBalance.netBalance }
+    : null;
+
+  return { project, members, balances, netBalance, transactions, loading, error, refresh, refreshAfterAction };
 }

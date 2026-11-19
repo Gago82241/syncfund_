@@ -1,0 +1,87 @@
+/*
+ * Aviso destacado: fondo terracota claro con borde fino completo (sin franja lateral gruesa).
+ * Lo que lo distingue es el tono y la palabra "Debes", no un adorno.
+ */
+.debt-notice {
+  /* La distancia a la cifra la pone el contenedor (.dashboard__top) con gap, no un margen negativo. */
+  padding: var(--space-md);
+  background: var(--loss-100);
+  border: 1px solid var(--loss-500);
+  border-radius: var(--radius-md);
+}
+
+.debt-notice__title {
+  font-size: var(--text-title);
+  color: var(--loss-700);
+  text-wrap: balance;
+}
+
+.debt-notice__list {
+  margin: var(--space-sm) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.debt-notice__row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm) var(--space-md);
+  padding: var(--space-sm) 0;
+  border-top: 1px solid var(--loss-500);
+}
+
+.debt-notice__row:first-child {
+  border-top: none;
+  padding-top: 0;
+}
+
+.debt-notice__row:last-child {
+  padding-bottom: 0;
+}
+
+.debt-notice__text {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.debt-notice__what {
+  color: var(--ink);
+  overflow-wrap: anywhere;
+  text-wrap: pretty;
+}
+
+.debt-notice__label {
+  font-weight: 600;
+  color: var(--loss-700);
+}
+
+.debt-notice__what strong {
+  font-weight: 600;
+  color: var(--loss-700);
+}
+
+.debt-notice__project {
+  font-size: var(--text-label);
+  color: var(--ink-muted);
+  overflow-wrap: anywhere;
+  text-wrap: pretty;
+}
+
+/*
+ * El enlace se ve como botón secundario, compacto a la derecha del renglón también en el celular:
+ * así varias deudas no apilan bloques de ancho completo encima de la acción fija.
+ * El ghost es transparente: sobre el terracota claro lleva papel para seguir leyéndose como botón.
+ */
+.debt-notice__pay {
+  width: auto;
+  flex: none;
+  padding-inline: var(--space-md);
+  background: var(--paper);
+  text-decoration: none;
+}
+
+@media (min-width: 640px) {
+  .debt-notice {
+    padding: var(--space-md) var(--space-lg);
+  }
+}

@@ -1,0 +1,211 @@
+/*
+ * Panel: hoja inferior en el celular, panel lateral derecho desde 1024 px.
+ * Es el único elemento con shadow-float; detrás, el velo azul tinta (--scrim).
+ */
+
+.sf-panel {
+  /* Celular: hoja pegada abajo, hasta el 90 % de la pantalla. */
+  position: fixed;
+  inset: auto 0 0 0;
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+  max-height: 90dvh;
+  margin: 0;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
+  background: var(--paper);
+  color: var(--ink);
+  box-shadow: var(--shadow-float);
+  overscroll-behavior: contain;
+}
+
+.sf-panel::backdrop {
+  background: var(--scrim);
+}
+
+/* El contenido ocupa todo el diálogo: así un clic directo en el diálogo solo puede ser el velo. */
+.sf-panel__surface {
+  display: flex;
+  flex-direction: column;
+  max-height: inherit;
+  height: 100%;
+}
+
+.sf-panel__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-md);
+  padding: var(--space-md) var(--space-md) var(--space-sm);
+  border-bottom: 1px solid var(--hairline);
+}
+
+.sf-panel__heading {
+  display: grid;
+  gap: calc(var(--space-xs) / 2);
+  min-width: 0;
+  padding-top: var(--space-xs);
+}
+
+.sf-panel__title {
+  font-size: var(--text-title);
+  line-height: var(--leading-tight);
+  text-wrap: balance;
+}
+
+.sf-panel__description {
+  font-size: var(--text-small);
+  color: var(--ink-muted);
+  text-wrap: pretty;
+}
+
+.sf-panel__close {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: calc(var(--space-xs) / 2);
+  min-height: var(--tap-target);
+  min-width: var(--tap-target);
+  padding: 0 var(--space-xs);
+  margin-right: calc(var(--space-xs) * -1);
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--ink-900);
+  font-size: var(--text-label);
+  font-weight: 600;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    background-color var(--duration-fast) var(--ease-out),
+    transform var(--duration-fast) var(--ease-out);
+}
+
+.sf-panel__close:active {
+  background: var(--ink-100);
+  transform: translateY(1px);
+}
+
+@media (hover: hover) {
+  .sf-panel__close:hover {
+    background: var(--ledger-50);
+  }
+}
+
+.sf-panel__body {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-md);
+}
+
+/* Pie fijo con las acciones; respeta la franja del gesto de inicio del iPhone. */
+.sf-panel__footer {
+  display: flex;
+  flex-direction: column-reverse;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md) calc(var(--space-sm) + env(safe-area-inset-bottom));
+  border-top: 1px solid var(--hairline);
+}
+
+/* Sin pie, el área segura va al final del cuerpo. */
+.sf-panel__surface:not(:has(.sf-panel__footer)) .sf-panel__body {
+  padding-bottom: calc(var(--space-md) + env(safe-area-inset-bottom));
+}
+
+/* Mientras hay un panel abierto, la página de fondo no se desplaza. */
+html:has(.sf-panel[open]) {
+  overflow: hidden;
+}
+
+/* --- Movimiento: entra en 200 ms, sale en 150 ms, siempre con salida suave. --- */
+
+.sf-panel[open] {
+  animation: sf-panel-in-up var(--duration-panel) var(--ease-out);
+}
+
+.sf-panel[open]::backdrop {
+  animation: sf-panel-fade-in var(--duration-panel) var(--ease-out);
+}
+
+.sf-panel[data-closing] {
+  animation: sf-panel-out-down var(--duration-fast) var(--ease-out) forwards;
+}
+
+.sf-panel[data-closing]::backdrop {
+  animation: sf-panel-fade-out var(--duration-fast) var(--ease-out) forwards;
+}
+
+@keyframes sf-panel-in-up {
+  from { transform: translateY(100%); }
+}
+
+@keyframes sf-panel-out-down {
+  to { transform: translateY(100%); }
+}
+
+@keyframes sf-panel-in-left {
+  from { transform: translateX(100%); }
+}
+
+@keyframes sf-panel-out-right {
+  to { transform: translateX(100%); }
+}
+
+@keyframes sf-panel-fade-in {
+  from { opacity: 0; }
+}
+
+@keyframes sf-panel-fade-out {
+  to { opacity: 0; }
+}
+
+/* --- Escritorio: panel lateral derecho de 420 px a toda la altura. --- */
+
+@media (min-width: 1024px) {
+  .sf-panel {
+    inset: 0 0 0 auto;
+    width: min(420px, 100vw);
+    height: 100dvh;
+    max-height: 100dvh;
+    border-radius: 0;
+  }
+
+  .sf-panel__header {
+    padding: var(--space-lg) var(--space-lg) var(--space-md);
+  }
+
+  .sf-panel__body {
+    padding: var(--space-lg);
+  }
+
+  .sf-panel__footer {
+    flex-direction: row;
+    justify-content: flex-end;
+    padding: var(--space-md) var(--space-lg);
+  }
+
+  .sf-panel__footer .sf-button {
+    width: auto;
+  }
+
+  .sf-panel[open] {
+    animation-name: sf-panel-in-left;
+  }
+
+  .sf-panel[data-closing] {
+    animation-name: sf-panel-out-right;
+  }
+}
+
+/* Reducir movimiento: sin desplazamiento, solo un fundido breve (la regla global lo acorta). */
+@media (prefers-reduced-motion: reduce) {
+  .sf-panel[open] {
+    animation-name: sf-panel-fade-in;
+  }
+
+  .sf-panel[data-closing] {
+    animation-name: sf-panel-fade-out;
+  }
+}

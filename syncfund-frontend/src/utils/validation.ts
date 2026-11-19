@@ -27,6 +27,30 @@ export function minLength(value: string, min: number, message: string): string |
   return value.length < min ? message : undefined;
 }
 
+/** Texto que no supera el largo de su columna en la base (se cuenta ya sin espacios al borde). */
+export function maxLength(value: string, max: number, message: string): string | undefined {
+  return value.trim().length > max ? message : undefined;
+}
+
+/**
+ * Límites del registro: columnas de users (nombre 100, correo 150), mínimo de contraseña nueva
+ * (8, igual que RegisterUserRequest; el login no lo exige) y BCrypt (72 bytes).
+ */
+export const NAME_MAX = 100;
+export const EMAIL_MAX = 150;
+export const PASSWORD_MIN = 8;
+export const PASSWORD_MAX_BYTES = 72;
+
+/**
+ * Contraseña nueva: BCrypt solo usa los primeros 72 bytes, así que lo que pase de ahí no
+ * protegería nada. Se cuentan bytes (UTF-8), no letras: una tilde o una ñ ocupan dos.
+ */
+export function passwordBytes(value: string): string | undefined {
+  return new TextEncoder().encode(value).length > PASSWORD_MAX_BYTES
+    ? 'Es demasiado larga. Usa una más corta (máximo 72; las tildes, la ñ y los emojis ocupan más).'
+    : undefined;
+}
+
 /** Monto mayor que cero, sin decimales. */
 export function wholeAmount(value: string): string | undefined {
   const amount = Number(value);
@@ -47,6 +71,22 @@ export function amountWithin(
   const error = wholeAmount(value);
   if (error || available === undefined) return error;
   return Number(value) > available ? message : undefined;
+}
+
+/**
+ * Monto de un pago entre integrantes: mayor que cero y con máximo 2 decimales, porque una deuda
+ * puede tener centavos (un gasto de 100.000 entre 3). Cada límite se revisa en orden y se compara
+ * con medio centavo de tolerancia, igual que el backend.
+ */
+export function paymentAmount(
+  value: string,
+  limits: { max: number | undefined; message: string }[],
+): string | undefined {
+  const amount = Number(value);
+  if (value.trim() === '' || !Number.isFinite(amount)) return 'El monto es obligatorio';
+  if (amount <= 0) return 'El monto debe ser mayor que cero';
+  if (!/^\d+(\.\d{1,2})?$/.test(value.trim())) return 'El monto admite máximo 2 decimales';
+  return limits.find(({ max }) => max !== undefined && amount > max + 0.005)?.message;
 }
 
 /** Monto que admite cero, sin decimales (metas y límites). */

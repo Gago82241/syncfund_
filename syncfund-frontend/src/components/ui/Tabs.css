@@ -1,0 +1,68 @@
+/*
+ * Pestañas: texto en tinta gris sobre la línea de renglón; la activa en azul tinta con un
+ * filete de 2 px, como el total de un libro mayor. Sin cajas ni fondos.
+ */
+
+.sf-tabs__list {
+  display: flex;
+  gap: var(--space-lg);
+  margin-bottom: var(--space-lg);
+  border-bottom: 1px solid var(--hairline);
+  /* A 320 px, si no caben, la fila se desplaza sola; la página no. */
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.sf-tabs__list::-webkit-scrollbar {
+  display: none;
+}
+
+/* A 320 px las tres pestañas del Detalle se pasaban 3 px y "Integrantes" quedaba cortada:
+   con menos espacio entre ellas caben enteras. */
+@media (max-width: 360px) {
+  .sf-tabs__list {
+    gap: var(--space-md);
+  }
+}
+
+.sf-tabs__tab {
+  flex: none;
+  min-height: var(--tap-target);
+  padding: 0 calc(var(--space-xs) / 4);
+  margin-bottom: -1px;
+  border: none;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--ink-muted);
+  font: inherit;
+  font-size: var(--text-small);
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    color var(--duration-fast) var(--ease-out),
+    border-color var(--duration-fast) var(--ease-out);
+}
+
+.sf-tabs__tab[aria-selected='true'] {
+  color: var(--ink-900);
+  border-bottom-color: var(--ink-900);
+}
+
+/* La fila recorta lo que sobresale: el anillo de foco se dibuja hacia adentro. */
+.sf-tabs__tab:focus-visible {
+  outline-offset: -2px;
+  border-radius: var(--radius-sm);
+}
+
+@media (hover: hover) {
+  .sf-tabs__tab:hover {
+    color: var(--ink-900);
+  }
+}
+
+.sf-tabs__panel:focus-visible {
+  outline-offset: var(--space-xs);
+  border-radius: var(--radius-sm);
+}

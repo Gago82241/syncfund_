@@ -14,6 +14,9 @@ Proyecto académico desarrollado para la asignatura de Construcción de Software
 - [Características principales](#características-principales)
 - [Arquitectura del sistema](#arquitectura-del-sistema)
 - [Patrón de diseño: Observer](#patrón-de-diseño-observer)
+- [Saldar deudas entre integrantes](#saldar-deudas-entre-integrantes)
+- [Eliminar integrantes y salir de un proyecto](#eliminar-integrantes-y-salir-de-un-proyecto)
+- [Rediseño de la interfaz](#rediseño-de-la-interfaz)
 - [Diagramas de diseño (UML)](#diagramas-de-diseño-uml)
 - [Modelo de datos](#modelo-de-datos)
 - [Instalación y ejecución](#instalación-y-ejecución)
@@ -37,8 +40,8 @@ La gestión de gastos compartidos (vivienda, viajes, actividades grupales) suele
 |---|---|
 | **Autenticación y usuarios** | Registro, inicio de sesión y emisión de tokens JWT. |
 | **Billetera personal** (`PersonalWallet`) | Registro de movimientos (ingresos y gastos), meta de ahorro mensual y saldo de reserva ("colchón") que impide que el saldo quede en negativo. |
-| **Proyectos compartidos** (`SharedProject`) | Creación de grupos, incorporación de integrantes por correo electrónico, aportes al fondo común (descontados de la billetera personal de quien aporta) y registro de gastos con selección de participantes, pagados por el fondo. |
-| **Cálculo de deudas** (`DebtCalculator`) | Determinación del saldo neto de cada integrante: si está al día, si le deben o si debe. |
+| **Proyectos compartidos** (`SharedProject`) | Creación de grupos, incorporación de integrantes por correo electrónico, eliminación de integrantes y salida voluntaria (solo si están al día), aportes al fondo común (descontados de la billetera personal de quien aporta) y registro de gastos con selección de participantes, pagados por el fondo. |
+| **Cálculo de deudas** (`DebtCalculator`) | Determinación del saldo neto de cada integrante (si está al día, si le deben o si debe), situación de todo el proyecto, pagos directos entre integrantes para saldar deudas y sugerencia de quién debe pagarle a quién. |
 | **Categorías** | Clasificación de gastos con límite de presupuesto mensual y alerta cuando se supera. Cada categoría es privada de quien la crea. |
 
 ### Enfoque de desarrollo
@@ -47,24 +50,29 @@ El sistema se diseñó antes de su implementación mediante un modelo orientado 
 
 En seguridad, además de la autenticación sin estado con JWT, el backend verifica en cada operación que el recurso solicitado pertenezca al usuario o que este sea miembro del proyecto. Un token válido no permite consultar ni modificar información de otro usuario.
 
+Como riesgo aceptado, el registro y la incorporación de integrantes informan si un correo ya está registrado: ocultarlo dejaría a los usuarios sin saber por qué falló la acción y exigiría verificación por correo, que el sistema aún no tiene. El inicio de sesión, en cambio, responde igual ante un correo inexistente o una contraseña incorrecta. Esta decisión se revisará cuando se implemente la invitación de integrantes con aceptación.
+
 ### Decisiones técnicas relevantes
 
 - **Patrón Observer sobre una API REST:** el patrón se mantuvo fiel al diseño original pese a que la comunicación entre cliente y servidor es sin estado.
 - **Doble registro de los aportes:** un aporte queda como gasto en la billetera personal de quien aporta y como ingreso en el fondo del proyecto. Los gastos compartidos solo afectan el fondo, de modo que el dinero nunca se cobra dos veces y la suma de los saldos netos de los integrantes es igual al saldo del fondo.
 - **El fondo no se sobregira:** un gasto compartido que supera el saldo del fondo se rechaza; primero hay que aportar.
+- **Las deudas se saldan de billetera a billetera:** quien debe le paga directamente a quien tiene saldo a favor; el fondo no cambia. El pago queda registrado en el proyecto con dos tipos de movimiento propios (`ABONO` y `COBRO`) que ajustan los saldos netos sin mover el fondo, sin agregar clases ni atributos al diseño.
 - **Autorización por recurso:** se separó la verificación de identidad (autenticación) de la verificación de propiedad o membresía (autorización).
 
 ### Limitaciones y trabajo futuro
 
 - Implementar el ciclo de vida completo de un proyecto compartido descrito en las máquinas de estado (Activo → En liquidación → Cerrado).
-- Reemplazar la actualización de datos por consulta periódica (*polling*) por notificaciones en tiempo real mediante WebSockets.
+- Actualizar los saldos sin recargar: hoy cada pantalla consulta los datos al abrirse y después de cada acción, así que un cambio hecho por otro integrante solo se ve al volver a entrar. Se contemplan notificaciones en tiempo real mediante WebSockets.
 
 ## Características principales
 
 - **Billetera personal**: registro de ingresos y gastos, meta de ahorro mensual con cálculo automático de cuota, y un "colchón" de seguridad que nunca permite dejar el saldo en negativo.
 - **Proyectos compartidos**: crea un grupo, agrega integrantes por correo electrónico, aporta al fondo común desde tu billetera personal y registra gastos selectivos (eliges quién participa en cada uno) que paga el fondo. Si el fondo no alcanza, el gasto se rechaza.
-- **Cálculo de deudas en tiempo real**: en todo momento puedes ver si estás "en paz", te deben, o debes, sin tener que hacer la cuenta a mano.
-- **Categorías con alerta de presupuesto**: crea tus propias categorías de gasto, define un límite mensual para cada una y recibe aviso visual cuando lo superas. Solo tú puedes verlas y usarlas.
+- **Cálculo automático de deudas**: en cada proyecto ves si estás "Al día", tienes saldo "A tu favor" o "Debes", sin tener que hacer la cuenta a mano. El Resumen junta tu billetera y tu saldo en cada proyecto en una sola cifra.
+- **Situación del proyecto y pago de deudas**: una tabla muestra cuánto aportó cada integrante, su parte de los gastos y su saldo. Si debes, puedes pagarle directamente a quien tiene saldo a favor desde tu billetera personal, con el monto sugerido para quedar al día.
+- **Eliminar integrantes y salir de un proyecto**: el administrador puede quitar a un integrante y cualquier integrante puede salir, siempre que esté al día. Su historial se conserva y los saldos de los demás no cambian.
+- **Categorías con alerta de presupuesto**: crea tus propias categorías de gasto, define un límite mensual (opcional) para cada una y sigue su barra de progreso: "Cerca del límite" desde el 80 % y "Te pasaste" desde el 100 %. Solo tú puedes verlas y usarlas.
 - **Seguridad**: autenticación con JWT y una capa de autorización que verifica, en cada petición, que el recurso solicitado pertenezca a quien hace la petición, no solo que haya iniciado sesión.
 
 ## Arquitectura del sistema
@@ -189,6 +197,116 @@ El diagrama de secuencia detalla los mensajes intercambiados entre `API_Service`
 
 > En la implementación actual, la notificación ocurre dentro del backend. La interfaz web refleja los nuevos saldos al recargar los datos; el envío de notificaciones en tiempo real al navegador está contemplado como trabajo futuro (WebSockets).
 
+## Saldar deudas entre integrantes
+
+Además de aportar al fondo, un integrante que debe puede pagarle directamente a otro que tiene saldo a favor. El dinero sale de la billetera personal de quien paga y entra en la de quien recibe; **el fondo no cambia**.
+
+**Saldo neto = aportes − parte de los gastos + pagos hechos − pagos recibidos.** La suma de los saldos netos de todos los integrantes es igual al fondo disponible.
+
+### Cómo se registra un pago
+
+Un pago de Y a X por un monto *m* deja cuatro movimientos, en una sola transacción de base de datos:
+
+| Dónde | Tipo | Descripción | Efecto |
+|---|---|---|---|
+| Billetera personal de Y | `GASTO` | Pago a X – «proyecto» | Y tiene *m* menos |
+| Billetera personal de X | `INGRESO` | Pago de Y – «proyecto» | X tiene *m* más |
+| Proyecto (con Y como involucrado) | `ABONO` | Pago de Y a X | El saldo neto de Y sube *m* |
+| Proyecto (con X como involucrado) | `COBRO` | Pago de Y a X | El saldo neto de X baja *m* |
+
+`ABONO` y `COBRO` no suman ni restan al fondo, y la API de movimientos (`POST /api/transactions`) solo acepta `INGRESO` o `GASTO`: estos dos tipos solo los crea el pago entre integrantes.
+
+### Reglas
+
+- Solo quien paga puede registrar el pago (el usuario del token), y ambos deben ser integrantes del proyecto (si no, 403).
+- No puede pagarse a sí mismo, debe tener una deuda, el monto no puede superar lo que debe ni el saldo a favor de quien recibe, y su billetera debe tener saldo suficiente (si no, 422).
+- Todas las reglas se validan antes de modificar nada.
+
+### Endpoints
+
+| Método | Ruta | Descripción |
+|---|---|---|
+| `GET` | `/api/projects/{id}/balances` | Situación de todos los integrantes: aportes, parte de los gastos, pagos, saldo neto, fondo y pagos sugeridos. Solo para integrantes; nunca incluye correos ni saldos de billeteras personales. |
+| `POST` | `/api/projects/{id}/settlements` | Registra un pago `{ payerId, payeeId, amount }` y devuelve la situación actualizada (201). |
+
+### Ejemplo
+
+Billeteras: Ana 200.000, Beto 100.000, Caro 100.000. Ana aporta 90.000 y Beto 30.000; luego hay un gasto de 105.000 entre los tres (35.000 cada uno). El fondo queda en 15.000.
+
+| Integrante | Aportó | Su parte | Saldo antes | Saldo después de que Caro le paga 35.000 a Ana |
+|---|---|---|---|---|
+| Ana | 90.000 | 35.000 | A favor 55.000 | A favor 20.000 |
+| Beto | 30.000 | 35.000 | Debe 5.000 | Debe 5.000 |
+| Caro | 0 | 35.000 | Debe 35.000 | Al día |
+| **Fondo disponible** | | | **15.000** | **15.000** |
+
+La billetera de Caro pasa de 100.000 a 65.000 y la de Ana de 110.000 a 145.000. Antes del pago, el sistema sugería: Caro le paga 35.000 a Ana y Beto le paga 5.000 a Ana. Las sugerencias emparejan, de mayor a menor, a quienes deben con quienes tienen saldo a favor, y bastan como mucho *n − 1* pagos.
+
+### Patrón Observer
+
+El pago pasa por el sujeto observable: `DebtCalculator.calculateBalances` calcula los saldos, `SharedProject.settleDebts(payerId, payeeId, amount)` los ajusta en su atributo `debts` y notifica a los integrantes. Los movimientos de billetera pasan por `FinancialManager.processTransaction`, igual que un aporte.
+
+<p align="center">
+  <img src="docs/diagramas/secuencia-pago-deuda.png" alt="Diagrama de secuencia del pago de una deuda entre integrantes" width="720">
+</p>
+
+## Eliminar integrantes y salir de un proyecto
+
+El administrador puede eliminar a un integrante, y un integrante puede salir del proyecto por su cuenta. En ambos casos la persona debe estar **al día**: saldo neto de menos de medio centavo, el mismo criterio con que la situación muestra "Al día" y con que no se permite pagar.
+
+### Reglas
+
+- Solo el administrador elimina a otros; un integrante solo puede quitarse a sí mismo (si no, 403). Quien no es integrante recibe 403.
+- El administrador no puede salir ni ser eliminado (422).
+- Si la persona debe o le deben, se rechaza con un mensaje que lo explica (422), por ejemplo: "No se puede eliminar a Beto porque tiene un saldo pendiente (debe $7.500). Primero deben saldar las deudas."
+- El historial se conserva: sus aportes, gastos y pagos siguen en el proyecto. Deja de aparecer en la situación y en "¿Quiénes participan?", y ya no puede ver el proyecto ni registrar movimientos.
+- Puede volver a ser agregado; al reingresar recupera exactamente su saldo, porque sus movimientos siguen con su id.
+
+### Por qué los saldos de los demás no cambian
+
+El saldo de cada integrante solo depende de los movimientos en que aparece, y cada gasto se divide entre su propia lista de involucrados (`involvedIdsList`), no entre los integrantes actuales. Un gasto antiguo en el que participó la persona eliminada sigue dividiéndose entre las mismas personas. El fondo es un valor guardado que no depende de la lista de integrantes. Como quien sale tiene saldo 0, la suma de los saldos sigue siendo igual al fondo.
+
+Un saldo de menos de medio centavo (por ejemplo, −0,0033 tras dividir un gasto entre tres) no se puede pagar, así que cuenta como al día. Al salir esa persona, esa fracción pasa al monto "sin asignar", igual que los aportes antiguos sin aportante.
+
+### Endpoint
+
+| Método | Ruta | Descripción |
+|---|---|---|
+| `DELETE` | `/api/projects/{id}/members/{userId}` | El administrador elimina a `userId`, o el usuario del token sale del proyecto si `userId` es el suyo. Responde 204 sin cuerpo: quien sale ya no puede ver el proyecto. |
+
+### Patrón Observer
+
+`SharedProject.removeParticipant(user)` quita a la persona de los integrantes y de los observadores (`removeObserver`), y notifica a los que quedan. El servicio valida antes los permisos y el saldo con `DebtCalculator.calculateBalances`. No se modifica ninguna transacción ni el esquema de la base de datos: solo se borra la fila de `project_participants`.
+
+## Rediseño de la interfaz
+
+En noviembre de 2026 se rediseñó el frontend completo, sin tocar el backend, el diseño UML ni la base de datos. Se conservó la identidad visual ("libro mayor, no dashboard": azul tinta, esmeralda y terracota; Fraunces y Figtree) y se cambió la estructura:
+
+- **Navegación:** menú lateral en escritorio y barra inferior con cuatro destinos en el celular, con la acción principal de cada pantalla fija al alcance del pulgar.
+- **Páginas:** cada pantalla responde una pregunta ("¿Cuánto tengo?", "¿Cómo estoy en este proyecto?") con una sola cifra protagonista arriba y el resto en hojas. Los formularios se abren en paneles.
+- **Certeza sobre cada peso:** ninguna cifra se inventa mientras carga o si falla, y los estados de dinero siempre van con texto ("Debes", "A tu favor", "Al día"), no solo con color.
+- **Accesibilidad:** contraste de al menos 4.5:1 en los textos, uso completo con teclado, objetivos táctiles de 44 px y anuncios para lectores de pantalla.
+
+Se hizo en 10 ramas (PR #27 a #35 y el cierre), con 10 componentes compartidos nuevos y sin librerías nuevas. Cada pantalla se evaluó con las 10 heurísticas de Nielsen (de 0 a 4 cada una, máximo 40) antes del rediseño, al terminar su rama y al final:
+
+| Pantalla | Antes | Después de su rama | Final |
+|---|---|---|---|
+| Resumen | 18/40 | 28/40 | 29/40 |
+| Billetera personal | 20/40 | 28/40 | 28/40 |
+| Proyectos compartidos | 23/40 | 29/40 | 30/40 |
+| Detalle del proyecto | 24/40 | 29/40 | 29/40 |
+| Categorías | 20/40 | 28/40 | 29/40 |
+| Login | 23/40 | 29/40 | 30/40 |
+| Registro | 23/40 | 32/40 | 32/40 |
+| **Promedio** | **21.6/40** | **29.0/40** | **29.6/40** |
+
+Documentación del rediseño:
+
+- [Plan del rediseño](docs/diseno/plan-rediseno.md): principios, componentes, pantallas, lo que quedó fuera y el estado al cierre.
+- [Crítica de diseño](docs/diseno/critica.md): diagnóstico inicial, crítica de cada rama y crítica final.
+- [Capturas del antes](docs/diseno/capturas-antes/) y [capturas del después](docs/diseno/capturas-despues/), en escritorio y en iPhone 16.
+- [Sistema de diseño](DESIGN.md): colores, tipografía, componentes, estructura y movimiento.
+
 ## Diagramas de diseño (UML)
 
 ### Diagrama de clases
@@ -244,10 +362,12 @@ El diagrama de secuencia detalla los mensajes intercambiados entre `API_Service`
 | `USER` | Usuario del sistema (nombre, correo y contraseña cifrada). |
 | `PERSONAL_WALLET` | Billetera personal del usuario (relación 1:1), con saldo y meta de ahorro. |
 | `SHARED_PROJECT` | Proyecto compartido entre varios usuarios. |
-| `TRANSACTION` | Movimiento de una billetera personal o de un proyecto compartido, con categoría opcional. |
+| `TRANSACTION` | Movimiento de una billetera personal o de un proyecto compartido, con categoría opcional. Su tipo es `INGRESO`, `GASTO`, `ABONO` o `COBRO` (estos dos últimos, pagos entre integrantes que no mueven el fondo). |
 | `CATEGORY` | Categoría de gasto con límite mensual. Pertenece a un usuario (`user_id`), que es el único que puede verla y usarla. |
 
 La relación entre usuarios y proyectos compartidos (N:M) se resuelve con la tabla intermedia `project_participants`.
+
+> **Migraciones manuales.** Los cambios de esquema sobre tablas con datos tienen un script en `docs/base-de-datos/migraciones/` que se ejecuta antes del despliegue. Por ejemplo, `tipos-pago-entre-integrantes.sql` amplía la columna `transactions.type` (un `ENUM` de MySQL) con `ABONO` y `COBRO`; `ddl-auto=update` no modifica columnas existentes.
 
 ## Instalación y ejecución
 

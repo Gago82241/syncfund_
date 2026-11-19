@@ -1,6 +1,6 @@
 # SyncFund — Guía del proyecto para Claude Code
 
-> Versión 0.4 — revisada contra la estructura real del repositorio.
+> Versión 0.5 — revisada contra la estructura real del repositorio; agrega las skills de diseño.
 
 ## Qué es SyncFund
 Aplicación web de finanzas personales y gastos compartidos. Un usuario gestiona su
@@ -10,10 +10,23 @@ y saldo neto).
 - **Modelo de fondo:** un aporte sale de la billetera personal de quien aporta (GASTO en su
   billetera + INGRESO en el proyecto, con el aportante en `involvedIdsList`). Los gastos
   compartidos los paga solo el fondo, que nunca queda en negativo (422 si no alcanza).
-  Saldo neto = aportes propios − parte de los gastos en que participó.
+- **Pago entre integrantes** (`POST /api/projects/{id}/settlements`, `SharedProject.settleDebts`):
+  quien debe le paga a quien tiene saldo a favor, de billetera a billetera (GASTO en la de quien
+  paga, INGRESO en la de quien recibe). El fondo no cambia. En el proyecto quedan un `ABONO`
+  (`involvedIdsList = [quien paga]`) y un `COBRO` (`[quien recibe]`), que nunca pasan por
+  `recordTransaction` ni cuentan en `auditWallet`. `POST /api/transactions` solo acepta INGRESO o GASTO.
+- **Eliminar integrantes / salir** (`DELETE /api/projects/{id}/members/{userId}`, `SharedProject.removeParticipant`):
+  el admin elimina a otros y un integrante puede salir, solo si está al día (|saldo| < medio centavo).
+  El admin no puede salir ni ser eliminado. Sus transacciones se conservan; solo se borra la fila de
+  `project_participants`.
+- Saldo neto = aportes propios − parte de los gastos en que participó + pagos hechos (ABONO)
+  − pagos recibidos (COBRO). Lo calcula `DebtCalculator.calculateBalances`; la suma de los
+  saldos netos es igual al fondo (salvo INGRESO antiguos sin aportante, que no cuentan para nadie).
 
-Es un proyecto académico de Ingeniería Informática desarrollado por dos
-integrantes; el diseño UML fue entregado y evaluado previamente.
+Es un proyecto académico de Ingeniería Informática; el diseño UML fue entregado y evaluado
+previamente.
+- **Grupo del proyecto:** cuatro integrantes (los de la sección Colaboradores del README).
+- **Desarrollo con Claude Code:** Diego y Juan.
 
 ## Stack
 - **Backend:** Spring Boot 4.1.1, Java 21, Spring Security + JWT, JPA/Hibernate
@@ -72,6 +85,9 @@ Antes de dar por terminado un cambio en el backend: `.\mvnw.cmd test` sin fallos
      `docs/base-de-datos/migraciones/`, que se ejecuta antes del despliegue. `ddl-auto=update`
      también corre en producción y no basta: una columna `NOT NULL` nueva deja las filas
      existentes con un valor por defecto, y si la llave foránea falla solo registra una advertencia.
+   - Los enums persistidos (`transactions.type`, `origin_wallet_type`) son `ENUM` nativos de MySQL:
+     un valor nuevo en el enum de Java exige un `ALTER TABLE ... MODIFY` en un script de migración
+     (ver `tipos-pago-entre-integrantes.sql`).
 
 ## Seguridad (no romper)
 - Todas las rutas exigen JWT excepto `/api/auth/**` y las peticiones `OPTIONS` (preflight CORS).
@@ -115,6 +131,49 @@ Antes de dar por terminado un cambio en el backend: `.\mvnw.cmd test` sin fallos
 - Reutilizar los componentes existentes antes de crear otros nuevos.
 - Toda pantalla debe funcionar en móvil y escritorio.
 
+## Skills de diseño
+Instaladas en el proyecto para el rediseño visual del frontend.
+
+**Qué skill se usa para qué**
+- **Dirección visual:** `frontend-design` (plugin de Anthropic, habilitado en `.claude/settings.json`).
+- **impeccable** (`.claude/skills/impeccable`, con sus subagentes en `.claude/agents`):
+  - Diagnóstico: `init`, `document`, `critique`.
+  - Construcción: `shape`, `layout`, `adapt`, `harden`.
+  - Cierre: `audit`, `polish`.
+- **Emil Kowalski** (`.claude/skills`):
+  - `emil-design-eng`, `find-animation-opportunities`, `review-animations` → animaciones e interacción.
+  - `mobile-native` → sensación nativa en móvil.
+  - `break-ui` → pruebas con datos extremos (nombres largos, montos enormes, listas vacías…).
+  - `learn-taste` → registrar las correcciones de diseño que haga el equipo.
+
+**Reglas**
+- Este CLAUDE.md tiene prioridad sobre cualquier skill: si una skill sugiere algo que lo contradice, gana CLAUDE.md.
+- El rediseño es solo frontend (`syncfund-frontend/`); no se toca el backend (`demo/`).
+- No se agregan librerías nuevas (animación, componentes, iconos, etc.) sin aprobación del equipo.
+- Colores, tipografías y espacios solo como tokens en `globals.css` / `theme.ts`.
+- **No usar el modo "live" de impeccable** (ni el subagente `impeccable-manual-edit-applier`, que solo sirve para ese modo).
+- Se conserva la identidad "libro mayor" (azul tinta, esmeralda, terracota; Fraunces + Figtree)
+  salvo que el equipo decida otra cosa.
+
+**Qué se versiona y qué no** (ver `.gitignore` de la raíz)
+- Se suben: `.claude/settings.json`, `.claude/skills/` (sin `bin/`), `.claude/agents/` y `skills-lock.json`.
+- No se suben: `.claude/settings.local.json` (hooks y permisos de cada uno),
+  `.claude/skills/impeccable/scripts/bin/` (motor binario) y `.agents/` (copia para otros agentes).
+
+**Activarlo en otro equipo**
+1. Traer la rama; las skills y los subagentes llegan con el repositorio.
+2. En Claude Code: `/plugins` → instalar `frontend-design`.
+3. Descargar el motor de impeccable una sola vez (no hace falta `npx impeccable install`). Desde la raíz, en PowerShell:
+   `.\.claude\skills\impeccable\scripts\impeccable.cmd engine-probe`
+   Debe imprimir `impeccable-engine 0.1.23`. El launcher descarga el binario de los releases de GitHub,
+   verifica su SHA-256 contra `scripts/engine-checksums.txt` y lo guarda en `%USERPROFILE%\.impeccable\bin\0.1.23\`.
+   Requiere red, `curl.exe` y `certutil` (vienen con Windows 10/11). Si se omite, el motor se descarga
+   la primera vez que se use, pero los hooks tienen un límite de 5 s y la descarga puede no alcanzar.
+4. (Opcional) Hook del detector de diseño: como `settings.local.json` no se sube, activarlo con
+   `/impeccable hooks on`, o copiar el bloque `hooks` de otro `settings.local.json` del equipo.
+   Corre después de cada edición de archivos de UI y al final de cada turno; nunca bloquea una edición,
+   solo agrega recordatorios. Se apaga con `/impeccable hooks off`.
+
 ## Forma de trabajo con Claude
 - Trabajar **por partes**: una tarea concreta a la vez.
 - Para cambios que toquen varios archivos: presentar primero un plan y esperar aprobación.
@@ -131,6 +190,6 @@ Antes de dar por terminado un cambio en el backend: `.\mvnw.cmd test` sin fallos
   `feat: agrega validación de monto en MovementRequest`
   `fix: corrige cálculo de deuda con un solo integrante`
   `style: aplica nueva paleta al dashboard`
-- Todo cambio entra por Pull Request revisado por el otro integrante.
+- Todo cambio entra por Pull Request revisado por el otro desarrollador (Diego o Juan).
 - La documentación de diseño (UML, patrones Observer y Arquitectura en Capas, MER) está en el
   README y en `docs/diagramas/`. Consultarla antes de modificar el dominio o la estructura de capas.

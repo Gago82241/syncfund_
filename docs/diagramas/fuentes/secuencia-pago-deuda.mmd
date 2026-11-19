@@ -1,0 +1,35 @@
+sequenceDiagram
+    autonumber
+    actor Y as Integrante que debe (Y)
+    participant API as SharedProjectAppService
+    participant ME as Math_Engine<br/>(DebtCalculator)
+    participant FM as FinancialManager
+    participant SP as SharedProject<br/>(Sujeto Observable)
+    participant DB as Base de Datos<br/>(MySQL)
+    participant UA as Integrantes<br/>(Observadores)
+
+    Y->>+API: POST /projects/{id}/settlements (payerId = Y, payeeId = X, monto)
+    Note over API: Integrante del proyecto, payerId = usuario del token,<br/>X integrante y distinto de Y (si no: 403 / 422)
+    API->>DB: movimientos del proyecto
+    DB-->>API: aportes, gastos, abonos y cobros
+    API->>+ME: calculateBalances(sharedProject, movimientos)
+    ME-->>-API: Map<userId, saldo neto>
+
+    alt Y no debe, el monto supera su deuda o el saldo a favor de X
+        API-->>Y: 422 con el motivo. No se guarda nada
+    else Reglas cumplidas
+        API->>+FM: processTransaction(billetera de Y, GASTO "Pago a X – «proyecto»", sin sobregiro)
+        alt Saldo insuficiente en la billetera de Y
+            FM-->>API: false
+            API-->>Y: 422 Saldo insuficiente. No se guarda nada
+        else Saldo suficiente
+            FM-->>-API: true
+            API->>FM: processTransaction(billetera de X, INGRESO "Pago de Y – «proyecto»")
+            API->>+SP: settleDebts(Y, X, monto)
+            Note over SP: Ajusta debts (Y + monto, X − monto).<br/>El fondo (currentBalance) no cambia
+            SP->>UA: update(proyecto, monto, "Pago de Y a X")
+            SP-->>-API: void
+            API->>DB: guarda las dos billeteras, GASTO, INGRESO,<br/>ABONO [Y] y COBRO [X] en una sola transacción
+            API-->>-Y: 201 situación actualizada del proyecto
+        end
+    end

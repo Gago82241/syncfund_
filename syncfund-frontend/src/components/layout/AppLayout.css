@@ -1,54 +1,312 @@
-.app-layout__header {
+/*
+ * Esqueleto de la app con sesión. Se escribe para el celular primero:
+ * barra superior delgada + barra inferior fija. Desde 1024 px, menú lateral de 240 px.
+ */
+
+.app-layout {
+  min-height: 100dvh;
+}
+
+/* --- Saltar al contenido: oculto hasta que recibe el foco del teclado --- */
+
+.app-layout__skip {
+  position: fixed;
+  top: calc(var(--space-xs) + env(safe-area-inset-top, 0px));
+  left: var(--space-xs);
+  z-index: var(--z-menu);
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--tap-target);
+  padding: 0 var(--space-md);
+  border-radius: var(--radius-sm);
+  background: var(--ink-900);
+  color: var(--paper);
+  font-size: var(--text-small);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.app-layout__skip:not(:focus) {
+  width: 1px;
+  height: 1px;
+  min-height: 0;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.app-layout__skip:focus-visible {
+  outline-color: var(--paper);
+  outline-offset: -4px;
+}
+
+/* --- Barra superior (celular) / menú lateral (escritorio) --- */
+
+.app-layout__side {
   display: flex;
   align-items: center;
-  gap: 2.5rem;
-  padding: 1.25rem 2rem;
-  border-bottom: 1px solid var(--hairline);
+  justify-content: space-between;
+  gap: var(--space-md);
+  padding: calc(var(--space-xs) / 2 + env(safe-area-inset-top, 0px)) var(--space-xs)
+    calc(var(--space-xs) / 2) var(--space-md);
   background: var(--paper);
+  border-bottom: 1px solid var(--hairline);
 }
 
 .app-layout__wordmark {
+  display: inline-flex;
+  align-items: center;
+  flex: none;
+  min-height: var(--tap-target);
   font-family: var(--font-display);
-  font-size: 1.125rem;
+  font-size: var(--text-title);
   font-weight: 500;
   color: var(--ink-900);
   text-decoration: none;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
+
+/* Cuenta: en el celular va el menú; la versión de escritorio se oculta. */
+.app-layout__account {
+  display: none;
+}
+
+.app-layout__account-menu {
+  display: flex;
+  justify-content: flex-end;
+  min-width: 0;
+}
+
+/* --- Navegación: barra inferior fija en el celular --- */
 
 .app-layout__nav {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: var(--z-nav);
+  padding: 0 env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px)
+    env(safe-area-inset-left, 0px);
+  background: var(--paper);
+  border-top: 1px solid var(--hairline);
+}
+
+.app-layout__nav-list {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.app-layout__nav-link {
+  position: relative;
   display: flex;
-  gap: 1.5rem;
-  flex: 1;
-}
-
-.app-layout__nav a {
-  font-size: 0.9375rem;
-  color: var(--ink-muted);
-  text-decoration: none;
-}
-
-.app-layout__nav a:hover {
-  color: var(--ink-900);
-}
-
-.app-layout__user {
-  display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 1rem;
-  font-size: 0.875rem;
+  justify-content: center;
+  gap: calc(var(--space-xs) / 2);
+  min-height: var(--nav-bar-height);
+  padding: calc(var(--space-xs) / 2);
   color: var(--ink-muted);
+  font-size: var(--text-label);
+  font-weight: 500;
+  line-height: var(--leading-tight);
+  text-decoration: none;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  transition:
+    color var(--duration-fast) var(--ease-out),
+    background-color var(--duration-fast) var(--ease-out);
 }
 
-.app-layout__user button {
-  background: none;
-  border: none;
-  color: var(--ink-600);
-  cursor: pointer;
-  font-size: 0.875rem;
+.app-layout__nav-label {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
+/* Página activa: azul tinta, peso 600 y una raya fina arriba (no depende solo del color). */
+.app-layout__nav-link[aria-current='page'] {
+  color: var(--ink-900);
+  font-weight: 600;
+}
+
+.app-layout__nav-link[aria-current='page']::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 25%;
+  right: 25%;
+  height: 2px;
+  border-radius: 0 0 2px 2px;
+  background: var(--ink-900);
+}
+
+.app-layout__nav-link:active {
+  background: var(--ink-100);
+}
+
+.app-layout__nav-link:focus-visible {
+  outline-offset: -2px;
+}
+
+/* --- Contenido --- */
+
+.app-layout__main:focus {
+  outline: none;
+}
+
+/*
+ * Contenedor de la página: hasta 1200 px y centrado. Abajo deja libre el alto de la barra
+ * inferior y del área segura del iPhone. Es contenedor de consultas (container queries):
+ * PageColumns pasa a dos columnas según el espacio que de verdad queda, con o sin menú lateral.
+ */
 .app-layout__content {
-  max-width: 640px;
+  max-width: var(--content-max);
   margin: 0 auto;
-  padding: 2.5rem 1.5rem;
+  padding: var(--space-lg) var(--space-md)
+    calc(var(--nav-bar-height) + env(safe-area-inset-bottom, 0px) + var(--space-xl));
+  min-width: 0;
+  container-type: inline-size;
+}
+
+/* Los avisos suben para no quedar debajo de la barra inferior (en escritorio no se usa). */
+:root:has(.app-layout) {
+  --toast-offset: var(--nav-bar-height);
+}
+
+/*
+ * Si la página fija su acción principal sobre la barra inferior (PageHeader
+ * fixedActionOnMobile), el contenido y los avisos dejan libre también esa franja.
+ */
+@media (max-width: 1023.98px) {
+  .app-layout:has(.sf-page-header--fixed-action) .app-layout__content {
+    padding-bottom: calc(
+      var(--nav-bar-height) + var(--action-bar-height) + env(safe-area-inset-bottom, 0px) +
+        var(--space-xl)
+    );
+  }
+
+  :root:has(.sf-page-header--fixed-action) {
+    --toast-offset: calc(var(--nav-bar-height) + var(--action-bar-height));
+  }
+}
+
+@media (hover: hover) {
+  .app-layout__nav-link:hover {
+    color: var(--ink-900);
+  }
+}
+
+/* --- Escritorio: menú lateral fijo --- */
+
+@media (min-width: 1024px) {
+  .app-layout {
+    display: grid;
+    grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
+  }
+
+  .app-layout__side {
+    position: sticky;
+    top: 0;
+    height: 100dvh;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+    gap: var(--space-xl);
+    padding: var(--space-lg) var(--space-md);
+    border-bottom: none;
+    border-right: 1px solid var(--hairline);
+    overflow-y: auto;
+  }
+
+  .app-layout__wordmark {
+    align-self: flex-start;
+    padding: 0 var(--space-sm);
+  }
+
+  .app-layout__nav {
+    position: static;
+    flex: 1;
+    padding: 0;
+    background: none;
+    border-top: none;
+  }
+
+  .app-layout__nav-list {
+    grid-template-columns: minmax(0, 1fr);
+    gap: calc(var(--space-xs) / 2);
+  }
+
+  .app-layout__nav-link {
+    flex-direction: row;
+    justify-content: flex-start;
+    gap: var(--space-sm);
+    min-height: var(--tap-target);
+    padding: 0 var(--space-sm);
+    border-radius: var(--radius-sm);
+    font-size: var(--text-small);
+  }
+
+  /* En el menú lateral, la activa lleva fondo azul neblina en vez de la raya. */
+  .app-layout__nav-link[aria-current='page'] {
+    background: var(--ink-100);
+  }
+
+  .app-layout__nav-link[aria-current='page']::before {
+    content: none;
+  }
+
+  .app-layout__account {
+    display: grid;
+    gap: calc(var(--space-xs) / 2);
+    padding-top: var(--space-md);
+    border-top: 1px solid var(--hairline);
+    min-width: 0;
+  }
+
+  .app-layout__account-name,
+  .app-layout__account-email {
+    padding: 0 var(--space-sm);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .app-layout__account-name {
+    font-size: var(--text-small);
+    font-weight: 600;
+    color: var(--ink-900);
+  }
+
+  .app-layout__account-email {
+    font-size: var(--text-label);
+    color: var(--ink-faint);
+  }
+
+  .app-layout__account .sf-button {
+    margin-top: var(--space-sm);
+  }
+
+  .app-layout__account-menu {
+    display: none;
+  }
+
+  .app-layout__content {
+    padding: var(--space-xl) var(--space-xl) var(--space-2xl);
+  }
+}
+
+@media (min-width: 1024px) and (hover: hover) {
+  .app-layout__nav-link:not([aria-current='page']):hover {
+    background: var(--ledger-50);
+  }
 }

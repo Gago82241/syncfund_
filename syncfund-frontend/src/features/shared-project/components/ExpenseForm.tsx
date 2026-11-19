@@ -1,14 +1,17 @@
-import { useEffect, useId, useState, type FormEvent } from 'react';
+import { useId, useState, type FormEvent } from 'react';
 import { Input } from '../../../components/ui/Input';
+import { MoneyInput } from '../../../components/ui/MoneyInput';
 import { Button } from '../../../components/ui/Button';
 import { FieldError } from '../../../components/ui/FieldError';
 import { FormError } from '../../../components/ui/FormError';
+import { ParticipantChips } from './ParticipantChips';
 import { sharedProjectService } from '../services/sharedProjectService';
-import { categoryService } from '../../categories/services/categoryService';
+import { HALF_CENT } from '../balance';
 import { useFormErrors } from '../../../hooks/useFormErrors';
-import { amountWithin, required } from '../../../utils/validation';
+import { amountWithin, required, wholeAmount } from '../../../utils/validation';
 import { formatCOP } from '../../../styles/theme';
-import type { CategoryResponse, UserResponse } from '../../../types/api';
+import type { UserResponse } from '../../../types/api';
+import './ProjectForms.css';
 
 interface Props {
   projectId: number;
@@ -16,40 +19,83 @@ interface Props {
   members: UserResponse[];
   /** Saldo actual del fondo del proyecto: es quien paga el gasto. */
   fundBalance: number;
-  onSaved: () => void;
+  onSaved: (saved: { amount: number; people: number }) => void;
+  /** Con el fondo en cero no se puede gastar: se ofrece aportar en el mismo panel. */
+  onContributeInstead: () => void;
 }
 
-const FONDO_INSUFICIENTE = 'El fondo del proyecto no tiene saldo suficiente para este gasto.';
+/** Mensaje en vivo (antes de enviar) y al enviar: el mismo texto en los dos momentos. */
+function overFundMessage(fundBalance: number): string {
+  return `Supera el fondo disponible (${formatCOP(fundBalance)}).`;
+}
+
+/**
+ * Texto con la división del gasto. Refleja DebtCalculator.splitBill (monto / participantes,
+ * sin redondear): si no es exacta se muestra redondeada a pesos y con "≈".
+ */
+function splitSummary(amount: string, people: number): string | null {
+  if (people === 0) return null;
+  if (wholeAmount(amount)) return 'Escribe el monto para ver cuánto le toca a cada uno.';
+  const total = Number(amount);
+  if (people === 1) return `${formatCOP(total)} a cargo de 1 persona`;
+  const share = total / people;
+  const sign = Number.isInteger(share) ? '=' : '≈';
+  return `${formatCOP(total)} entre ${people} personas ${sign} ${formatCOP(share)} cada uno`;
+}
 
 /**
  * SharedProject.registerSelectiveExpense(amount, payerId, involvedIdsList).
  * El gasto lo paga el fondo del proyecto y se reparte entre quienes participan.
+ * Va dentro de un Panel: el título y la regla del fondo los pone el panel.
  */
-export function ExpenseForm({ projectId, payerId, members, fundBalance, onSaved }: Props) {
+export function ExpenseForm({ projectId, payerId, members, fundBalance, onSaved, onContributeInstead }: Props) {
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
-  const [involved, setInvolved] = useState<number[]>(members.map((m) => m.id));
-  const [categoryId, setCategoryId] = useState('');
-  const [categories, setCategories] = useState<CategoryResponse[]>([]);
+  const [involved, setInvolved] = useState<number[]>(() => members.map((m) => m.id));
+  const [knownIds, setKnownIds] = useState<number[]>(() => members.map((m) => m.id));
   const [loading, setLoading] = useState(false);
   const { fieldErrors, formError, formRef, validate, showApiError, clearField } =
     useFormErrors(['amount', 'description', 'involvedIdsList']);
   const groupId = useId();
   const groupErrorId = `${groupId}-error`;
 
-  useEffect(() => {
-    categoryService.getAll().then(({ data }) => setCategories(data));
-  }, []);
+  // Si cambian los integrantes (p. ej. se agregó uno), los nuevos entran marcados
+  // y se respeta a quienes el usuario desmarcó. Se ajusta durante el render, sin efecto.
+  const memberIds = members.map((m) => m.id);
+  if (memberIds.join() !== knownIds.join()) {
+    const added = memberIds.filter((id) => !knownIds.includes(id));
+    setKnownIds(memberIds);
+    setInvolved((prev) => [...prev.filter((id) => memberIds.includes(id)), ...added]);
+  }
 
-  function toggleMember(id: number) {
-    setInvolved((prev) => (prev.includes(id) ? prev.filter((m) => m !== id) : [...prev, id]));
+  // Regla visible antes del error: con el fondo vacío no hay gasto posible.
+  if (fundBalance < HALF_CENT) {
+    return (
+      <div className="project-form__empty-fund">
+        <p>
+          El fondo está en <span className="tabular-nums">{formatCOP(0)}</span>. Para registrar un gasto,
+          primero alguien tiene que aportar.
+        </p>
+        <Button type="button" onClick={onContributeInstead} data-autofocus>
+          Aportar al fondo
+        </Button>
+      </div>
+    );
+  }
+
+  function changeInvolved(ids: number[]) {
+    setInvolved(ids);
     clearField('involvedIdsList');
   }
+
+  // Aviso en vivo: se ve mientras se escribe, sin esperar a "Registrar gasto".
+  const exceedsFund = amount !== '' && Number(amount) > fundBalance;
+  const amountError = fieldErrors.amount ?? (exceedsFund ? overFundMessage(fundBalance) : undefined);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     const valid = validate({
-      amount: amountWithin(amount, fundBalance, FONDO_INSUFICIENTE),
+      amount: amountWithin(amount, fundBalance, overFundMessage(fundBalance)),
       description: required(description, 'La descripción es obligatoria'),
       involvedIdsList: involved.length === 0 ? 'Debes seleccionar al menos un participante' : undefined,
     });
@@ -61,12 +107,8 @@ export function ExpenseForm({ projectId, payerId, members, fundBalance, onSaved 
         payerId,
         involvedIdsList: involved,
         description,
-        categoryId: categoryId ? Number(categoryId) : undefined,
       });
-      setAmount('');
-      setDescription('');
-      setCategoryId('');
-      onSaved();
+      onSaved({ amount: Number(amount), people: involved.length });
     } catch (err) {
       showApiError(err, 'No se pudo registrar el gasto.');
     } finally {
@@ -74,28 +116,31 @@ export function ExpenseForm({ projectId, payerId, members, fundBalance, onSaved 
     }
   }
 
+  // Si supera el fondo no se muestra una división que nunca va a ocurrir: se dice cuánto alcanza.
+  const split = exceedsFund
+    ? `El fondo alcanza para ${formatCOP(fundBalance)}.`
+    : splitSummary(amount, involved.length);
+
   return (
-    <form ref={formRef} onSubmit={handleSubmit} noValidate>
-      <h3 style={{ fontSize: '1rem', marginBottom: '0.75rem' }}>Registrar gasto del fondo</h3>
-      <Input
-        label="Monto (COP)"
-        type="number"
+    <form ref={formRef} onSubmit={handleSubmit} noValidate className="project-form">
+      <MoneyInput
+        label="Monto"
         name="amount"
-        min="1"
-        placeholder="Ej: 80000 (sin puntos)"
         value={amount}
-        hint={`Lo paga el fondo del proyecto (disponible: ${formatCOP(fundBalance)}) y se reparte entre quienes participan.`}
-        error={fieldErrors.amount}
-        onChange={(e) => {
-          setAmount(e.target.value);
+        onValueChange={(raw) => {
+          setAmount(raw);
           clearField('amount');
         }}
+        // Si supera el fondo no se afirma "El fondo paga…": el aviso dice que no puede.
+        preview={exceedsFund ? undefined : (value) => `El fondo paga ${formatCOP(value)}`}
+        error={amountError}
         required
+        data-autofocus
       />
       <Input
         label="Descripción"
         name="description"
-        placeholder="Ej: Cena del sábado"
+        placeholder="Ej: Mercado de la semana"
         value={description}
         error={fieldErrors.description}
         onChange={(e) => {
@@ -104,47 +149,19 @@ export function ExpenseForm({ projectId, payerId, members, fundBalance, onSaved 
         }}
         required
       />
-      <div
-        role="group"
-        aria-labelledby={groupId}
-        aria-describedby={fieldErrors.involvedIdsList ? groupErrorId : undefined}
-        style={{ marginBottom: '1.25rem' }}
+      <ParticipantChips
+        members={members}
+        currentUserId={payerId}
+        selected={involved}
+        onChange={changeInvolved}
+        labelId={groupId}
+        describedBy={fieldErrors.involvedIdsList ? groupErrorId : undefined}
       >
-        <span id={groupId} style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--ink-muted)' }}>
-          ¿Quiénes participan de este gasto?
-        </span>
-        <div style={{ marginTop: '0.5rem' }}>
-          {members.map((m) => (
-            <label key={m.id} style={{ display: 'block', fontSize: '0.9375rem', marginBottom: '0.35rem' }}>
-              <input
-                type="checkbox"
-                name="involvedIdsList"
-                checked={involved.includes(m.id)}
-                onChange={() => toggleMember(m.id)}
-                style={{ marginRight: '0.5rem' }}
-              />
-              {m.name}
-            </label>
-          ))}
-        </div>
+        <p className="sf-chips__split tabular-nums" aria-live="polite">
+          {split}
+        </p>
         <FieldError id={groupErrorId} message={fieldErrors.involvedIdsList} />
-      </div>
-      {categories.length > 0 && (
-        <div className="sf-field">
-          <label className="sf-field__label" htmlFor="expense-category">Categoría (opcional)</label>
-          <select
-            id="expense-category"
-            className="sf-field__input"
-            value={categoryId}
-            onChange={(e) => setCategoryId(e.target.value)}
-          >
-            <option value="">Sin categoría</option>
-            {categories.map((c) => (
-              <option key={c.categoryId} value={c.categoryId}>{c.name}</option>
-            ))}
-          </select>
-        </div>
-      )}
+      </ParticipantChips>
       <FormError message={formError} />
       <Button type="submit" loading={loading}>
         Registrar gasto

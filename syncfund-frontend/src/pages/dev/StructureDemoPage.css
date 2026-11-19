@@ -1,0 +1,57 @@
+/* Demo de desarrollo: solo tokens. */
+
+.structure-demo__rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.structure-demo__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  padding: var(--space-sm) 0;
+  border-bottom: 1px solid var(--hairline);
+}
+
+.structure-demo__row:last-child {
+  border-bottom: none;
+}
+
+.structure-demo__text {
+  display: grid;
+  min-width: 0;
+}
+
+.structure-demo__description {
+  font-size: var(--text-small);
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.structure-demo__date {
+  font-size: var(--text-label);
+  color: var(--ink-faint);
+}
+
+.structure-demo__amount {
+  flex: none;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.structure-demo__stack {
+  display: grid;
+  gap: var(--space-lg);
+}
+
+.structure-demo__equal {
+  margin-top: var(--space-xl);
+}
+
+.structure-demo__last {
+  font-weight: 600;
+}

@@ -1,0 +1,50 @@
+/*
+ * La cuenta bajo la cifra: renglones de libro mayor (concepto a la izquierda, monto a la
+ * derecha) y el total al pie, bajo un filete de 2 px en azul tinta, como en un libro contable.
+ */
+.wallet-ledger {
+  display: grid;
+  margin: 0;
+  max-width: 24rem;
+}
+
+.wallet-ledger__item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
+  column-gap: var(--space-md);
+  padding: calc(var(--space-xs) / 2) 0;
+}
+
+.wallet-ledger__item--total {
+  margin-top: calc(var(--space-xs) / 2);
+  padding-top: var(--space-xs);
+  border-top: 2px solid var(--ink-900);
+}
+
+.wallet-ledger__term {
+  font-size: var(--text-small);
+  color: var(--ink-muted);
+}
+
+.wallet-ledger__item--total .wallet-ledger__term {
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.wallet-ledger__op {
+  display: inline-block;
+  width: 1ch;
+  margin-right: 0.4em;
+  font-weight: 600;
+  color: var(--ink-900);
+}
+
+.wallet-ledger__amount {
+  margin: 0;
+  font-size: var(--text-body);
+  font-weight: 600;
+  color: var(--ink);
+  text-align: right;
+  overflow-wrap: anywhere;
+}

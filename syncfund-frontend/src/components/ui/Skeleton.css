@@ -1,0 +1,61 @@
+.sf-skeleton {
+  display: block;
+  width: 100%;
+  background: var(--ledger-100);
+  border-radius: var(--radius-sm);
+  animation: sf-skeleton-pulse 1.4s var(--ease-out) infinite alternate;
+}
+
+/* Alturas aproximadas a la línea de texto real, para que el contenido no salte al llegar. */
+.sf-skeleton--line {
+  height: 0.9em;
+  margin: 0.3em 0;
+}
+
+.sf-skeleton--figure {
+  height: calc(var(--text-display) * 0.9);
+  max-width: 14rem;
+}
+
+.sf-skeleton--block {
+  height: 4rem;
+}
+
+.sf-skeleton-group {
+  display: grid;
+  gap: var(--space-xs);
+}
+
+.sf-skeleton-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  padding: var(--space-sm) 0;
+  border-bottom: 1px solid var(--hairline);
+}
+
+.sf-skeleton-row:last-child {
+  border-bottom: none;
+}
+
+.sf-skeleton-row__text {
+  flex: 1;
+  display: grid;
+}
+
+.sf-skeleton-row > .sf-skeleton {
+  flex: none;
+}
+
+@keyframes sf-skeleton-pulse {
+  from { opacity: 1; }
+  to { opacity: 0.45; }
+}
+
+/* La regla global acorta las animaciones; una infinita quedaría parpadeando, así que se apaga. */
+@media (prefers-reduced-motion: reduce) {
+  .sf-skeleton {
+    animation: none;
+  }
+}

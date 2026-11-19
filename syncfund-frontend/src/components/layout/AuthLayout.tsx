@@ -2,25 +2,29 @@ import type { ReactNode } from 'react';
 import './AuthLayout.css';
 
 /**
- * Layout split-screen para login/registro: panel editorial a la izquierda
- * (voz de marca), formulario a la derecha. Es el único momento "de autor"
- * del diseño — el resto de la app, ya autenticada, se mantiene silenciosa.
+ * Layout de login y registro. En escritorio, pantalla dividida: panel de marca a la izquierda
+ * (el único momento "de autor" del diseño) y formulario a la derecha. En el celular, el panel se
+ * reduce a una franja con el nombre y una línea, para que el formulario quede a la vista sin
+ * desplazarse: quien vuelve a registrar un gasto no tiene que pasar el eslogan cada vez.
+ * El h1 de cada página es el título del formulario; el eslogan es un párrafo.
  */
 export function AuthLayout({ children }: { children: ReactNode }) {
   return (
     <div className="auth-layout">
       <aside className="auth-layout__brand">
         <span className="auth-layout__wordmark">SyncFund</span>
-        <h1 className="auth-layout__headline">
-          Dos cuentas,<br />un solo saldo real.
-        </h1>
-        <p className="auth-layout__sub">
-          Lleva tus finanzas personales y los gastos compartidos con tus
-          proyectos en un mismo lugar, sincronizados al instante.
+        <p className="auth-layout__tagline">Tu billetera y tus proyectos, en un solo lugar.</p>
+        <p className="auth-layout__headline">
+          Tu billetera y tus proyectos,<br />un solo saldo real.
         </p>
+        <p className="auth-layout__sub">
+          Registra tus ingresos y gastos, aporta al fondo de tus proyectos
+          compartidos y mira quién le debe a quién, sin hacer cuentas a mano.
+        </p>
+        {/* Dos círculos entrelazados en tonos de tinta: la billetera y el fondo común. */}
         <svg className="auth-layout__motif" viewBox="0 0 200 120" aria-hidden="true">
-          <circle cx="70" cy="60" r="46" fill="none" stroke="#2C5F8A" strokeWidth="1.5" opacity="0.55" />
-          <circle cx="130" cy="60" r="46" fill="none" stroke="#2F9E7D" strokeWidth="1.5" opacity="0.7" />
+          <circle className="auth-layout__ring auth-layout__ring--a" cx="70" cy="60" r="46" />
+          <circle className="auth-layout__ring auth-layout__ring--b" cx="130" cy="60" r="46" />
         </svg>
       </aside>
       <main className="auth-layout__panel">

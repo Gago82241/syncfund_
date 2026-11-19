@@ -26,7 +26,13 @@ import java.util.List;
 @NoArgsConstructor
 public class Transaction {
 
-    public enum TransactionType { INGRESO, GASTO }
+    /**
+     * INGRESO / GASTO: mueven el saldo de la billetera de origen.
+     * ABONO / COBRO: solo existen en un SharedProject y NO mueven el fondo; registran un pago
+     * directo entre integrantes (SharedProject.settleDebts). Un pago de Y a X deja un ABONO con
+     * [Y] en involvedIdsList (sube su saldo neto) y un COBRO con [X] (baja su saldo neto).
+     */
+    public enum TransactionType { INGRESO, GASTO, ABONO, COBRO }
     public enum OriginWalletType { PERSONAL, SHARED }
 
     @Id

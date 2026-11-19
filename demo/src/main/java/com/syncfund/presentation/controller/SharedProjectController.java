@@ -4,14 +4,13 @@ import com.syncfund.application.dto.request.AddMemberRequest;
 import com.syncfund.application.dto.request.CreateSharedProjectRequest;
 import com.syncfund.application.dto.request.DistributeContributionRequest;
 import com.syncfund.application.dto.request.RegisterSelectiveExpenseRequest;
+import com.syncfund.application.dto.request.SettleDebtRequest;
 import com.syncfund.application.dto.response.NetBalanceResponse;
+import com.syncfund.application.dto.response.ProjectBalancesResponse;
 import com.syncfund.application.dto.response.SharedProjectResponse;
 import com.syncfund.application.dto.response.TransactionResponse;
 import com.syncfund.application.service.SharedProjectAppService;
 import com.syncfund.application.service.TransactionAppService;
-import com.syncfund.application.dto.request.CreateTransactionRequest;
-import com.syncfund.application.exception.ForbiddenException;
-import com.syncfund.security.CurrentUserProvider;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -26,14 +25,11 @@ public class SharedProjectController {
 
     private final SharedProjectAppService projectService;
     private final TransactionAppService transactionService;
-    private final CurrentUserProvider currentUserProvider;
 
     public SharedProjectController(SharedProjectAppService projectService,
-                                    TransactionAppService transactionService,
-                                    CurrentUserProvider currentUserProvider) {
+                                    TransactionAppService transactionService) {
         this.projectService = projectService;
         this.transactionService = transactionService;
-        this.currentUserProvider = currentUserProvider;
     }
 
     @PostMapping
@@ -57,27 +53,26 @@ public class SharedProjectController {
     }
 
     /**
+     * SharedProject.removeParticipant(user): el administrador elimina a un integrante, o un integrante
+     * sale del proyecto (userId = usuario actual). Las reglas y la autorización las valida el service.
+     * 204 sin cuerpo: quien sale ya no puede ver el proyecto.
+     */
+    @DeleteMapping("/{id}/members/{userId}")
+    public ResponseEntity<Void> removeMember(@PathVariable Long id, @PathVariable Long userId) {
+        projectService.removeMember(id, userId);
+        return ResponseEntity.noContent().build();
+    }
+
+    /**
      * registerSelectiveExpense(amount, payerId, involvedIdsList): se registra como Transaction tipo GASTO
-     * que paga el fondo del proyecto; si el fondo no alcanza, responde 422.
+     * que paga el fondo del proyecto; si el fondo no alcanza, responde 422. Las verificaciones
+     * (pagador, membresía, involucrados) las hace TransactionAppService.
      */
     @PostMapping("/{id}/expenses")
     public ResponseEntity<TransactionResponse> registerSelectiveExpense(
             @PathVariable Long id, @Valid @RequestBody RegisterSelectiveExpenseRequest request) {
-
-        if (!currentUserProvider.getUserId().equals(request.getPayerId())) {
-            throw new ForbiddenException("No puedes registrar un gasto a nombre de otro usuario como pagador.");
-        }
-
-        CreateTransactionRequest txRequest = new CreateTransactionRequest();
-        txRequest.setAmount(request.getAmount());
-        txRequest.setDescription(request.getDescription());
-        txRequest.setType("GASTO");
-        txRequest.setOriginWalletId(id);
-        txRequest.setOriginWalletType("SHARED");
-        txRequest.setInvolvedIdsList(request.getInvolvedIdsList());
-        txRequest.setCategoryId(request.getCategoryId());
-
-        return ResponseEntity.status(HttpStatus.CREATED).body(transactionService.create(txRequest));
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(transactionService.registerSelectiveExpense(id, request));
     }
 
     @PostMapping("/{id}/contributions")
@@ -85,9 +80,25 @@ public class SharedProjectController {
         return projectService.contribute(id, request);
     }
 
-    /** notifyPendingDebt() + DebtCalculator.determineNetBalance(userId, projectId). */
+    /** notifyPendingDebt() + saldo neto del usuario actual (incluye los pagos entre integrantes). */
     @GetMapping("/{id}/debts/{userId}")
     public NetBalanceResponse getNetBalance(@PathVariable Long id, @PathVariable Long userId) {
         return projectService.getNetBalance(id, userId);
+    }
+
+    /** DebtCalculator.calculateBalances(sharedProject): situación de todos los integrantes. */
+    @GetMapping("/{id}/balances")
+    public ProjectBalancesResponse getBalances(@PathVariable Long id) {
+        return projectService.getBalances(id);
+    }
+
+    /**
+     * SharedProject.settleDebts(payerId, payeeId, amount): quien debe le paga a otro integrante con
+     * saldo a favor, de billetera a billetera. Las reglas y la autorización las valida el service.
+     */
+    @PostMapping("/{id}/settlements")
+    public ResponseEntity<ProjectBalancesResponse> settleDebt(@PathVariable Long id,
+                                                              @Valid @RequestBody SettleDebtRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(projectService.settleDebt(id, request));
     }
 }

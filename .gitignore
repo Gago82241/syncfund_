@@ -1,0 +1,8 @@
+# Configuración local de Claude Code (hooks y permisos de cada desarrollador)
+.claude/settings.local.json
+
+# Motor binario de impeccable: se descarga y verifica solo en cada equipo
+.claude/skills/impeccable/scripts/bin/
+
+# Copia de las skills para otros agentes (Codex, etc.); Claude Code usa .claude/skills
+.agents/

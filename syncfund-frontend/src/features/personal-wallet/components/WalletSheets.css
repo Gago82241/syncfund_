@@ -1,0 +1,85 @@
+/* Hojas laterales de la Billetera (meta y colchón). */
+
+/* Acción del título de la hoja con aspecto de enlace: área táctil de 44 px sin agrandar la letra. */
+.wallet-sheet__action {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--tap-target);
+  margin: calc((var(--tap-target) - 1.5em) / -2) 0;
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  font-weight: 600;
+  color: var(--ink-600);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.wallet-sheet__action:hover {
+  color: var(--ink-900);
+}
+
+.wallet-sheet__action:focus-visible {
+  outline: 2px solid var(--ink-600);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+/* Qué es (meta, colchón): una línea de ayuda antes de las cifras. */
+.wallet-sheet__intro {
+  font-size: var(--text-small);
+  color: var(--ink-muted);
+  max-width: 50ch;
+  text-wrap: pretty;
+}
+
+/* Renglón concepto | monto. */
+.wallet-sheet__row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
+  column-gap: var(--space-md);
+  margin: var(--space-md) 0 0;
+}
+
+.wallet-sheet__term {
+  font-size: var(--text-small);
+  color: var(--ink-muted);
+}
+
+.wallet-sheet__amount {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--text-title);
+  font-weight: 500;
+  color: var(--ink-900);
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+/* La cuenta del mes, bajo la barra. */
+.wallet-sheet__ledger {
+  margin-top: var(--space-md);
+  max-width: none;
+}
+
+/* Meta cumplida: el único titular de la hoja, en Fraunces y esmeralda de texto (≥ 4.5:1). */
+.wallet-sheet__reached {
+  margin-bottom: var(--space-sm);
+  font-family: var(--font-display);
+  font-size: var(--text-title);
+  font-weight: 500;
+  color: var(--gain-700);
+  text-wrap: balance;
+}
+
+/* Explicación y datos de apoyo: letra de etiqueta, en gris. */
+.wallet-sheet__note {
+  margin-top: var(--space-sm);
+  font-size: var(--text-label);
+  color: var(--ink-muted);
+  text-wrap: pretty;
+}

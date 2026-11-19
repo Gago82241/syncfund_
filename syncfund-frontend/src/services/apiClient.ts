@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { clearAuthStorage, getStoredToken } from '../utils/authStorage';
+import { clearAuthStorage, getStoredToken, hasStoredSession, markSessionExpired } from '../utils/authStorage';
 
 /**
  * Cliente HTTP central hacia el backend Spring Boot.
@@ -27,13 +27,23 @@ apiClient.interceptors.request.use((config) => {
   return config;
 });
 
-/** Si el backend responde 401 (token inválido o vencido), cierra la sesión local y manda al login. */
+/** Peticiones de acceso: un 401 ahí es un intento fallido de entrar, no una sesión vencida. */
+const AUTH_REQUEST = /\/auth\/(login|register)\/?$/;
+
+/**
+ * Si el backend responde 401 (token inválido o vencido), cierra la sesión local y manda al login.
+ * El Login dice "Tu sesión venció" solo si de verdad había una sesión guardada (se mira antes de
+ * borrarla) y nunca por la respuesta de /auth/login o /auth/register.
+ */
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
+      const hadSession = hasStoredSession();
+      const isAuthRequest = AUTH_REQUEST.test(error.config?.url ?? '');
       clearAuthStorage();
       if (window.location.pathname !== '/login') {
+        if (hadSession && !isAuthRequest) markSessionExpired();
         window.location.href = '/login';
       }
     }

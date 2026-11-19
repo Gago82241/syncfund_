@@ -1,0 +1,82 @@
+/*
+ * Celular: renglones de libro mayor (concepto a la izquierda, monto a la derecha).
+ * Desde 640 px: los tres conceptos en una fila, separados por línea fina.
+ */
+.summary-ledger {
+  display: grid;
+  margin: 0;
+  max-width: 28rem;
+}
+
+.summary-ledger__item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
+  column-gap: var(--space-md);
+  padding: var(--space-xs) 0;
+  border-bottom: 1px solid var(--hairline);
+}
+
+.summary-ledger__item:last-child {
+  border-bottom: none;
+}
+
+.summary-ledger__term {
+  font-size: var(--text-small);
+  color: var(--ink-muted);
+}
+
+.summary-ledger__op {
+  display: inline-block;
+  width: 1ch;
+  margin-right: 0.4em;
+  font-weight: 600;
+  color: var(--ink-900);
+}
+
+.summary-ledger__amount {
+  margin: 0;
+  font-size: var(--text-body);
+  font-weight: 600;
+  color: var(--ink);
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+/* Con monto, el color dice a favor o en contra; el texto ("A tu favor", "Debes") ya lo dice también. */
+.summary-ledger__amount.amount-gain { color: var(--gain-700); }
+.summary-ledger__amount.amount-loss { color: var(--loss-700); }
+.summary-ledger__amount--zero { font-weight: 400; color: var(--ink-muted); }
+
+.summary-ledger__note {
+  grid-column: 1 / -1;
+  margin: 0;
+  font-size: var(--text-label);
+  color: var(--ink-faint);
+}
+
+@media (min-width: 640px) {
+  .summary-ledger {
+    grid-template-columns: repeat(3, minmax(0, auto));
+    justify-content: start;
+    max-width: none;
+  }
+
+  .summary-ledger__item {
+    grid-template-columns: minmax(0, 1fr);
+    align-content: start;
+    row-gap: calc(var(--space-xs) / 2);
+    padding: 0 var(--space-lg);
+    border-bottom: none;
+    border-left: 1px solid var(--hairline);
+  }
+
+  .summary-ledger__item:first-child {
+    padding-left: 0;
+    border-left: none;
+  }
+
+  .summary-ledger__amount {
+    text-align: left;
+  }
+}

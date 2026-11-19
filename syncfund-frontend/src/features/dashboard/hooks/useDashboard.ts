@@ -1,0 +1,157 @@
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { walletFigures } from '../../personal-wallet/walletFigures';
+import { personalWalletService } from '../../personal-wallet/services/personalWalletService';
+import { fetchProjectsWithBalances } from '../../shared-project/projectBalances';
+import { categoryService } from '../../categories/services/categoryService';
+import { transactionService } from '../../transactions/services/transactionService';
+import { afterActionLoadError, describeLoadError, type LoadErrorInfo } from '../../../utils/apiError';
+import { currentMonthKey } from '../../../utils/formatDate';
+import { computeDashboardSummary, isNewUser, needsHistoryCheck, type DashboardSummary } from '../summary';
+import { fetchMonthSpend, selectBudgetAlerts, type BudgetLine } from '../../categories/budget';
+import type { CategoryResponse, PersonalWalletResponse } from '../../../types/api';
+
+export interface DashboardData {
+  walletId: number;
+  /** Disponible de la billetera: lo muestra el formulario de gasto antes de escribir. */
+  available: number;
+  isNewUser: boolean;
+  summary: DashboardSummary;
+}
+
+export interface BudgetData {
+  /** Mes medido ("yyyy-MM"), guardado con los datos para que el texto y las cifras coincidan. */
+  month: string;
+  /** Cuántas categorías tienen límite mensual (0: no hay nada que vigilar). */
+  limitedCount: number;
+  alerts: BudgetLine[];
+}
+
+async function fetchSummary(
+  userId: number,
+  walletPromise: Promise<PersonalWalletResponse>,
+): Promise<DashboardData> {
+  // Billetera y proyectos (con la situación de cada uno) en paralelo.
+  const [wallet, { projects, balances, failedIds, firstError }] = await Promise.all([
+    walletPromise,
+    fetchProjectsWithBalances(userId),
+  ]);
+  // La cifra es todo o nada: sin el saldo de un proyecto, el total no sería cierto.
+  if (failedIds.length > 0) throw firstError;
+
+  // Solo si podría ser un usuario nuevo (sin proyectos ni saldo) se pide su historial, para no
+  // confundir "nuevo" con "gastó todo lo que tenía". Sin proyectos, no hubo saldos que esperar.
+  const transactionCount = needsHistoryCheck(wallet, projects)
+    ? await transactionService.getByWallet(wallet.walletId, 'PERSONAL').then((r) => r.data.length)
+    : null;
+
+  return {
+    walletId: wallet.walletId,
+    available: walletFigures(wallet).available,
+    isNewUser: isNewUser(wallet, projects, transactionCount),
+    summary: computeDashboardSummary(userId, wallet, projects, balances),
+  };
+}
+
+async function fetchBudget(
+  walletPromise: Promise<PersonalWalletResponse>,
+  categoriesPromise: Promise<CategoryResponse[]>,
+): Promise<BudgetData> {
+  const month = currentMonthKey();
+  const [wallet, categories] = await Promise.all([walletPromise, categoriesPromise]);
+  const limited = categories.filter((c) => c.monthlyLimit > 0);
+  const spent = await fetchMonthSpend(wallet.walletId, limited, month);
+  return { month, limitedCount: limited.length, alerts: selectBudgetAlerts(limited, spent) };
+}
+
+/**
+ * Datos del Resumen. Hace las peticiones en dos rondas en paralelo:
+ *   1. billetera, proyectos y categorías;
+ *   2. la situación de cada proyecto y el gasto del mes de cada categoría con límite
+ *      (el historial, solo para un posible usuario nuevo, que no tiene proyectos).
+ * La cifra es todo o nada: si falla cualquiera de sus peticiones, `data` queda en null y se
+ * muestra el error (nunca un total parcial). El presupuesto tiene su propio error, porque no
+ * cambia cuánto tienes.
+ */
+export function useDashboard(userId: number) {
+  const [data, setData] = useState<DashboardData | null>(null);
+  const [error, setError] = useState<LoadErrorInfo | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [budget, setBudget] = useState<BudgetData | null>(null);
+  const [budgetError, setBudgetError] = useState<LoadErrorInfo | null>(null);
+  const [budgetLoading, setBudgetLoading] = useState(true);
+  // true desde que una acción se guardó hasta que una recarga sale bien (ver afterActionLoadError).
+  const unconfirmedAction = useRef(false);
+  // Cada carga lleva un número: si llega la respuesta de una carga vieja, se descarta.
+  const latestLoad = useRef(0);
+  const latestBudgetLoad = useRef(0);
+
+  const applyBudget = useCallback((promise: Promise<BudgetData>) => {
+    const loadId = ++latestBudgetLoad.current;
+    return promise
+      .then((result) => {
+        if (loadId !== latestBudgetLoad.current) return;
+        setBudget(result);
+        setBudgetError(null);
+      })
+      .catch((err) => {
+        if (loadId !== latestBudgetLoad.current) return;
+        setBudgetError(describeLoadError(err, 'tu presupuesto del mes'));
+      })
+      .finally(() => {
+        if (loadId === latestBudgetLoad.current) setBudgetLoading(false);
+      });
+  }, []);
+
+  // load no marca "cargando": el estado inicial ya lo hace y refresh lo marca antes de recargar.
+  const load = useCallback(() => {
+    const loadId = ++latestLoad.current;
+    const walletPromise = personalWalletService.getByUser(userId).then((r) => r.data);
+    const categoriesPromise = categoryService.getAll().then((r) => r.data);
+
+    const summaryDone = fetchSummary(userId, walletPromise)
+      .then((result) => {
+        if (loadId !== latestLoad.current) return;
+        setData(result);
+        setError(null);
+        unconfirmedAction.current = false;
+      })
+      .catch((err) => {
+        if (loadId !== latestLoad.current) return;
+        const info = describeLoadError(err, 'tu resumen');
+        // Sin cifra parcial: con error no queda el total anterior en pantalla.
+        setData(null);
+        setError(unconfirmedAction.current ? afterActionLoadError(info) : info);
+      })
+      .finally(() => {
+        if (loadId === latestLoad.current) setLoading(false);
+      });
+
+    return Promise.all([summaryDone, applyBudget(fetchBudget(walletPromise, categoriesPromise))]);
+  }, [userId, applyBudget]);
+
+  // El error se mantiene mientras se reintenta, para que el botón muestre "Procesando..." sin parpadeos.
+  const refresh = useCallback(() => {
+    setLoading(true);
+    setBudgetLoading(true);
+    return load();
+  }, [load]);
+
+  /** Recarga después de una acción que el backend ya aceptó (registrar un movimiento). */
+  const refreshAfterAction = useCallback(() => {
+    unconfirmedAction.current = true;
+    return refresh();
+  }, [refresh]);
+
+  /** Reintenta solo el presupuesto, sin volver a pedir la cifra. */
+  const retryBudget = useCallback(() => {
+    setBudgetLoading(true);
+    const walletPromise = personalWalletService.getByUser(userId).then((r) => r.data);
+    return applyBudget(fetchBudget(walletPromise, categoryService.getAll().then((r) => r.data)));
+  }, [userId, applyBudget]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  return { data, error, loading, refresh, refreshAfterAction, budget, budgetError, budgetLoading, retryBudget };
+}

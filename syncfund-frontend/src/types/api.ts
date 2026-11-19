@@ -33,7 +33,8 @@ export interface TransactionResponse {
   amount: number;
   description: string;
   dateTime: string;
-  type: 'INGRESO' | 'GASTO';
+  /** ABONO / COBRO: pago entre integrantes de un proyecto; no mueven el fondo. */
+  type: 'INGRESO' | 'GASTO' | 'ABONO' | 'COBRO';
   originWalletId: number;
   originWalletType: 'PERSONAL' | 'SHARED';
   involvedIdsList: number[];
@@ -59,6 +60,41 @@ export interface NetBalanceResponse {
   userId: number;
   projectId: number;
   netBalance: number;
+}
+
+/** Situación de un integrante dentro del proyecto (nunca su correo ni su billetera personal). */
+export interface MemberBalance {
+  userId: number;
+  name: string;
+  contributed: number;
+  shareOfExpenses: number;
+  paymentsMade: number;
+  paymentsReceived: number;
+  /** Positivo: a favor. Negativo: debe. Cero: al día. */
+  netBalance: number;
+}
+
+export interface SuggestedPayment {
+  fromUserId: number;
+  toUserId: number;
+  amount: number;
+}
+
+/** GET /projects/{id}/balances y respuesta de POST /projects/{id}/settlements. */
+export interface ProjectBalancesResponse {
+  projectId: number;
+  fund: number;
+  /** Suma de los saldos netos; igual al fondo salvo aportes antiguos sin aportante (unassigned). */
+  totalBalances: number;
+  unassigned: number;
+  members: MemberBalance[];
+  suggestedPayments: SuggestedPayment[];
+}
+
+export interface SettleDebtRequest {
+  payerId: number;
+  payeeId: number;
+  amount: number;
 }
 
 export interface RegisterUserRequest {

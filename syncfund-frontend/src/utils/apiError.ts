@@ -1,6 +1,10 @@
 import axios from 'axios';
 import type { ApiErrorResponse } from '../types/api';
 
+/** Sin respuesta del servidor: el mismo texto en toda la app. */
+export const CONNECTION_ERROR_MESSAGE =
+  'No pudimos conectar con SyncFund. Revisa tu conexión e inténtalo de nuevo.';
+
 export interface ParsedApiError {
   fieldErrors: Record<string, string>;
   formError: string;
@@ -26,4 +30,51 @@ export function parseApiError(
   if (hiddenMessages.length > 0) return { fieldErrors, formError: hiddenMessages.join('. ') };
   if (Object.keys(fieldErrors).length > 0) return { fieldErrors, formError: '' };
   return { fieldErrors, formError: data?.message || fallback };
+}
+
+export interface LoadErrorInfo {
+  message: string;
+  /** false cuando reintentar no cambia nada (no existe o no hay acceso). */
+  canRetry: boolean;
+}
+
+/** Lo que se cargaba no existe o no es del usuario: reintentar no cambia nada. */
+export function notFoundLoadError(what: string): LoadErrorInfo {
+  return { message: `No encontramos ${what} o no tienes acceso.`, canRetry: false };
+}
+
+/**
+ * Error de la recarga que sigue a una acción que el backend ya aceptó (guardar, pagar, aportar…).
+ * La página no muestra datos viejos, pero deja claro que la acción sí quedó, para que el usuario
+ * no la repita.
+ */
+export function afterActionLoadError(info: LoadErrorInfo): LoadErrorInfo {
+  return { ...info, message: `Tu cambio se guardó. ${info.message}` };
+}
+
+/**
+ * Mensaje para una carga de datos que falló, sin detalles técnicos.
+ * `what` nombra lo que se cargaba, ej. "tus proyectos" o "este proyecto compartido".
+ * El 401 no llega a mostrarse: apiClient cierra la sesión y manda al login.
+ */
+export function describeLoadError(err: unknown, what: string): LoadErrorInfo {
+  if (axios.isAxiosError(err)) {
+    const status = err.response?.status;
+    if (status === undefined) {
+      return {
+        message: CONNECTION_ERROR_MESSAGE,
+        canRetry: true,
+      };
+    }
+    if (status === 403 || status === 404) {
+      return notFoundLoadError(what);
+    }
+    if (status >= 500) {
+      return {
+        message: `No pudimos cargar ${what} en este momento. Vuelve a intentarlo.`,
+        canRetry: true,
+      };
+    }
+  }
+  return { message: `No pudimos cargar ${what}.`, canRetry: true };
 }

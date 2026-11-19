@@ -1,0 +1,39 @@
+/* El mes nombrado: dice de qué periodo son las cifras, como etiqueta (la respuesta va debajo). */
+.categories__month {
+  font-size: var(--text-label);
+  font-weight: 600;
+  color: var(--ink-muted);
+}
+
+/* La respuesta a "¿cómo voy?": nombra las categorías en problema; es lo que más pesa del encabezado. */
+.categories__headline {
+  margin-top: calc(var(--space-xs) / 2);
+  font-size: var(--text-body);
+  font-weight: 600;
+  color: var(--ink-900);
+  overflow-wrap: anywhere;
+  text-wrap: pretty;
+}
+
+.categories__scope {
+  margin-top: calc(var(--space-xs) / 2);
+  font-size: var(--text-label);
+  color: var(--ink-muted);
+  text-wrap: pretty;
+}
+
+/* Una lista de barras no se estira a todo el ancho: nombre y cifras quedan cerca. */
+.categories__header,
+.categories__sheet {
+  max-width: var(--list-max);
+}
+
+.categories__sheet + .categories__sheet {
+  margin-top: var(--space-lg);
+}
+
+.categories__sheet-note {
+  margin-bottom: var(--space-md);
+  font-size: var(--text-small);
+  color: var(--ink-muted);
+}

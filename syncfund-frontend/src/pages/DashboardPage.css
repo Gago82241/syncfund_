@@ -1,0 +1,52 @@
+/*
+ * Encabezado + aviso de deuda (o línea "al día"): el aviso queda más cerca de la cifra que de las
+ * hojas, porque es parte de la respuesta a "¿cuánto tengo?". La distancia la pone el gap.
+ */
+.dashboard__top {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+  margin-bottom: var(--space-xl);
+}
+
+.dashboard__top > .sf-page-header {
+  margin-bottom: 0;
+}
+
+/* Línea discreta cuando no hay deudas: confirma sin competir con la cifra. */
+.dashboard__even {
+  font-size: var(--text-small);
+  color: var(--ink-muted);
+}
+
+/* Enlaces que se ven como botones (llevan a otra pantalla, no ejecutan una acción aquí). */
+.dashboard__link-button {
+  text-decoration: none;
+}
+
+.dashboard__first-steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+}
+
+@media (min-width: 480px) {
+  .dashboard__first-steps .sf-button {
+    width: auto;
+  }
+}
+
+/* Enlace al pie del título de cada hoja: área táctil de 44 px sin agrandar la letra. */
+.dashboard__sheet-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--tap-target);
+  margin: calc((var(--tap-target) - 1.5em) / -2) 0;
+  font-weight: 600;
+}
+
+.dashboard__ledger-skeleton {
+  display: grid;
+  gap: var(--space-xs);
+  max-width: 100%;
+}

@@ -38,6 +38,19 @@ export function useFormErrors<F extends string>(visibleFields: readonly F[]) {
     focusFirstError(parsed.fieldErrors);
   }
 
+  /** Error propio de la pantalla sobre un campo (ej. un 422 que el backend no asocia a ninguno). */
+  function showFieldError(field: F, message: string) {
+    setFieldErrors({ [field]: message } as FieldErrors<F>);
+    setFormError('');
+    focusFirstError({ [field]: message });
+  }
+
+  /** Mensaje general propio de la pantalla, en lugar del texto que trae el backend. */
+  function showFormError(message: string) {
+    setFieldErrors({});
+    setFormError(message);
+  }
+
   function clearField(field: F) {
     setFieldErrors((prev) => {
       if (!prev[field]) return prev;
@@ -52,5 +65,15 @@ export function useFormErrors<F extends string>(visibleFields: readonly F[]) {
     setFormError('');
   }
 
-  return { fieldErrors, formError, formRef, validate, showApiError, clearField, clearErrors };
+  return {
+    fieldErrors,
+    formError,
+    formRef,
+    validate,
+    showApiError,
+    showFieldError,
+    showFormError,
+    clearField,
+    clearErrors,
+  };
 }

@@ -1,0 +1,146 @@
+.members-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+/* La lista recibe el foco tras eliminar a alguien; con el ratón no se dibuja el anillo. */
+.members-list:focus {
+  outline: none;
+}
+
+.members-list:focus-visible {
+  outline: 2px solid var(--ink-600);
+  outline-offset: var(--space-xs);
+  border-radius: var(--radius-sm);
+}
+
+.members-list__item {
+  border-bottom: 1px solid var(--hairline);
+}
+
+.members-list__item:last-child {
+  border-bottom: none;
+}
+
+.members-list__row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-xs) 0;
+  min-height: calc(var(--tap-target) + var(--space-xs));
+  font-size: var(--text-small);
+}
+
+.members-list__who {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: calc(var(--space-xs) / 2) var(--space-sm);
+}
+
+/* Partir solo palabras imposibles (correos, nombres sin espacios), no letra por letra. */
+.members-list__name {
+  overflow-wrap: break-word;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.members-list__you {
+  color: var(--ink-muted);
+}
+
+.members-list__role {
+  font-size: var(--text-label);
+  color: var(--ink-faint);
+}
+
+/* La regla en texto, en su propia línea: se lee antes de intentar. */
+.members-list__rule {
+  flex-basis: 100%;
+  font-size: var(--text-label);
+  color: var(--ink-muted);
+  text-wrap: pretty;
+}
+
+/* Acción destructiva discreta: solo texto terracota hasta que se confirma. */
+.members-list__action {
+  flex: none;
+  font: inherit;
+  min-height: var(--tap-target); /* 44 px: objetivo táctil mínimo */
+  font-size: var(--text-label);
+  font-weight: 600;
+  color: var(--loss-700);
+  background: transparent;
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-sm);
+  padding: var(--space-xs) var(--space-sm);
+  cursor: pointer;
+  white-space: nowrap;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    background-color var(--duration-fast) var(--ease-out),
+    border-color var(--duration-fast) var(--ease-out),
+    transform var(--duration-fast) var(--ease-out);
+}
+
+.members-list__action:active {
+  background: var(--loss-100);
+  transform: translateY(1px);
+}
+
+@media (hover: hover) {
+  .members-list__action:hover {
+    border-color: var(--loss-700);
+    background: var(--loss-100);
+  }
+}
+
+/*
+ * Confirmación destructiva: recuadro completo de 1px en terracota sobre papel, sin franja lateral.
+ * El tono del borde y el título en terracota oscuro marcan que la acción no se deshace.
+ */
+.remove-member {
+  background: var(--paper);
+  border: 1px solid var(--loss-500);
+  border-radius: var(--radius-sm);
+  padding: var(--space-md);
+  margin-bottom: var(--space-sm);
+}
+
+.remove-member__title {
+  font-weight: 600;
+  color: var(--loss-700);
+  margin-bottom: calc(var(--space-xs) / 2);
+  overflow-wrap: break-word;
+}
+
+.remove-member__text {
+  font-size: var(--text-small);
+  color: var(--ink-muted);
+  margin-bottom: var(--space-sm);
+  text-wrap: pretty;
+}
+
+.remove-member__actions {
+  display: flex;
+  gap: var(--space-sm);
+}
+
+/*
+ * Móvil: las acciones de confirmación se apilan para que sean fáciles de tocar. "Cancelar" va
+ * primero (arriba) y "Eliminar" debajo, separado de donde cae el pulgar al confirmar por reflejo.
+ */
+@media (max-width: 640px) {
+  .remove-member__actions {
+    flex-direction: column;
+  }
+}
+
+@media (min-width: 641px) {
+  .remove-member__actions .sf-button {
+    width: auto;
+  }
+}

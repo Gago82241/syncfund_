@@ -1,0 +1,54 @@
+/* La cifra es enfocable (para devolverle el foco) pero no es un control: sin anillo con el ratón. */
+.project-detail__figure:focus {
+  outline: none;
+}
+
+.project-detail__figure:focus-visible {
+  outline: 2px solid var(--ink-600);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+.project-detail__meta {
+  display: grid;
+  gap: calc(var(--space-xs) / 2);
+}
+
+/* "A tu favor" no es una deuda de nadie: la línea dice qué incluye, justo bajo la cifra. */
+.project-detail__favor-note {
+  color: var(--ink-muted);
+  text-wrap: pretty;
+}
+
+/* El fondo es el dato secundario: tinta, sin color de dinero (es de todos, no tuyo). */
+.project-detail__fund {
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.project-detail__members {
+  display: grid;
+  gap: var(--space-lg);
+  justify-items: start;
+}
+
+.project-detail__members > :first-child {
+  justify-self: stretch;
+}
+
+.project-detail__note {
+  font-size: var(--text-small);
+  color: var(--ink-muted);
+}
+
+/* Acciones dentro de una pestaña: a lo ancho en el celular, lo justo desde 480 px. */
+@media (min-width: 480px) {
+  .project-detail__inline-button {
+    width: auto;
+  }
+}
+
+.project-detail__description {
+  overflow-wrap: anywhere;
+  text-wrap: pretty;
+}

@@ -122,12 +122,20 @@ class ValidationMessagesTests {
                 arguments("POST", "/api/projects/1/expenses", "{}", "payerId", "El pagador es obligatorio"),
                 arguments("POST", "/api/projects/1/expenses", "{}", "involvedIdsList", "Debes seleccionar al menos un participante"),
                 arguments("POST", "/api/projects/1/expenses", "{}", "description", DESCRIPCION_OBLIGATORIA),
+                // SettleDebtRequest
+                arguments("POST", "/api/projects/1/settlements", "{}", "amount", MONTO_POSITIVO),
+                arguments("POST", "/api/projects/1/settlements", "{\"amount\": -5}", "amount", MONTO_POSITIVO),
+                arguments("POST", "/api/projects/1/settlements", "{}", "payerId", "Quien paga es obligatorio"),
+                arguments("POST", "/api/projects/1/settlements", "{}", "payeeId", "Quien recibe el pago es obligatorio"),
                 // SetSavingsGoalRequest
                 arguments("PUT", "/api/wallets/personal/1/goal", "{\"monthlySavingsGoal\": -1}", "monthlySavingsGoal", "La meta de ahorro no puede ser negativa"),
                 // RegisterUserRequest
                 arguments("POST", "/api/auth/register", "{}", "email", CORREO_OBLIGATORIO),
                 arguments("POST", "/api/auth/register", "{\"email\": \"\"}", "email", CORREO_OBLIGATORIO),
                 arguments("POST", "/api/auth/register", BAD_EMAIL, "email", CORREO_INVALIDO),
+                arguments("POST", "/api/auth/register", "{\"password\": \"clave12\"}", "password", "La contraseña debe tener al menos 8 caracteres"),
+                arguments("POST", "/api/auth/register", "{\"password\": \"" + "ñ".repeat(37) + "\"}", "password", RegisterUserRequest.PASSWORD_TOO_LONG),
+                arguments("POST", "/api/auth/login", "{\"password\": \"" + "ñ".repeat(37) + "\"}", "password", RegisterUserRequest.PASSWORD_TOO_LONG),
                 // UpdateUserRequest
                 arguments("PUT", "/api/users/1", BAD_EMAIL, "email", CORREO_INVALIDO),
                 arguments("PUT", "/api/users/1", "{\"email\": \"   \"}", "email", CORREO_INVALIDO),
@@ -208,7 +216,7 @@ class ValidationMessagesTests {
     }
 
     private static String registerBody(String email) {
-        return "{\"name\": \"Ana\", \"email\": \"" + email + "\", \"password\": \"secreta\"}";
+        return "{\"name\": \"Ana\", \"email\": \"" + email + "\", \"password\": \"secreta-1\"}";
     }
 
     private static String emailBody(String email) {

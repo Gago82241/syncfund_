@@ -18,6 +18,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.UUID;
+
 @Service
 public class UserAppService {
 
@@ -27,6 +29,7 @@ public class UserAppService {
     private final PasswordEncoder passwordEncoder;
     private final UserMapper userMapper;
     private final CurrentUserProvider currentUserProvider;
+    private final String unknownUserHash;
 
     public UserAppService(UserRepository userRepository,
                            PersonalWalletRepository personalWalletRepository,
@@ -40,6 +43,8 @@ public class UserAppService {
         this.passwordEncoder = passwordEncoder;
         this.userMapper = userMapper;
         this.currentUserProvider = currentUserProvider;
+        // Hash de una clave aleatoria que nadie conoce; solo sirve para igualar el costo del login.
+        this.unknownUserHash = passwordEncoder.encode(UUID.randomUUID().toString());
     }
 
     /** Registra el User y le crea automáticamente su PersonalWallet (relación "owns" 1:1 del MER). */
@@ -68,8 +73,12 @@ public class UserAppService {
 
     /** User.login(email, password) delegado: busca el usuario y valida la contraseña encriptada. */
     public UserResponse login(LoginRequest request) {
-        User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new BusinessException("Credenciales inválidas"));
+        User user = userRepository.findByEmail(request.getEmail()).orElse(null);
+        if (user == null) {
+            // Se compara igual con BCrypt para que el tiempo de respuesta no revele si el correo existe.
+            passwordEncoder.matches(request.getPassword(), unknownUserHash);
+            throw new BusinessException("Credenciales inválidas");
+        }
 
         boolean valid = user.login(request.getEmail(), request.getPassword(), user.getPassword())
                 && passwordEncoder.matches(request.getPassword(), user.getPassword());
