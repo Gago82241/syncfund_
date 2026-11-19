@@ -20,7 +20,9 @@ import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 
 /**
  * Límites de entrada alineados con las columnas: un dato demasiado largo o grande debe responder
@@ -41,6 +43,7 @@ class LimitesEntradaIntegrationTests {
     private static final String CLAVE_74_BYTES = "ñ".repeat(37);
     private static final String CLAVE_DEMASIADO_LARGA =
             "Es demasiado larga. Usa una más corta (máximo 72; las tildes, la ñ y los emojis ocupan más).";
+    private static final String DESCRIPCION_LARGA = "La descripción puede tener máximo 255 caracteres";
 
     @Autowired
     private MockMvc mockMvc;
@@ -116,7 +119,133 @@ class LimitesEntradaIntegrationTests {
                 .content("{\"email\":\"" + correo + "\",\"password\":\"abc123\"}")));
     }
 
+    // ---- Textos de proyectos, categorías y movimientos ----
+
+    @Test
+    void proyectoConNombreDe101CaracteresResponde400() throws Exception {
+        Cuenta ana = registrar("Ana");
+
+        assertCampoInvalido(como(ana, post("/api/projects")).content(proyectoJson(ana, "a".repeat(101), "Prueba")),
+                "name", "El nombre del proyecto puede tener máximo 100 caracteres");
+    }
+
+    @Test
+    void proyectoConDescripcionDe501CaracteresResponde400() throws Exception {
+        Cuenta ana = registrar("Ana");
+
+        assertCampoInvalido(como(ana, post("/api/projects")).content(proyectoJson(ana, "Finca", "a".repeat(501))),
+                "description", "La descripción puede tener máximo 500 caracteres");
+    }
+
+    @Test
+    void proyectoEnLosLimitesResponde201() throws Exception {
+        Cuenta ana = registrar("Ana");
+
+        assertEquals(201, status(como(ana, post("/api/projects"))
+                .content(proyectoJson(ana, "a".repeat(100), "a".repeat(500)))));
+    }
+
+    @Test
+    void categoriaConNombreDe101CaracteresResponde400() throws Exception {
+        Cuenta ana = registrar("Ana");
+
+        assertCampoInvalido(como(ana, post("/api/categories")).content(categoriaJson("a".repeat(101), "0")),
+                "name", "El nombre de la categoría puede tener máximo 100 caracteres");
+    }
+
+    @Test
+    void movimientoConDescripcionDe256CaracteresResponde400() throws Exception {
+        Cuenta ana = registrar("Ana");
+
+        assertCampoInvalido(como(ana, post("/api/transactions")).content(movimientoJson(ana, "1000", "a".repeat(256))),
+                "description", DESCRIPCION_LARGA);
+    }
+
+    @Test
+    void movimientoConDescripcionDe255CaracteresResponde201() throws Exception {
+        Cuenta ana = registrar("Ana");
+
+        assertEquals(201, status(como(ana, post("/api/transactions")).content(movimientoJson(ana, "1000", "a".repeat(255)))));
+    }
+
+    @Test
+    void aporteConDescripcionDe256CaracteresResponde400() throws Exception {
+        Cuenta ana = registrar("Ana");
+        depositar(ana, "100000");
+        long proyecto = crearProyecto(ana);
+
+        assertCampoInvalido(como(ana, post("/api/projects/" + proyecto + "/contributions"))
+                        .content(aporteJson(ana, "1000", "a".repeat(256))),
+                "description", DESCRIPCION_LARGA);
+    }
+
+    @Test
+    void gastoCompartidoConDescripcionDe256CaracteresResponde400() throws Exception {
+        Cuenta ana = registrar("Ana");
+        depositar(ana, "100000");
+        long proyecto = crearProyecto(ana);
+        assertEquals(200, status(como(ana, post("/api/projects/" + proyecto + "/contributions"))
+                .content(aporteJson(ana, "50000", "Aporte"))));
+
+        assertCampoInvalido(como(ana, post("/api/projects/" + proyecto + "/expenses"))
+                        .content(gastoCompartidoJson(ana, "1000", "a".repeat(256))),
+                "description", DESCRIPCION_LARGA);
+    }
+
     // ---- Utilidades ----
+
+    private record Cuenta(long id, String email, String token) {
+    }
+
+    private Cuenta registrar(String nombre) throws Exception {
+        String email = correoAleatorio();
+        String body = mockMvc.perform(post("/api/auth/register").contentType(MediaType.APPLICATION_JSON)
+                        .content(registroJson(nombre, email, CLAVE)))
+                .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+        return new Cuenta(((Number) JsonPath.read(body, "$.user.id")).longValue(), email, JsonPath.read(body, "$.token"));
+    }
+
+    private long billetera(Cuenta cuenta) throws Exception {
+        String body = mockMvc.perform(como(cuenta, get("/api/wallets/personal/user/" + cuenta.id())))
+                .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+        return ((Number) JsonPath.read(body, "$.walletId")).longValue();
+    }
+
+    private void depositar(Cuenta cuenta, String monto) throws Exception {
+        assertEquals(201, status(como(cuenta, post("/api/transactions")).content(movimientoJson(cuenta, monto, "Salario"))));
+    }
+
+    private long crearProyecto(Cuenta admin) throws Exception {
+        String body = mockMvc.perform(como(admin, post("/api/projects")).content(proyectoJson(admin, "Finca", "Prueba")))
+                .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+        return ((Number) JsonPath.read(body, "$.projectId")).longValue();
+    }
+
+    private String movimientoJson(Cuenta cuenta, String monto, String descripcion) throws Exception {
+        return "{\"amount\":" + monto + ",\"description\":\"" + descripcion + "\",\"type\":\"INGRESO\",\"originWalletId\":"
+                + billetera(cuenta) + ",\"originWalletType\":\"PERSONAL\"}";
+    }
+
+    private static String proyectoJson(Cuenta admin, String nombre, String descripcion) {
+        return "{\"name\":\"" + nombre + "\",\"description\":\"" + descripcion + "\",\"adminId\":" + admin.id() + "}";
+    }
+
+    private static String categoriaJson(String nombre, String limite) {
+        return "{\"name\":\"" + nombre + "\",\"monthlyLimit\":" + limite + "}";
+    }
+
+    private static String aporteJson(Cuenta aportante, String monto, String descripcion) {
+        return "{\"amount\":" + monto + ",\"contributorId\":" + aportante.id() + ",\"description\":\"" + descripcion + "\"}";
+    }
+
+    private static String gastoCompartidoJson(Cuenta pagador, String monto, String descripcion) {
+        return "{\"amount\":" + monto + ",\"payerId\":" + pagador.id() + ",\"involvedIdsList\":[" + pagador.id()
+                + "],\"description\":\"" + descripcion + "\"}";
+    }
+
+    private MockHttpServletRequestBuilder como(Cuenta cuenta, MockHttpServletRequestBuilder request) {
+        return como(cuenta.token(), request);
+    }
 
     private void assertCampoInvalido(MockHttpServletRequestBuilder request, String campo, String mensaje)
             throws Exception {
