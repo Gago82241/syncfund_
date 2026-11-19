@@ -44,6 +44,9 @@ class LimitesEntradaIntegrationTests {
     private static final String CLAVE_DEMASIADO_LARGA =
             "Es demasiado larga. Usa una más corta (máximo 72; las tildes, la ñ y los emojis ocupan más).";
     private static final String DESCRIPCION_LARGA = "La descripción puede tener máximo 255 caracteres";
+    private static final String MONTO_DEMASIADO_GRANDE = "El monto no puede superar $9.999.999.999";
+    private static final String MONTO_MAXIMO = "9999999999";
+    private static final String MONTO_FUERA = "10000000000";
 
     @Autowired
     private MockMvc mockMvc;
@@ -190,6 +193,89 @@ class LimitesEntradaIntegrationTests {
         assertCampoInvalido(como(ana, post("/api/projects/" + proyecto + "/expenses"))
                         .content(gastoCompartidoJson(ana, "1000", "a".repeat(256))),
                 "description", DESCRIPCION_LARGA);
+    }
+
+    // ---- Montos: DECIMAL(12,2) admite hasta 9.999.999.999,99 ----
+
+    @Test
+    void movimientoConMontoQueNoCabeResponde400() throws Exception {
+        Cuenta ana = registrar("Ana");
+
+        assertCampoInvalido(como(ana, post("/api/transactions")).content(movimientoJson(ana, MONTO_FUERA, "Salario")),
+                "amount", MONTO_DEMASIADO_GRANDE);
+    }
+
+    @Test
+    void movimientoConElMontoMaximoResponde201() throws Exception {
+        Cuenta ana = registrar("Ana");
+
+        assertEquals(201, status(como(ana, post("/api/transactions")).content(movimientoJson(ana, MONTO_MAXIMO, "Salario"))));
+    }
+
+    @Test
+    void categoriaConLimiteQueNoCabeResponde400() throws Exception {
+        Cuenta ana = registrar("Ana");
+
+        assertCampoInvalido(como(ana, post("/api/categories")).content(categoriaJson("Mercado", MONTO_FUERA)),
+                "monthlyLimit", "El límite mensual no puede superar $9.999.999.999");
+    }
+
+    @Test
+    void categoriaConElLimiteMaximoResponde201() throws Exception {
+        Cuenta ana = registrar("Ana");
+
+        assertEquals(201, status(como(ana, post("/api/categories")).content(categoriaJson("Mercado", MONTO_MAXIMO))));
+    }
+
+    @Test
+    void aporteConMontoQueNoCabeResponde400() throws Exception {
+        Cuenta ana = registrar("Ana");
+        long proyecto = crearProyecto(ana);
+
+        assertCampoInvalido(como(ana, post("/api/projects/" + proyecto + "/contributions"))
+                        .content(aporteJson(ana, MONTO_FUERA, "Aporte")),
+                "amount", MONTO_DEMASIADO_GRANDE);
+    }
+
+    @Test
+    void gastoCompartidoConMontoQueNoCabeResponde400() throws Exception {
+        Cuenta ana = registrar("Ana");
+        long proyecto = crearProyecto(ana);
+
+        assertCampoInvalido(como(ana, post("/api/projects/" + proyecto + "/expenses"))
+                        .content(gastoCompartidoJson(ana, MONTO_FUERA, "Mercado")),
+                "amount", MONTO_DEMASIADO_GRANDE);
+    }
+
+    @Test
+    void pagoEntreIntegrantesConMontoQueNoCabeResponde400() throws Exception {
+        Cuenta ana = registrar("Ana");
+        Cuenta beto = registrar("Beto");
+        long proyecto = crearProyecto(ana);
+        assertEquals(200, status(como(ana, post("/api/projects/" + proyecto + "/members"))
+                .content("{\"email\":\"" + beto.email() + "\"}")));
+
+        assertCampoInvalido(como(beto, post("/api/projects/" + proyecto + "/settlements"))
+                        .content("{\"payerId\":" + beto.id() + ",\"payeeId\":" + ana.id() + ",\"amount\":" + MONTO_FUERA + "}"),
+                "amount", MONTO_DEMASIADO_GRANDE);
+    }
+
+    @Test
+    void colchonConMontoQueNoCabeResponde400() throws Exception {
+        Cuenta ana = registrar("Ana");
+
+        assertCampoInvalido(como(ana, post("/api/wallets/personal/" + billetera(ana) + "/cushion"))
+                        .content("{\"amount\":" + MONTO_FUERA + ",\"type\":\"APARTAR\"}"),
+                "amount", MONTO_DEMASIADO_GRANDE);
+    }
+
+    @Test
+    void metaDeAhorroQueNoCabeResponde400() throws Exception {
+        Cuenta ana = registrar("Ana");
+
+        assertCampoInvalido(como(ana, put("/api/wallets/personal/" + billetera(ana) + "/goal"))
+                        .content("{\"monthlySavingsGoal\":" + MONTO_FUERA + "}"),
+                "monthlySavingsGoal", "La meta de ahorro no puede superar $9.999.999.999");
     }
 
     // ---- Utilidades ----
