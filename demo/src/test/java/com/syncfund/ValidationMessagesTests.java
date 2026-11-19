@@ -133,6 +133,9 @@ class ValidationMessagesTests {
                 arguments("POST", "/api/auth/register", "{}", "email", CORREO_OBLIGATORIO),
                 arguments("POST", "/api/auth/register", "{\"email\": \"\"}", "email", CORREO_OBLIGATORIO),
                 arguments("POST", "/api/auth/register", BAD_EMAIL, "email", CORREO_INVALIDO),
+                arguments("POST", "/api/auth/register", "{\"password\": \"clave12\"}", "password", "La contraseña debe tener al menos 8 caracteres"),
+                arguments("POST", "/api/auth/register", "{\"password\": \"" + "ñ".repeat(37) + "\"}", "password", RegisterUserRequest.PASSWORD_TOO_LONG),
+                arguments("POST", "/api/auth/login", "{\"password\": \"" + "ñ".repeat(37) + "\"}", "password", RegisterUserRequest.PASSWORD_TOO_LONG),
                 // UpdateUserRequest
                 arguments("PUT", "/api/users/1", BAD_EMAIL, "email", CORREO_INVALIDO),
                 arguments("PUT", "/api/users/1", "{\"email\": \"   \"}", "email", CORREO_INVALIDO),
@@ -213,7 +216,7 @@ class ValidationMessagesTests {
     }
 
     private static String registerBody(String email) {
-        return "{\"name\": \"Ana\", \"email\": \"" + email + "\", \"password\": \"secreta\"}";
+        return "{\"name\": \"Ana\", \"email\": \"" + email + "\", \"password\": \"secreta-1\"}";
     }
 
     private static String emailBody(String email) {

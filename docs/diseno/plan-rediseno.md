@@ -217,7 +217,7 @@ Primero las bases que comparten todas las pantallas, luego cada pantalla empezan
 8. **`style/login-registro`:** franja de marca en el celular, `PasswordInput` y error de correo duplicado.
 9. **`style/pulido-final`:** animaciones (`find-animation-opportunities`, `review-animations`), prueba con datos extremos (`break-ui`), `audit`, nueva crítica de las 7 pantallas, `learn-taste` y actualización de `DESIGN.md`.
 
-En paralelo, cuando haya tiempo: la rama de backend `fix/limites-longitud`.
+En paralelo, cuando haya tiempo: la rama de backend `fix/limites-longitud` (hecha al final como `fix/limites-entrada`).
 
 ### Una rama está terminada cuando
 
@@ -264,8 +264,9 @@ Tomado de "Fuera del rediseño", con su estado al cierre:
 
 | Cambio | Estado |
 | --- | --- |
-| `@Size` en `RegisterUserRequest` y en el nombre del proyecto, con el mínimo de contraseña en 8 caracteres y el texto del Registro en el mismo PR (`fix/limites-longitud`) | Pendiente. El Registro sigue pidiendo 6 caracteres. |
-| `@Digits` o `@Max` en `CreateCategoryRequest` (un límite que no cabe en `DECIMAL(12,2)` responde 500) | Pendiente. El frontend ya lo impide. |
+| `@Size` en `RegisterUserRequest` y en el nombre del proyecto, con el mínimo de contraseña en 8 caracteres y el texto del Registro en el mismo PR | **Resuelto** en `fix/limites-entrada`. Registro: nombre ≤ 100, correo ≤ 150, contraseña de 8 caracteres a 72 bytes UTF-8 (anotación propia `@MaxUtf8Bytes`); el login solo tiene el máximo, así que las cuentas antiguas de 6 o 7 caracteres siguen entrando. Proyecto: nombre ≤ 100 (para que "Pago a … – «…»" quepa en 255) y descripción ≤ 500. También se limitaron el nombre de categoría (100) y las descripciones de movimientos, aportes y gastos (255). Todo responde 400 con el mensaje bajo el campo. |
+| `@Digits` o `@Max` en `CreateCategoryRequest` (un límite que no cabe en `DECIMAL(12,2)` responde 500) | **Resuelto** en `fix/limites-entrada` con `@DecimalMax(9.999.999.999,99)`, también en todos los montos de entrada (movimientos, aportes, gastos, pagos, colchón y meta de ahorro). |
+| Saldo acumulado que no cabe en `DECIMAL(12,2)`: cada monto cabe, pero `current_balance`, `cushion_balance` o el fondo pueden pasar de 9.999.999.999,99 tras varios movimientos y responder 500 | Pendiente. Regla en los services (422), no en los DTO. |
 | `PersonalWallet.adjustPrivateBudget` con el caso semanal | Pendiente. La Billetera muestra el ritmo por quincena y por día, no el semanal. |
 | Marcar el origen de cada movimiento de la billetera (registrado, aporte, pago entre integrantes) | Pendiente. Hoy se reconoce por la descripción, y un gasto escrito a mano con ese formato se contaría como aporte. |
 | Editar y eliminar movimientos y categorías | Pendiente (backend y diagrama UML). Es la mayor causa de los puntajes bajos en "Control y libertad". |

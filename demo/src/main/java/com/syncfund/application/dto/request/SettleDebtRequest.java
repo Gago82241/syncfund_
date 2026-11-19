@@ -1,5 +1,6 @@
 package com.syncfund.application.dto.request;
 
+import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import lombok.Data;
@@ -14,5 +15,6 @@ public class SettleDebtRequest {
     private Long payeeId;
 
     @Positive(message = "El monto debe ser mayor que cero")
+    @DecimalMax(value = AmountLimit.MAX, message = "El monto no puede superar $9.999.999.999")
     private double amount;
 }

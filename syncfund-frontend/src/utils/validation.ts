@@ -32,9 +32,13 @@ export function maxLength(value: string, max: number, message: string): string |
   return value.trim().length > max ? message : undefined;
 }
 
-/** Límites del registro: columnas de users (nombre 100, correo 150) y BCrypt (72 bytes). */
+/**
+ * Límites del registro: columnas de users (nombre 100, correo 150), mínimo de contraseña nueva
+ * (8, igual que RegisterUserRequest; el login no lo exige) y BCrypt (72 bytes).
+ */
 export const NAME_MAX = 100;
 export const EMAIL_MAX = 150;
+export const PASSWORD_MIN = 8;
 export const PASSWORD_MAX_BYTES = 72;
 
 /**
